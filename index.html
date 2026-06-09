@@ -6398,7 +6398,8 @@ function renderPledgeNPC(div, faction) {
         dialogue = `${cfg.name}：我要找的是更強大的盟友。`;
     } else {
         dialogue = `${cfg.name}：${cfg.seekLine}`;
-        hint = `<div class="text-amber-300 text-sm mt-3">你是否效忠${cfg.honor}，加入後將與${cfg.enemyName}陣營為敵。</div>`;
+        hint = `<div class="text-amber-300 text-sm mt-3">你是否效忠${cfg.honor}，加入後將與${cfg.enemyName}陣營為敵。</div>
+               <div class="text-red-500 font-bold text-sm mt-2">注意：加入血盟後將遭遇敵對陣營追殺</div>`;
         btn = `<button class="btn w-full bg-blue-800 hover:bg-blue-700 border-blue-500 py-3 text-lg font-bold mt-4" onclick="confirmJoinPledge('${faction}')">加入血盟</button>`;
     }
     div.innerHTML = `
