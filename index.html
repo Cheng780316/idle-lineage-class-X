@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { 
-    background-color: #0f172a; 
+    background-color: #374151; 
     background-image: url('assets/background/background.png'); /* 👈 在這裡填入你的圖片檔名 */
     background-size: cover; 
     background-position: center; 
@@ -17,8 +17,17 @@
     overflow: hidden; 
     user-select: none; 
 }
-        .panel { background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; }
-        .panel-header { background: #0f172a; border-bottom: 1px solid #334155; padding: 0.75rem 1.25rem; font-size: 1.125rem; font-weight: bold; color: #fbbf24; border-top-left-radius: 0.75rem; border-top-right-radius: 0.75rem; }
+        body.game-bg-dim { background-image: linear-gradient(rgba(55,65,81,0.8), rgba(55,65,81,0.8)), url('assets/background/background.png'); }  /* 正式開始遊戲後：背景淡化 */
+        .log-bg { border: 3px solid transparent; background: linear-gradient(180deg, #23282e 0%, #3e4651 50%, #1d2025 100%) padding-box, linear-gradient(135deg, #4a3613 0%, #b89243 20%, #6e5220 42%, #e6c474 60%, #5c4318 80%, #c9a14a 100%) border-box; }  /* 日誌訊息區：較深灰底 + 黃褐不規則漸層邊框 */
+        .panel { background: #1e293b padding-box, linear-gradient(135deg, #4a3613 0%, #b89243 20%, #6e5220 42%, #e6c474 60%, #5c4318 80%, #c9a14a 100%) border-box; border: 2px solid transparent; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; }
+        .panel-header { background: linear-gradient(135deg, #7e6630 0%, #a07f3c 18%, #6e5828 40%, #927535 58%, #5f4d22 78%, #876d31 100%); border-bottom: 1px solid #334155; padding: 0.75rem 1.25rem; font-size: 1.125rem; font-weight: bold; color: #e2e8f0; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; border-top-left-radius: 0.75rem; border-top-right-radius: 0.75rem; }
+        #status-panel > .panel-header { background: transparent; color: #fbbf24; text-shadow: none; }  /* 人物左上資訊框標題：還原原本顏色 */
+        .tab-bar .btn { background: linear-gradient(135deg, #594720 0%, #786030 26%, #4a3c1a 48%, #6b5628 72%, #413518 100%); border-color: #6e5824; color: #f1f5f9; }  /* 分頁鈕：最暗金褐不規則漸層 */
+        .tab-bar .btn:hover:not(:disabled) { background: linear-gradient(135deg, #6e5828 0%, #927535 26%, #5f4d22 48%, #836a30 72%, #564621 100%); }
+        .tab-bar .btn.active { background: linear-gradient(135deg, #9a7c38 0%, #c19a4a 50%, #856a30 100%); border-color: #d4b35e; }
+        #btn-start { background: linear-gradient(135deg, #594720 0%, #786030 26%, #4a3c1a 48%, #6b5628 72%, #413518 100%); border-color: #6e5824; }  /* 開始冒險：金褐(同分頁鈕) */
+        #btn-start:hover:not(:disabled) { background: linear-gradient(135deg, #6e5828 0%, #927535 26%, #5f4d22 48%, #836a30 72%, #564621 100%); }
+        #tab-stats .text-slate-400:not(.text-red-400):not(.text-blue-300):not(.text-blue-300) { color: #e2e8f0; }  /* 能力分頁：非顏色屬性的灰字改亮便於閱讀(屬抗/HP/MP恢復量等有色者不受影響) */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
@@ -201,17 +210,23 @@
 
     <!-- 創角畫面 -->
     <!-- 👇 修改 1：將寬度放大為 max-w-5xl 以容納三欄排版 -->
-    <div id="creation-screen" class="w-[1000px] panel p-8 flex flex-col gap-6 z-50 absolute shadow-2xl" style="background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(6px);">
+    <div id="creation-screen" class="w-[1000px] panel p-8 flex flex-col gap-6 z-50 absolute shadow-2xl" style="background: rgba(42, 44, 46, 0.78); backdrop-filter: blur(6px);">
         <div class="text-center border-b border-slate-700 pb-4">
             <h1 class="text-4xl font-bold text-yellow-400 mb-2">放置天堂-歐瑞</h1>
             <p class="text-base text-slate-400">創造您的角色並開始冒險</p>
         </div>
         
         <div id="main-menu" class="flex flex-col gap-5 items-center my-12">
-            <button onclick="showCreation()" class="btn text-xl w-72 py-4 bg-blue-700 hover:bg-blue-600 border-blue-500">新遊戲 (創建角色)</button>
-            <button onclick="loadGame()" id="btn-load" class="hidden btn text-xl w-72 py-4 bg-emerald-700 hover:bg-emerald-600 border-emerald-500">載入遊戲進度</button>
+            <button onclick="openSlotSelect('new')" class="btn text-xl w-72 py-4 bg-blue-700 hover:bg-blue-600 border-blue-500">新遊戲 (創建角色)</button>
+            <button onclick="openSlotSelect('load')" id="btn-load" class="hidden btn text-xl w-72 py-4 bg-emerald-700 hover:bg-emerald-600 border-emerald-500">載入遊戲進度</button>
         </div>
-        
+
+        <div id="slot-select-panel" class="hidden flex flex-col gap-4 items-center my-8 w-full">
+            <h2 id="slot-select-title" class="text-2xl font-bold text-yellow-400">選擇存檔位</h2>
+            <div id="slot-list" class="flex flex-col gap-3 w-96 max-w-full"></div>
+            <button onclick="slotBackToMenu()" class="btn px-6 py-2 bg-slate-700 hover:bg-slate-600 text-base font-bold">返回</button>
+        </div>
+
         <div id="creation-panel" class="hidden flex flex-row gap-6 items-start">
             
             <div class="w-[340px] h-[480px] border-4 border-amber-800 p-2 bg-slate-950/40 rounded-lg shadow-[0_0_30px_rgba(0,0,0,0.9)] outline outline-1 outline-offset-4 outline-amber-700/40 flex items-center justify-center shrink-0 overflow-hidden">
@@ -251,7 +266,7 @@
                 
                 <div class="flex gap-4 shrink-0 mt-4">
                     <button onclick="backToMenu()" class="btn w-1/4 py-3 text-base">返回</button>
-                    <button onclick="startGame()" id="btn-start" class="btn w-3/4 py-3 bg-yellow-600 hover:bg-yellow-500 border-yellow-400 font-bold text-lg text-white shadow-lg" disabled>開始冒險</button>
+                    <button onclick="startGame()" id="btn-start" class="btn w-3/4 py-3 font-bold text-lg text-white shadow-lg" disabled>開始冒險</button>
                 </div>
             </div>
             
@@ -371,30 +386,27 @@
             </div>
 
             <div id="combat-log-panel" class="panel flex-1 flex flex-col overflow-hidden">
-                <div class="panel-header text-red-400 text-lg border-b border-red-900/30">戰鬥日誌</div>
-                <div id="combat-log" class="flex-1 p-4 overflow-y-auto bg-slate-900 rounded-b-xl shadow-inner text-base tracking-wide"></div>
+                <div class="panel-header text-slate-100 text-lg border-b border-red-900/40">戰鬥日誌</div>
+                <div id="combat-log" class="flex-1 p-4 overflow-y-auto log-bg rounded-b-xl shadow-inner text-base tracking-wide"></div>
             </div>
 
             <div class="panel h-1/3 flex flex-col overflow-hidden">
-                <div class="panel-header text-blue-400 text-lg border-b border-blue-900/30">系統與物品日誌</div>
-                <div id="sys-log" class="flex-1 p-4 overflow-y-auto bg-slate-900 rounded-b-xl shadow-inner text-base"></div>
+                <div class="panel-header text-slate-100 text-lg border-b border-blue-900/40">系統與物品日誌</div>
+                <div id="sys-log" class="flex-1 p-4 overflow-y-auto log-bg rounded-b-xl shadow-inner text-base"></div>
             </div>
         </div>
 
         <!-- 右側：清單面板 -->
         <div class="w-[380px] flex flex-col gap-3">
-            <div class="panel p-2 grid grid-cols-2 gap-2 bg-slate-800">
+            <div class="panel p-2 grid grid-cols-2 gap-2 bg-slate-800 tab-bar">
                 <button class="btn active text-base py-2 font-bold px-0" onclick="switchTab('stats', this)">能力</button>
                 <button class="btn text-base py-2 font-bold px-0" onclick="switchTab('skill', this)">技能</button>
                 <button class="btn text-base py-2 font-bold px-0" onclick="switchTab('equip', this)">裝備</button>
                 <button class="btn text-base py-2 font-bold px-0" onclick="switchTab('items', this)">道具</button>
                 <button class="btn text-base py-2 font-bold px-0" onclick="switchTab('weapons', this)">武器</button>
                 <button class="btn text-base py-2 font-bold px-0" onclick="switchTab('armors', this)">防具</button>
-            </div>
-
-            <div class="flex gap-2">
-                <button id="btn-sort-inv" class="btn flex-1 border-cyan-600 bg-cyan-900 hover:bg-cyan-800 text-cyan-200 py-2 text-base font-bold" onclick="sortInventory()">一鍵排列</button>
-                <button id="btn-sell-junk" class="btn flex-1 border-orange-700 bg-orange-900 hover:bg-orange-800 text-orange-200 py-2 text-base font-bold" onclick="sellAllJunk()">一鍵賣出廢品</button>
+                <button id="btn-sort-inv" class="btn text-base py-2 font-bold px-0" style="background: linear-gradient(135deg, #0c4a5e 0%, #0e7490 28%, #0a3d4d 52%, #11657e 76%, #093440 100%); color: #a5f3fc; border-color: #0891b2;" onclick="sortInventory()">一鍵排列</button>
+                <button id="btn-sell-junk" class="btn text-base py-2 font-bold px-0" style="background: linear-gradient(135deg, #6b2a10 0%, #b3490e 28%, #5a230e 52%, #9a3e0c 76%, #4a1d0c 100%); color: #fed7aa; border-color: #c2410c;" onclick="sellAllJunk()">一鍵賣出廢品</button>
             </div>
 
             <div class="panel flex-1 flex flex-col overflow-hidden relative">
@@ -409,28 +421,28 @@
                         <div class="text-pink-300">魅力 (CHA)</div> <div class="text-pink-200 text-right font-bold" id="dt-cha">8</div>
                     </div>
                     <div class="border-t border-slate-700 pt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-base">
-                        <span class="stat-row" data-grp="melee"><div class="text-slate-400">近距離傷害</div> <div class="text-white text-right font-bold" id="dt-mdmg">0</div></span>
-                        <span class="stat-row" data-grp="melee"><div class="text-slate-400">近距離命中</div> <div class="text-white text-right font-bold" id="dt-mhit">0</div></span>
-                        <span class="stat-row" data-grp="melee"><div class="text-slate-400">近距離爆擊率</div> <div class="text-white text-right font-bold" id="dt-mcrit-p">0%</div></span>
-                        <span class="stat-row" data-grp="ranged"><div class="text-slate-400">遠距離傷害</div> <div class="text-white text-right font-bold" id="dt-rdmg">0</div></span>
-                        <span class="stat-row" data-grp="ranged"><div class="text-slate-400">遠距離命中</div> <div class="text-white text-right font-bold" id="dt-rhit">0</div></span>
-                        <span class="stat-row" data-grp="ranged"><div class="text-slate-400">遠距離爆擊率</div> <div class="text-white text-right font-bold" id="dt-rcrit">0%</div></span>
-                        <span class="stat-row" data-grp="extra"><div class="text-slate-400">額外傷害</div> <div class="text-white text-right font-bold" id="dt-edmg">0</div></span>
-                        <span class="stat-row" data-grp="extra"><div class="text-slate-400">額外命中</div> <div class="text-white text-right font-bold" id="dt-ehit">0</div></span>
-                        <div class="text-slate-400">魔法傷害</div> <div class="text-white text-right font-bold" id="dt-mgdmg">0</div>
-                        <div class="text-slate-400">額外魔法點數</div> <div class="text-white text-right font-bold" id="dt-sp">0</div>
-                        <div class="text-slate-400">魔法命中</div> <div class="text-white text-right font-bold" id="dt-mhit-mag">0</div>
-                        <div class="text-slate-400">魔法爆擊率</div> <div class="text-white text-right font-bold" id="dt-mcrit">0%</div>
-                        <div class="text-slate-400">MP消耗減免</div> <div class="text-white text-right font-bold" id="dt-mpreduce">0%</div>
+                        <span class="stat-row" data-grp="melee"><div class="text-slate-200">近距離傷害</div> <div class="text-white text-right font-bold" id="dt-mdmg">0</div></span>
+                        <span class="stat-row" data-grp="melee"><div class="text-slate-200">近距離命中</div> <div class="text-white text-right font-bold" id="dt-mhit">0</div></span>
+                        <span class="stat-row" data-grp="melee"><div class="text-slate-200">近距離爆擊率</div> <div class="text-white text-right font-bold" id="dt-mcrit-p">0%</div></span>
+                        <span class="stat-row" data-grp="ranged"><div class="text-slate-200">遠距離傷害</div> <div class="text-white text-right font-bold" id="dt-rdmg">0</div></span>
+                        <span class="stat-row" data-grp="ranged"><div class="text-slate-200">遠距離命中</div> <div class="text-white text-right font-bold" id="dt-rhit">0</div></span>
+                        <span class="stat-row" data-grp="ranged"><div class="text-slate-200">遠距離爆擊率</div> <div class="text-white text-right font-bold" id="dt-rcrit">0%</div></span>
+                        <span class="stat-row" data-grp="extra"><div class="text-slate-200">額外傷害</div> <div class="text-white text-right font-bold" id="dt-edmg">0</div></span>
+                        <span class="stat-row" data-grp="extra"><div class="text-slate-200">額外命中</div> <div class="text-white text-right font-bold" id="dt-ehit">0</div></span>
+                        <div class="text-slate-200">魔法傷害</div> <div class="text-white text-right font-bold" id="dt-mgdmg">0</div>
+                        <div class="text-slate-200">額外魔法點數</div> <div class="text-white text-right font-bold" id="dt-sp">0</div>
+                        <div class="text-slate-200">魔法命中</div> <div class="text-white text-right font-bold" id="dt-mhit-mag">0</div>
+                        <div class="text-slate-200">魔法爆擊率</div> <div class="text-white text-right font-bold" id="dt-mcrit">0%</div>
+                        <div class="text-slate-200">MP消耗減免</div> <div class="text-white text-right font-bold" id="dt-mpreduce">0%</div>
                         <div class="text-slate-400 text-red-400">HP恢復量</div> <div class="text-red-400 text-right font-bold" id="dt-hpr">0</div>
 						<div class="text-slate-400 text-blue-300">MP恢復量</div> <div class="text-blue-300 text-right font-bold" id="dt-mpr">0</div>
-						<div class="text-slate-400">迴避率 (ER)</div> <div class="text-white text-right font-bold" id="dt-er">0%</div>
-                        <div class="text-slate-400">傷害減免 (DR)</div> <div class="text-white text-right font-bold" id="dt-dr">0</div>
+						<div class="text-slate-200">迴避率 (ER)</div> <div class="text-white text-right font-bold" id="dt-er">0%</div>
+                        <div class="text-slate-200">傷害減免 (DR)</div> <div class="text-white text-right font-bold" id="dt-dr">0</div>
                         <div class="text-red-300">火屬性抗性</div> <div class="text-red-200 text-right font-bold" id="dt-resfire">0%</div>
                         <div class="text-blue-300">水屬性抗性</div> <div class="text-blue-200 text-right font-bold" id="dt-reswater">0%</div>
                         <div class="text-green-300">風屬性抗性</div> <div class="text-green-200 text-right font-bold" id="dt-reswind">0%</div>
                         <div class="text-amber-300">地屬性抗性</div> <div class="text-amber-200 text-right font-bold" id="dt-researth">0%</div>
-                        <div class="text-slate-400">攻擊速度</div> <div class="text-white text-right font-bold" id="dt-spd">1.0s</div>
+                        <div class="text-slate-200">攻擊速度</div> <div class="text-white text-right font-bold" id="dt-spd">1.0s</div>
                     </div>
                     <div class="border-t border-slate-700 pt-4 text-base leading-relaxed" id="dt-buffs"></div>
                     
@@ -459,8 +471,8 @@
 
     <!-- 物品操作 Modal -->
     <div id="item-modal" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 flex gap-4 items-start">
-        <div id="modal-compare" class="hidden panel border-slate-600 p-5 min-w-[280px] max-w-[340px] max-h-[80vh] overflow-y-auto shadow-[0_0_40px_rgba(0,0,0,0.8)]"></div>
-        <div class="panel border-slate-500 p-6 min-w-[360px] shadow-[0_0_40px_rgba(0,0,0,0.8)]">
+        <div id="modal-compare" class="hidden panel border-slate-600 p-5 min-w-[280px] max-w-[340px] max-h-[80vh] overflow-y-auto shadow-[0_0_40px_rgba(0,0,0,0.8)]" style="background:#1e293b"></div>
+        <div class="panel border-slate-500 p-6 min-w-[360px] shadow-[0_0_40px_rgba(0,0,0,0.8)]" style="background:#1e293b">
             <h3 id="modal-item-name" class="text-xl font-bold mb-3 border-b border-slate-600 pb-3 flex items-center justify-between"><span>物品名稱</span><span id="modal-lock-icon" class="text-lg cursor-pointer" onclick="toggleLockModal()">🔓</span></h3>
             <p id="modal-item-desc" class="text-base text-slate-300 mb-6 min-h-[60px] leading-relaxed">物品說明</p>
             <div class="grid grid-cols-2 gap-3" id="modal-actions"></div>
@@ -1132,6 +1144,7 @@ const DB = {
             n: "銀騎士村",
             npcs: [
                 { id: "npc_glin", n: "格林", title: "雜貨商人", type: "shop", d: "販賣各種日常消耗品。" },
+                { id: "npc_wh_silver", n: "高特", title: "倉庫", type: "warehouse", d: "存放物品與金幣，三個存檔角色共用。" },
                 { id: "npc_moli", n: "茉莉", title: "製作", type: "craft", d: "製作皮革裝備。" },
 				{ id: "npc_finn", n: "芬", title: "製作", type: "craft", d: "提供物品製作服務。" },
                 { id: "npc_joel", n: "喬爾", title: "製作", type: "craft", d: "提供物品製作服務。" },
@@ -1142,6 +1155,7 @@ const DB = {
             n: "肯特城",
             npcs: [
                 { id: "npc_nikki", n: "尼奇", title: "雜貨商人", type: "shop", d: "攻城獲勝後開放的肯特城雜貨商。" },
+                { id: "npc_wh_kent", n: "巴歐", title: "倉庫", type: "warehouse", d: "存放物品與金幣，三個存檔角色共用。" },
                 { id: "npc_ismael", n: "伊賽馬利", title: "交換物品", type: "exchange", d: "以卷軸或金幣交換稀有的祝福卷軸與飾品卷軸。" },
                 { id: "npc_pandora", n: "潘朵拉", title: "黑市", type: "exchange", d: "可能隨機抽到任何物品。" },
                 { id: "npc_esti", n: "依詩蒂", title: "血盟", type: "pledge", d: "尋找以血為盟的夥伴。" },
@@ -1154,6 +1168,7 @@ const DB = {
             npcs: [
                 { id: "npc_gilen", n: "吉倫", title: "魔法傳授者", type: "skill", d: "提供玩家學習1~3級一般魔法。" },
                 { id: "npc_basin", n: "巴辛", title: "妖魔商人", type: "shop", d: "販賣各種日常消耗品。" },
+                { id: "npc_wh_talking", n: "朵琳", title: "倉庫", type: "warehouse", d: "存放物品與金幣，三個存檔角色共用。" },
                 { id: "npc_pandora", n: "潘朵拉", title: "黑市", type: "exchange", d: "可能隨機抽到任何物品。" },
                 { id: "npc_ladal", n: "拉達爾", title: "製作", type: "craft", d: "製作皮革裝備。" },
 				{ id: "npc_falin", n: "法林", title: "製作", type: "craft", d: "製作銀釘皮裝備。" },
@@ -1166,6 +1181,7 @@ const DB = {
             n: "妖精森林",
             npcs: [			
                 { id: "npc_elpin", n: "埃爾頻", title: "雜貨商人", type: "shop", d: "販售各種日常消耗品。" },
+                { id: "npc_wh_elf", n: "艾爾", title: "倉庫", type: "warehouse", d: "存放物品與金幣，三個存檔角色共用。" },
 				{ id: "npc_linda", n: "琳達", title: "精靈魔法商人", type: "shop", d: "販賣各種基本精靈水晶。" },
                 { id: "npc_elion", n: "艾利溫", title: "妖精屬性學習", type: "quest", d: "妖精選擇屬性魔法的重要NPC，四種屬性只能選擇一種。" },
                 { id: "npc_nalien", n: "那翰", title: "製作", type: "craft", d: "提供協助製作魔法笛子。" },
@@ -1201,6 +1217,7 @@ const DB = {
             n: "海音",
             npcs: [
                 { id: "npc_bit", n: "比特", title: "雜貨商人", type: "shop", d: "販售各種日常消耗品。" },
+                { id: "npc_wh_heine", n: "哈金", title: "倉庫", type: "warehouse", d: "存放物品與金幣，三個存檔角色共用。" },
 				{ id: "npc_lumiel", n: "琉米埃爾", title: "製作", type: "craft", d: "交換受到伊娃祝福的裝備。" },
                 { id: "npc_esti", n: "依詩蒂", title: "血盟", type: "pledge", d: "尋找以血為盟的夥伴。" }
             ]
@@ -1209,6 +1226,7 @@ const DB = {
             n: "歐瑞村莊",
             npcs: [
                 { id: "npc_piwood", n: "畢伍德", title: "雜貨商人", type: "shop", d: "販售各種日常消耗品。" },
+                { id: "npc_wh_oren", n: "希林", title: "倉庫", type: "warehouse", d: "存放物品與金幣，三個存檔角色共用。" },
 				{ id: "npc_ibelbin", n: "伊貝爾賓", title: "製作", type: "craft", d: "能打造屠龍級神兵與護甲。" },
                 { id: "npc_tros", n: "特羅斯", title: "血盟", type: "pledge", d: "尋找以血為盟的夥伴。" }
             ]
@@ -1234,7 +1252,7 @@ const DB = {
 	skills: {
         // ================= 【法師魔法】 =================
         // 一階魔法 (Lv 4)
-        "sk_heal1": { n: "初級治癒術", type: "heal", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 4, valBase: 0, valDice: [1, 15], healDice: [1, 20], msg: "你感覺舒服了一點。" },
+        "sk_heal1": { n: "初級治癒術", type: "heal", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 4, valBase: 0, valDice: [1, 15], healDice: [1, 20], healBase: 20, msg: "你感覺舒服了一點。" },
         "sk_sunlight": { n: "日光術", type: "buff", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 4, dur: 7200, msg: "你更容易被怪物發現了。" },
         "sk_shield": { n: "保護罩", type: "buff", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 2, dur: 1200, d: { ac: 2 } },
         "sk_lightarrow": { n: "光箭", type: "atk", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 3, dmgType: "magic", ele: "none", dmgDice: [1, 6] },
@@ -1256,7 +1274,7 @@ const DB = {
         // 三階魔法 (Lv 12)
         "sk_aurora": { n: "極光雷電", type: "atk", tier: 3, reqM: 12, reqE: 24, mp: 13, dmgType: "magic", ele: "wind", target: "all", dmgDice: [2, 14] },
         "sk_undead_bane": { n: "起死回生術", type: "atk", tier: 3, reqM: 12, reqE: 24, mp: 15, dmgType: "magic", instakill: { tag: "undead" } },
-        "sk_heal_mid": { n: "中級治癒術", type: "heal", tier: 3, reqM: 12, reqE: 24, mp: 11, valDice: [1, 30], healDice: [1, 50], msg: "你感覺舒服了一點。" },
+        "sk_heal_mid": { n: "中級治癒術", type: "heal", tier: 3, reqM: 12, reqE: 24, mp: 11, valDice: [1, 30], healDice: [1, 50], healBase: 50, msg: "你感覺舒服了一點。" },
         "sk_dark_blind": { n: "闇盲咒術", type: "atk", tier: 3, reqM: 12, reqE: 24, mp: 20, dmgType: "magic", status: { kind: "blind", pbase: 150, hit: 4, dur: 10 } },
         "sk_shield2": { n: "鎧甲護持", type: "buff", tier: 3, reqM: 12, reqE: 24, mp: 20, dur: 1800, d: { ac: 3 }, msg: "你的盔甲暫時被注入了魔法力量。" },
         "sk_chill": { n: "寒冰氣息", type: "atk", tier: 3, reqM: 12, reqE: 24, mp: 9, dmgType: "magic", ele: "water", target: "all", dmgDice: [3, 6] },
@@ -1276,7 +1294,7 @@ const DB = {
         "sk_mummy_curse": { n: "木乃伊的詛咒", type: "atk", tier: 5, reqM: 20, reqE: 40, mp: 35, dmgType: "magic", status: { kind: "stone", pbase: 100, dur: 6 } },
         "sk_charm": { n: "迷魅術", type: "manual", tier: 5, reqM: 20, reqE: 40, mp: 30, mEff: "charm" },
         "sk_thunder": { n: "極道落雷", type: "atk", tier: 5, reqM: 20, reqE: 40, mp: 25, dmgType: "magic", ele: "wind", dmgDice: [6, 8] },
-        "sk_heal2": { n: "高級治癒術", type: "heal", tier: 5, reqM: 20, reqE: 40, mp: 20, valDice: [2, 30], healDice: [1, 100], msg: "你感覺舒服了一點。" },
+        "sk_heal2": { n: "高級治癒術", type: "heal", tier: 5, reqM: 20, reqE: 40, mp: 20, valDice: [2, 30], healDice: [1, 100], healBase: 100, msg: "你感覺舒服了一點。" },
         "sk_holy_light": { n: "聖潔之光", type: "heal", tier: 5, reqM: 20, reqE: 40, mp: 10, msg: "神聖光芒驅散了詛咒。" },
         "sk_ice_spike": { n: "冰錐", type: "atk", tier: 5, reqM: 20, reqE: 40, mp: 21, dmgType: "magic", ele: "earth", dmgDice: [6, 6] },
         "sk_mana_drain": { n: "魔力奪取", type: "manual", tier: 5, reqM: 20, reqE: 40, hpCost: 50, mEff: "manadrain" },
@@ -1293,7 +1311,7 @@ const DB = {
         "sk_weaken": { n: "弱化術", type: "atk", tier: 6, reqM: 24, reqE: 48, mp: 25, dmgType: "magic", status: { kind: "weaken", pbase: 150, dur: 30 } },
 
         // 七階魔法 (Lv 28)
-        "sk_regen": { n: "體力回復術", type: "heal", tier: 7, reqM: 28, mp: 35, hot: { interval: 30, ticks: 5 }, valDice: [1, 20], healDice: [1, 30], msg: "你的傷口逐漸癒合。", autoBuff: true },
+        "sk_regen": { n: "體力回復術", type: "heal", tier: 7, reqM: 28, mp: 35, hot: { interval: 30, ticks: 5 }, valDice: [1, 20], healDice: [1, 30], healBase: 30, msg: "你的傷口逐漸癒合。", autoBuff: true },
         "sk_greater_haste": { n: "強力加速術", type: "buff", tier: 7, reqM: 28, mp: 60, dur: 2400, haste: true, msg: "你感到身體變得非常輕盈。" },
         "sk_ice_lance": { n: "冰矛圍籬", type: "atk", tier: 7, reqM: 28, mp: 30, dmgType: "magic", ele: "water", dmgDice: [5, 10], freeze: 200 },
         "sk_tornado": { n: "龍捲風", type: "atk", tier: 7, reqM: 28, mp: 45, dmgType: "magic", ele: "wind", target: "all", multiDmg: [[1, 18], [1, 18], [1, 18]] },
@@ -1303,7 +1321,7 @@ const DB = {
         "sk_disease": { n: "疾病術", type: "atk", tier: 7, reqM: 28, mp: 30, dmgType: "magic", status: { kind: "disease", pbase: 150, dur: 30 } },
 
         // 八階魔法 (Lv 32)
-        "sk_full_heal": { n: "全部治癒術", type: "heal", tier: 8, reqM: 32, mp: 30, valDice: [3, 30], healDice: [3, 50], msg: "你感覺舒服了不少。" },
+        "sk_full_heal": { n: "全部治癒術", type: "heal", tier: 8, reqM: 32, mp: 30, valDice: [3, 30], healDice: [3, 50], healBase: 150, msg: "你感覺舒服了不少。" },
         "sk_blizzard": { n: "冰雪暴", type: "atk", tier: 8, reqM: 32, mp: 60, dmgType: "magic", ele: "water", target: "all", multiDmg: [[2, 8], [2, 8], [2, 8], [2, 8]] },
         "sk_quake": { n: "震裂術", type: "atk", tier: 8, reqM: 32, mp: 40, dmgType: "magic", ele: "earth", target: "all", dmgDice: [4, 11] },
         "sk_invisible": { n: "隱身術", type: "buff", tier: 8, reqM: 32, hpCost: 20, mp: 45, dur: 64 },
@@ -1354,12 +1372,12 @@ const DB = {
         "sk_elf_dancefire": { n: "舞躍之火", type: "buff", tier: 4, reqE: 40, mp: 30, dur: 1200, reqEle: "fire", d: { meleeDmg: 5 } },
         "sk_elf_stormeye": { n: "暴風之眼", type: "buff", tier: 4, reqE: 40, mp: 40, dur: 1200, reqEle: "wind", d: { rangedDmg: 2, rangedHit: 2 } },
         "sk_elf_earthshield": { n: "大地屏障", type: "buff", tier: 4, reqE: 40, mp: 50, dur: 8, reqEle: "earth" },
-        "sk_elf_lifespring": { n: "生命之泉", type: "heal", tier: 4, reqE: 40, mp: 50, reqEle: "water", valDice: [4, 35], healDice: [5, 50] },
+        "sk_elf_lifespring": { n: "生命之泉", type: "heal", tier: 4, reqE: 40, mp: 50, reqEle: "water", valDice: [4, 35], healDice: [5, 50], healBase: 250 },
         "sk_elf_earthbless": { n: "大地的祝福", type: "buff", tier: 4, reqE: 40, mp: 35, dur: 1200, reqEle: "earth", d: { ac: 5 } },
 
         // 五階 (Lv 50)
         "sk_elf_summon2": { n: "召喚強力屬性精靈", type: "buff", tier: 5, reqE: 50, mp: 50, dur: 3600, reqEleAny: true, summon: { n: "夥伴：上級{ele}精靈", dmgDice: [2, 40], elemScale: 10, interval: 20, kind: "ranged", eleFromPlayer: true, hitLvOff: 5 } },
-        "sk_elf_lifebless": { n: "生命的祝福", type: "heal", tier: 5, reqE: 50, mp: 30, reqEle: "water", hot: { interval: 30, ticks: 6 }, valDice: [1, 20], healDice: [1, 28], autoBuff: true },
+        "sk_elf_lifebless": { n: "生命的祝福", type: "heal", tier: 5, reqE: 50, mp: 30, reqEle: "water", hot: { interval: 30, ticks: 6 }, valDice: [1, 20], healDice: [1, 28], healBase: 28, autoBuff: true },
         "sk_elf_seal": { n: "封印禁地", type: "atk", tier: 5, reqE: 50, mp: 40, dmgType: "magic", reqEleAny: true, status: { kind: "magicseal", pbase: 100, dur: 8 } },
         "sk_elf_blazewpn": { n: "烈炎武器", type: "buff", tier: 5, reqE: 50, mp: 30, dur: 1200, reqEle: "fire", d: { meleeDmg: 5, meleeHit: 5 } },
         "sk_elf_stormshot": { n: "暴風神射", type: "buff", tier: 5, reqE: 50, mp: 30, dur: 1200, reqEle: "wind", d: { rangedDmg: 4, rangedHit: 2 } },
@@ -1634,6 +1652,7 @@ let _loopLast = null;                // 上次主迴圈時間戳 (performance.no
 let _tickDebt = 0;                   // 尚未換算成 tick 的累積時間 (ms)
 let _gameLoopId = null;              // 主迴圈 setInterval id（用於避免重複註冊）
 let _saveLoopId = null;             // 自動存檔 setInterval id
+let currentSlot = 1;                // 目前所在的存檔位（1~3）
 
 // 統一啟動遊戲計時器：先清除既有的，再重新註冊，確保整個工作階段只會有一組計時器
 function startGameTimers() {
@@ -1902,11 +1921,11 @@ function logCombat(msg, type="player") {
     if (type === "player") { colorClass = "text-blue-300"; } // 我方普攻 (淺藍)
     else if (type === "player-heavy") { colorClass = "text-yellow-300 font-bold"; } // 我方重擊 (黃色粗體)
     else if (type === "player-crit") { colorClass = "text-yellow-500 font-bold"; } // 我方爆擊 (橘黃粗體)
-    else if (type === "player-graze") { colorClass = "text-blue-300/60"; } // 我方擦傷 (比一般命中更淡的藍)
+    else if (type === "player-graze") { colorClass = "text-blue-200/80"; } // 我方擦傷 (較亮的淡藍，灰底上仍清楚)
     else if (type === "enemy") { colorClass = "text-red-400"; } // 敵方攻擊 (紅色)
     else if (type === "magic") { colorClass = "text-cyan-300"; } // 魔法技能 (青色)
     else if (type === "heal") { colorClass = "text-green-300"; } // 恢復效果 (綠色)
-    else if (type === "miss" || type === "dodge") { colorClass = "text-slate-500"; } // 未命中/閃避 (灰色)
+    else if (type === "miss" || type === "dodge") { colorClass = "text-slate-200"; } // 未命中/閃避 (淺灰，避免與灰底相近)
     else if (type === "evade") { colorClass = "text-teal-300"; } // ER獨立迴避 (淡青綠色)
     
     el.innerHTML += `<div class="log-entry ${colorClass}">${msg}</div>`;
@@ -1917,7 +1936,7 @@ function logCombat(msg, type="player") {
 function logSys(msg) {
     if(state.ff) return; // 補跑期間不洗版
     const el = document.getElementById('sys-log');
-    el.innerHTML += `<div class="log-entry text-slate-300">${msg}</div>`;
+    el.innerHTML += `<div class="log-entry text-slate-100">${msg}</div>`;
     if(el.children.length > 50) el.removeChild(el.firstChild);
     el.scrollTop = el.scrollHeight;
 }
@@ -2680,8 +2699,9 @@ function tick() {
     if(player.hot && !player.dead) {
         if(--player.hot.cd <= 0) {
             player.hot.cd = player.hot.interval;
+            let _spCoefHot = (1 + (3 * player.d.magicDmg / 16));
             let heal = player.hot.healDice
-                ? Math.max(1, rollDice(player.hot.healDice[0], player.hot.healDice[1]) + Math.floor(player.d.int / 4))
+                ? Math.max(1, Math.floor((rollDice(player.hot.healDice[0], player.hot.healDice[1]) + (player.hot.healBase || 0)) * _spCoefHot))
                 : Math.max(1, roll(player.hot.valDice[0], player.hot.valDice[1]) + player.d.magicDmg);
             player.hp = Math.min(player.mhp, player.hp + heal);
             player.hot.ticksLeft--;
@@ -2932,8 +2952,8 @@ function getMobColor(mobLv) {
     if (diff >= 6) return "text-orange-500";
     if (diff >= 3) return "text-yellow-400";
     if (diff >= -4) return "text-white";
-    if (diff >= -9) return "text-green-300";
-    return "text-slate-500"; // <= -10
+    if (diff >= -9) return "text-green-400";   // 低5~9級：綠色
+    return "text-green-200"; // 低10級以上(含10)：淺綠
 }
 
 // 怪物名稱顯示用 class：血盟＝固定鮮紅+紅色醒目特效（不受等差影響）；頭目＝保留等差顏色+金色專屬特效
@@ -2993,16 +3013,16 @@ function getPhysicalDmg(diceStr, target, wpn, arrowData) {
     let hitValue = stretchHitValue(rawHitValue);
 
     let rollHit = roll(1, 20);
-    let hit = false, heavy = false, graze = false;
+    let hit = false, heavy = false, graze = false, crush = false;
     if (rollHit === 20) { hit = true; heavy = true; }
     else if (rollHit !== 1 && hitValue >= rollHit) hit = true;
     else if (rollHit === 19) {   // 擲到19依公式本應未命中時 → 擦傷
         hit = true;
         let _cw = player.eq.wpn && DB.items[player.eq.wpn.id];
-        if (_cw && _cw.eff === 'crush') heavy = true;   // 重擊武器：本應擦傷時改為觸發重擊（不擦傷）
+        if (_cw && _cw.eff === 'crush') { heavy = true; crush = true; }   // 重擊武器：本應擦傷時改為觸發粉碎（不擦傷）
         else graze = true;                              // 一般武器：擦傷（傷害剩50%）
     }
-    if(!hit) return { dmg: 0, hit: false, heavy: false, crit: false, graze: false, ranged: isRanged };
+    if(!hit) return { dmg: 0, hit: false, heavy: false, crit: false, graze: false, crush: false, ranged: isRanged };
 
     // 爆擊判定（依遠/近距離爆擊率）
     let isCrit = Math.random() * 100 < critRate;
@@ -3046,7 +3066,7 @@ function getPhysicalDmg(diceStr, target, wpn, arrowData) {
 
     let _outDmg = inner + fixed;
     if (graze) _outDmg = Math.max(1, Math.floor(_outDmg * 0.5));   // 擦傷：最終傷害剩 50%
-    return { dmg: _outDmg, hit: true, heavy: heavy, crit: isCrit, graze: graze, ranged: isRanged };
+    return { dmg: _outDmg, hit: true, heavy: heavy, crit: isCrit, graze: graze, crush: crush, ranged: isRanged };
 }
 
 function consumeArrow() {
@@ -3179,18 +3199,20 @@ function playerAttack() {
         let ext = '';
         if(result.heavy && result.crit) { tag = 'player-crit'; ext = ' (會心一擊!)'; }
         else if(result.crit) { tag = 'player-crit'; ext = ' (爆擊!)'; }
-        else if(result.heavy) { tag = 'player-heavy'; ext = ' (重擊!)'; }
+        else if(result.heavy) { tag = 'player-heavy'; ext = result.crush ? ' (粉碎!)' : ' (重擊!)'; }
         else if(result.graze) { tag = 'player-graze'; ext = ' (擦傷!)'; }
 
         // 切割：雙手劍重擊時觸發，自身攻速+20%持續2秒（與其他加速相乘疊加）
+        let _cleaveProc = false;
         if(result.heavy && wpn && wpn.eff === 'cleave') {
             let _wasCleave = player.statuses.cleave > 0;
             player.statuses.cleave = 20;   // 2秒 = 20 ticks
-            if(!_wasCleave) calcStats();
+            if(!_wasCleave) { calcStats(); _cleaveProc = true; }
         }
 
         // 簡化戰鬥資訊，不顯示遠/近距離[cite: 8]
         logCombat(`${killPrefix}命中 <span class="${getMobColor(target.lv)}">${target.n}</span>，造成 ${result.dmg} 點傷害。${ext}`, tag);
+        if(_cleaveProc) logCombat('<span class="text-teal-300 font-bold">流暢的手感，讓你更快砍出下一刀</span>', 'player');
         
         if (target.curHp <= 0) killMob(mapState.targetIdx);
         else renderMobs();
@@ -3289,9 +3311,10 @@ function enemyPhysicalAttack(mob, idx, stunChance = 0) {
 
         // 盾牌格檔：敵人重擊時依盾牌機率發動，受到傷害減少50%
         let blocked = false;
+        let blockReduced = 0;
         if(heavy && player.eq.shield) {
             let _sh = DB.items[player.eq.shield.id];
-            if(_sh && _sh.block && Math.random() * 100 < _sh.block) { totalDmg = Math.floor(totalDmg * 0.5); blocked = true; }
+            if(_sh && _sh.block && Math.random() * 100 < _sh.block) { let _before = totalDmg; totalDmg = Math.floor(totalDmg * 0.5); blockReduced = _before - totalDmg; blocked = true; }
         }
 
         totalDmg = Math.max(1, totalDmg);
@@ -3299,7 +3322,7 @@ function enemyPhysicalAttack(mob, idx, stunChance = 0) {
 
         let atkMsg = `${mobInsightPrefix}<span class="${getMobColor(mob.lv)}">${mob.n}</span> 擊中你，造成 ${totalDmg} 點傷害。`;
         if(heavy) atkMsg += " (重擊!)";
-        if(blocked) atkMsg += ' <span class="text-cyan-300 font-bold">(格檔!)</span>';
+        if(blocked) atkMsg += ` <span class="text-cyan-300 font-bold">(格檔！減少 ${blockReduced} 點傷害)</span>`;
         logCombat(atkMsg, 'enemy');
         
         if (player.hp <= 0) killPlayer();
@@ -3850,7 +3873,9 @@ function tryInstakill(m, ik, skillName, idx) {
     // 👇 加上 ik.tag 的存在判定：只有在規定了特定 tag 時，才去檢查怪物有沒有該 tag
     if(ik.tag && !mobHasTag(m, ik.tag)) return false; 
     
-    if(!abnormalMagicHit(m)) return false;   // 即死改用異常魔法命中公式（等級/魔法命中/怪MR 決定 5%~95%）
+    // 固定機率即死（骰子匕首 ik.p=0.01 → 1%）；技能型即死(無 ik.p)才用異常魔法命中公式(等級/魔法命中/怪MR → 5%~95%)
+    if(typeof ik.p === 'number') { if(Math.random() >= ik.p) return false; }
+    else if(!abnormalMagicHit(m)) return false;
     
     logCombat(`${skillName} 使 <span class="${getMobColor(m.lv)}">${m.n}</span> 立即死亡！`, 'player-crit');
     m.curHp = 0; 
@@ -4090,7 +4115,7 @@ function castSkill(skId) {
         if(sk.hot) {
             if(player.hot && player.hot.ticksLeft > 0) return false;  // 已在持續中，不重複施放
             player.mp -= cost;
-            player.hot = { valDice: sk.valDice, healDice: sk.healDice, interval: sk.hot.interval, ticksLeft: sk.hot.ticks,
+            player.hot = { valDice: sk.valDice, healDice: sk.healDice, healBase: sk.healBase, tier: sk.tier, interval: sk.hot.interval, ticksLeft: sk.hot.ticks,
                            cd: sk.hot.interval, skName: sk.n, msg: sk.msg };
             player.cds.healSk = sk.hot.interval * sk.hot.ticks;  // 鎖定CD至HoT結束
             logCombat(`施放 ${sk.n}，開始持續回復 HP。`, 'heal');
@@ -4118,8 +4143,9 @@ function castSkill(skId) {
         }
         // 一般瞬間治癒
         player.mp -= cost;
+        let _spCoefHeal = (1 + (3 * player.d.magicDmg / 16));   // 治癒：只套魔法傷害部分，不含階級係數
         let heal = sk.healDice
-            ? Math.max(1, rollDice(sk.healDice[0], sk.healDice[1]) + Math.floor(player.d.int / 4))   // 新公式：XdY + floor(智力/4)
+            ? Math.max(1, Math.floor((rollDice(sk.healDice[0], sk.healDice[1]) + (sk.healBase || 0)) * _spCoefHeal))   // (XdY + healBase) × 魔法傷害公式
             : Math.max(1, (sk.valBase || 0) + roll(sk.valDice[0], sk.valDice[1]) + player.d.magicDmg);
         player.hp = Math.min(player.mhp, player.hp + heal);
         player.cds.healSk = getAutoCastInterval();
@@ -5510,7 +5536,20 @@ function buildItemDescHTML(item) {
         if(d.eff === 'mp_drain') {
             let en = item.en || 0;
             let mpGain = 1 + Math.max(0, en - 6);
-            desc += `<br><span class="text-sky-300">每次攻擊命中時恢復 ${mpGain} 點 MP（+6 以下固定恢復 1 點，自 +7 起每強化一級多恢復 1 點）。</span>`;
+            desc += `<br><span class="text-sky-300">命中時恢復 ${mpGain} 點 MP（+7 起每強化 +1）。</span>`;
+        }
+        if(d.mpROverSafe) {
+            let en = item.en || 0;
+            let mpRegen = (d.mpR || 0) + Math.max(0, en - (d.safe || 0)) * d.mpROverSafe;
+            desc += `<br><span class="text-sky-300">MP自然恢復 ${mpRegen}（+${(d.safe || 0) + 1} 起每強化 +${d.mpROverSafe}）。</span>`;
+        }
+        if(d.extraMpPerEn) {
+            let en = item.en || 0;
+            desc += `<br><span class="text-sky-300">額外魔法點數 +${en * d.extraMpPerEn}（每強化 +${d.extraMpPerEn}）。</span>`;
+        }
+        if(d.meleeHitPerEn) {
+            let en = item.en || 0;
+            desc += `<br><span class="text-sky-300">近距離命中 +${en * d.meleeHitPerEn}（每強化 +${d.meleeHitPerEn}）。</span>`;
         }
     }
     if(d.type === 'arm' || d.type === 'acc') {
@@ -5521,7 +5560,7 @@ function buildItemDescHTML(item) {
         let dmgLabel = isRanged ? "遠距離傷害" : "近距離傷害";
         if(d.hit !== undefined)        desc += ` / ${hitLabel}: ${formatBonus(d.hit)}`;
         if(d.dmgBonus !== undefined)   desc += ` / ${dmgLabel}: ${formatBonus(d.dmgBonus)}`;
-        if(d.mr) desc += ` / 魔防(MR): ${formatBonus(d.mr)}`;
+        if(d.mr || d.mrPerEn) { let _en = item.en || 0; desc += ` / 魔防(MR): ${formatBonus((d.mr||0) + (d.mrPerEn||0)*_en)}` + (d.mrPerEn ? `（每強化 +${d.mrPerEn}）` : ''); }
         if(d.resFire)  desc += ` / 火屬性抗性: ${formatBonus(d.resFire)}`;
         if(d.resWater) desc += ` / 水屬性抗性: ${formatBonus(d.resWater)}`;
         if(d.resWind)  desc += ` / 風屬性抗性: ${formatBonus(d.resWind)}`;
@@ -6490,6 +6529,8 @@ function interactNPC(npcId, townId) {
         renderPledgeNPC(contentDiv, 'tros');
     } else if (npc.id === 'npc_ismael') {
         renderIsmaelExchange(contentDiv);
+    } else if (npc.type === 'warehouse') {
+        renderWarehouseNPC(contentDiv);
     } else {
         // 未來要擴充的 製作 / 交換 / 任務 預留版面
         contentDiv.innerHTML = `
@@ -6506,6 +6547,80 @@ function closeNpcInteraction() {
     document.getElementById('town-interaction-container').classList.add('hidden');
     document.getElementById('town-interaction-container').classList.remove('flex');
     document.getElementById('town-npc-container').classList.remove('hidden');
+}
+// ===== 共用倉庫（三個存檔角色共用，獨立於存檔位的 localStorage 鍵）=====
+const WH_KEY = 'lineage_idle_warehouse';
+const WH_MAX = 100;   // 倉庫格數上限
+const WH_NO_STORE = ['new_item_239','new_item_241','new_item_collar_husky','new_item_238','new_item_184','new_item_185'];   // 禁止存入倉庫：潘朵拉抽獎卷、王族搜索狀、四種項圈
+function loadWarehouse(){
+    try { let s = localStorage.getItem(WH_KEY); if(s){ let w = JSON.parse(s); return { items: w.items || [], gold: w.gold || 0 }; } } catch(e){}
+    return { items: [], gold: 0 };
+}
+function saveWarehouse(w){ localStorage.setItem(WH_KEY, JSON.stringify({ items: w.items, gold: w.gold })); }
+function _whStackFind(arr, it){ return ((it.en||0)===0 && !it.lock) ? arr.find(x => x.id===it.id && (x.en||0)===0 && !x.lock) : null; }
+function whDeposit(uidv){
+    let w = loadWarehouse();
+    let idx = player.inv.findIndex(i => i.uid === uidv);
+    if(idx < 0) return;
+    let it = player.inv[idx];
+    if(WH_NO_STORE.includes(it.id)){ logSys(`<span class="text-red-400">此物品無法存入倉庫。</span>`); return; }
+    // 可堆疊(en0未鎖)合併進既有倉庫堆疊不佔新格；否則需有空格
+    let stack = _whStackFind(w.items, it);
+    if(!stack && w.items.length >= WH_MAX){ logSys(`<span class="text-red-400">倉庫已滿（上限 ${WH_MAX} 格）。</span>`); return; }
+    player.inv.splice(idx, 1);
+    if(stack) stack.cnt += it.cnt; else w.items.push(it);
+    saveWarehouse(w); saveGame(); renderTabs(true); updateUI();
+    renderWarehouseNPC(document.getElementById('interaction-content'));
+}
+function whWithdraw(uidv){
+    let w = loadWarehouse();
+    let idx = w.items.findIndex(i => i.uid === uidv);
+    if(idx < 0) return;
+    let it = w.items[idx];
+    w.items.splice(idx, 1);
+    if(!it.uid || player.inv.some(x => x.uid === it.uid)) it.uid = uid();
+    let stack = _whStackFind(player.inv, it);
+    if(stack) stack.cnt += it.cnt; else player.inv.push(it);
+    saveWarehouse(w); saveGame(); renderTabs(true); updateUI();
+    renderWarehouseNPC(document.getElementById('interaction-content'));
+}
+function whGold(dir){
+    let amt = parseInt(document.getElementById('wh-gold-amt').value) || 0;
+    if(amt <= 0) return;
+    let w = loadWarehouse();
+    if(dir === 'in'){ amt = Math.min(amt, player.gold); player.gold -= amt; w.gold = (w.gold||0) + amt; }
+    else { amt = Math.min(amt, w.gold||0); w.gold -= amt; player.gold += amt; }
+    saveWarehouse(w); saveGame(); updateUI();
+    renderWarehouseNPC(document.getElementById('interaction-content'));
+}
+function renderWarehouseNPC(div){
+    _activePanel = null;   // 倉庫不需自動刷新
+    let w = loadWarehouse();
+    let mkBtn = (it, act) => `<button onclick="${act}('${it.uid}')" class="btn w-full text-left py-1.5 px-2 text-sm bg-slate-800 hover:bg-slate-700 border-slate-600">${getItemFullName(it)}</button>`;
+    let invHtml = player.inv.length ? player.inv.map(it => WH_NO_STORE.includes(it.id)
+        ? `<div class="w-full text-left py-1.5 px-2 text-sm bg-slate-900/60 border border-slate-700 rounded opacity-50 cursor-not-allowed">${getItemFullName(it)} <span class="text-xs text-red-400">（不可存）</span></div>`
+        : mkBtn(it, 'whDeposit')).join('') : '<div class="text-slate-500 text-sm text-center py-4">背包沒有物品</div>';
+    let whHtml  = w.items.length ? w.items.map(it => mkBtn(it, 'whWithdraw')).join('') : '<div class="text-slate-500 text-sm text-center py-4">倉庫是空的</div>';
+    div.innerHTML = `
+    <div class="flex flex-col gap-3 p-1">
+        <div class="text-slate-300 text-sm leading-relaxed">將物品或金幣存入倉庫，<b class="text-amber-300">三個存檔角色共用</b>。點背包物品＝存入；點倉庫物品＝取出。已裝備的物品無法存入（鎖定中的裝備可以存）。</div>
+        <div class="flex items-center gap-2 bg-slate-800/60 border border-slate-600 rounded p-3 text-sm flex-wrap">
+            <span>金幣　背包：<span class="text-yellow-400 font-bold">${player.gold}</span>　倉庫：<span class="text-yellow-400 font-bold">${w.gold||0}</span></span>
+            <input id="wh-gold-amt" type="number" min="1" value="1000" class="w-24 bg-slate-900 border border-slate-600 text-center text-white rounded py-1 ms-auto">
+            <button onclick="whGold('in')" class="btn py-1 px-3 text-sm bg-cyan-900 border-cyan-700 text-cyan-200 font-bold">存入 ▶</button>
+            <button onclick="whGold('out')" class="btn py-1 px-3 text-sm bg-orange-900 border-orange-700 text-orange-200 font-bold">◀ 取出</button>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col min-h-0">
+                <div class="font-bold text-cyan-300 mb-1 text-sm">背包（點擊存入 ▶）</div>
+                <div class="flex flex-col gap-1 overflow-y-auto pr-1" style="max-height:340px">${invHtml}</div>
+            </div>
+            <div class="flex flex-col min-h-0">
+                <div class="font-bold text-amber-300 mb-1 text-sm flex justify-between">倉庫（點擊取出 ◀）<span class="text-slate-400 font-normal">${w.items.length}/${WH_MAX}</span></div>
+                <div class="flex flex-col gap-1 overflow-y-auto pr-1" style="max-height:340px">${whHtml}</div>
+            </div>
+        </div>
+    </div>`;
 }
 // ===== 血盟 NPC：依詩蒂(海音) / 特羅斯(歐瑞) =====
 const PLEDGE_CFG = {
@@ -7333,6 +7448,48 @@ function renderShopItems() {
     });
 }
 
+function migrateSaves(){
+    // 舊單一存檔 → 第1格（既有玩家預設落在存檔1）
+    let oldS = localStorage.getItem('lineage_idle_save');
+    if(oldS && !localStorage.getItem('lineage_idle_save_1')) localStorage.setItem('lineage_idle_save_1', oldS);
+}
+function anySaveExists(){ return ['1','2','3'].some(n => localStorage.getItem('lineage_idle_save_' + n)); }
+function slotSummary(n){
+    let s = localStorage.getItem('lineage_idle_save_' + n);
+    if(!s) return null;
+    try { let d = JSON.parse(s); let p = d.p;
+        let clsName = { knight:'騎士', mage:'法師', elf:'妖精' }[p.cls] || p.cls;
+        return { name: p.name || '未命名', cls: clsName, lv: p.lv || 1, gold: p.gold || 0 };
+    } catch(e){ return null; }
+}
+let _slotMode = 'new';
+function openSlotSelect(mode){
+    _slotMode = mode;
+    document.getElementById('main-menu').classList.add('hidden');
+    document.getElementById('creation-panel').classList.add('hidden');
+    document.getElementById('slot-select-panel').classList.remove('hidden');
+    document.getElementById('slot-select-title').innerText = (mode === 'new') ? '選擇存檔位（創建角色）' : '選擇存檔位（載入進度）';
+    let list = document.getElementById('slot-list'); list.innerHTML = '';
+    for(let n = 1; n <= 3; n++){
+        let sum = slotSummary(n);
+        let label = sum ? `存檔 ${n}　${sum.cls} Lv.${sum.lv}　${sum.name}` : `存檔 ${n}　（空）`;
+        let disabled = (mode === 'load' && !sum);
+        list.innerHTML += `<button onclick="chooseSlot(${n})" ${disabled ? 'disabled' : ''} class="btn w-full py-4 text-lg font-bold ${disabled ? 'opacity-40' : ''}">${label}</button>`;
+    }
+}
+function chooseSlot(n){
+    if(_slotMode === 'load'){ currentSlot = n; loadGame(); return; }
+    let sum = slotSummary(n);
+    if(sum && !confirm(`存檔 ${n} 已有角色（${sum.cls} Lv.${sum.lv} ${sum.name}），確定覆蓋並重新創角？`)) return;
+    currentSlot = n;
+    document.getElementById('slot-select-panel').classList.add('hidden');
+    showCreation();
+}
+function slotBackToMenu(){
+    document.getElementById('slot-select-panel').classList.add('hidden');
+    document.getElementById('main-menu').classList.remove('hidden');
+    if(anySaveExists()) document.getElementById('btn-load').classList.remove('hidden');
+}
 function showCreation() {
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('creation-panel').classList.remove('hidden');
@@ -7345,7 +7502,7 @@ function showCreation() {
 function backToMenu() {
     document.getElementById('main-menu').classList.remove('hidden');
     document.getElementById('creation-panel').classList.add('hidden');
-    if(localStorage.getItem('lineage_idle_save')) document.getElementById('btn-load').classList.remove('hidden');
+    if(anySaveExists()) document.getElementById('btn-load').classList.remove('hidden');
 }
 
 function selectClass(c) {
@@ -7408,6 +7565,7 @@ function updateCreateUI() {
 function startGame() {
     document.getElementById('creation-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
+    document.body.classList.add('game-bg-dim');   // 正式遊戲後：背景淡化
     
     const avatarMap = {
         'm_knight': '男騎士', 'f_knight': '女騎士',
@@ -7529,7 +7687,7 @@ function saveGame() {
         if (chk) player.config.autoBuffSkills[sid] = chk.checked;
     });
 
-    localStorage.setItem('lineage_idle_save', JSON.stringify({ p: player, ms: mapState }));
+    localStorage.setItem('lineage_idle_save_' + currentSlot, JSON.stringify({ p: player, ms: mapState }));
     logSys(`遊戲進度已儲存。`);
 }
 
@@ -7557,7 +7715,7 @@ function consolidateInventory() {
 }
 
 function loadGame() {
-    let s = localStorage.getItem('lineage_idle_save');
+    let s = localStorage.getItem('lineage_idle_save_' + currentSlot);
     if (s) {
         let d = JSON.parse(s);
         player = d.p; mapState = d.ms;
@@ -7569,6 +7727,7 @@ function loadGame() {
           let b2 = document.getElementById('btn-revive-inplace'); if(b2) b2.classList.add('hidden'); }
         document.getElementById('creation-screen').classList.add('hidden');
         document.getElementById('game-screen').classList.remove('hidden');
+        document.body.classList.add('game-bg-dim');   // 正式遊戲後：背景淡化
         
         player.inv.forEach(i => { if(i.lock === undefined) i.lock = false; });
         player.inv.forEach(i => { if(i.junk === undefined) i.junk = false; });
@@ -8716,7 +8875,8 @@ function cancelEditName() {
 }
 
 window.onload = () => {
-    if (localStorage.getItem('lineage_idle_save')) document.getElementById('btn-load').classList.remove('hidden');
+    migrateSaves();
+    if (anySaveExists()) document.getElementById('btn-load').classList.remove('hidden');
 };
 
 /* ===== 城鎮商店/製作介面：游標移到物品圖片上顯示物品資訊（tooltip） ===== */
