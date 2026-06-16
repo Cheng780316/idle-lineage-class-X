@@ -2769,7 +2769,7 @@ function recomputeStats() {
     // ===== Phase 1：先把所有「屬性(STR/DEX/INT/CON/WIS)」來源加總完畢 =====
     // 【修正】裝備與增益提供的屬性，必須在換算戰鬥數值「之前」全部計入，
     //         否則屬性數字會變，但近/遠/魔法傷害·命中·爆擊·AC·ER·HP·MP 不會跟著變。
-    if (p.eq.wpn) { let w = DB.items[p.eq.wpn.id]; if (w.str) d.str += w.str; if (w.dex) d.dex += w.dex; if (w.int) d.int += w.int; if (w.con) d.con += w.con; if (w.wis) d.wis += w.wis; }   // 🔧 與防具迴圈一致讀取五項屬性（先前只讀 str，日後武器若帶 dex/int 會無聲消失）
+    if (p.eq.wpn) { let w = DB.items[p.eq.wpn.id]; if (w.str) d.str += w.str; if (w.dex) d.dex += w.dex; if (w.int) d.int += w.int; if (w.con) d.con += w.con; if (w.wis) d.wis += w.wis; if (w.cha) d.cha += w.cha; }   // 🔧 與防具迴圈一致讀取六項屬性（含魅力 cha）
     for (let k in p.eq) {
         let e = p.eq[k];
         if (!e || k === 'wpn') continue;
@@ -2779,6 +2779,7 @@ function recomputeStats() {
         if (ed.int) d.int += ed.int;
         if (ed.con) d.con += ed.con;
         if (ed.wis) d.wis += ed.wis;
+        if (ed.cha) d.cha += ed.cha;   // 🔧 裝備魅力(cha)：可突破 60 上限
     }
     for (let k in p.buffs) {
         if (p.buffs[k] > 0 && DB.skills[k] && DB.skills[k].d) {
@@ -2788,6 +2789,7 @@ function recomputeStats() {
             if (bd.int) d.int += bd.int;
             if (bd.con) d.con += bd.con;
             if (bd.wis) d.wis += bd.wis;   // 淨化精神
+            if (bd.cha) d.cha += bd.cha;   // 🔧 魅力增益(cha)
         }
     }
 
@@ -8470,6 +8472,7 @@ function buildItemDescHTML(item) {
     if(d.con) statsArr.push(`體質(CON)${formatBonus(d.con)}`);
     if(d.int) statsArr.push(`智力(INT)${formatBonus(d.int)}`);
     if(d.wis) statsArr.push(`精神(WIS)${formatBonus(d.wis)}`);
+    if(d.cha) statsArr.push(`魅力(CHA)${formatBonus(d.cha)}`);
     if(d.mhp) statsArr.push(`HP上限${formatBonus(d.mhp)}`);
     if(d.mmp) statsArr.push(`MP上限${formatBonus(d.mmp)}`);
     if(d.hpR) statsArr.push(`HP恢復${formatBonus(d.hpR)}`);
