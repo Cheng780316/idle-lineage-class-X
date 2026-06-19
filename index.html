@@ -5166,10 +5166,13 @@ function playerAttack() {
             if (!target.st) target.st = newMobStatus();
             let _pPct = hasMastery('d_poison') ? 2.0 : 0.6;   // 🔧 劇毒精通：每秒 200%；否則 60%
             let _pUnit = Math.max(1, Math.floor(result.dmg * _pPct));
-            target.st.poison = 50; target.st.poisonTick = 10;   // 持續 5 秒、每秒一次（重新施加即刷新持續時間）
-            target.st.poisonStacks = 1;                          // 中毒最多 1 層
-            target.st.poisonUnit = Math.max(target.st.poisonUnit || 0, _pUnit);   // 取較高傷害（新<原→保留原；新>原→取代）
-            target.st.poisonDmg = target.st.poisonUnit;
+            // 🔧 新規則：未中毒、或新傷害「高於」現有時才上毒（取代傷害並刷新5秒）；新傷害未更高則完全不更新，須等舊毒5秒跑完、敵人脫離中毒後才能再上毒
+            if ((target.st.poison || 0) <= 0 || _pUnit > (target.st.poisonUnit || 0)) {
+                target.st.poison = 50; target.st.poisonTick = 10;   // 持續 5 秒、每秒一次
+                target.st.poisonStacks = 1;                          // 中毒最多 1 層
+                target.st.poisonUnit = _pUnit;
+                target.st.poisonDmg = _pUnit;
+            }
         }
         target.justHit = getWpnEle(player.eq.wpn, wpn);
         if (player._setBeauty5 && result.heavy) player._beautyNextSure = true;   // 🔮 麗人 5/5：觸發重擊 → 下一次一般攻擊必中
@@ -6960,10 +6963,13 @@ function allyAttackOnce(ally) {
             if (!t.st) t.st = newMobStatus();
             let _pPct = allyHasMastery(ally, 'd_poison') ? 2.0 : 0.6;   // 🔧 劇毒精通：每秒 200%；否則 60%
             let _pUnit = Math.max(1, Math.floor(dmg * _pPct));
-            t.st.poison = 50; t.st.poisonTick = 10;                      // 持續 5 秒、1 層、重新施加即刷新持續時間
-            t.st.poisonStacks = 1;
-            t.st.poisonUnit = Math.max(t.st.poisonUnit || 0, _pUnit);   // 取較高傷害
-            t.st.poisonDmg = t.st.poisonUnit;
+            // 🔧 新規則（與玩家一致）：未中毒、或新傷害高於現有時才上毒（取代並刷新5秒）；否則不更新，須等舊毒跑完
+            if ((t.st.poison || 0) <= 0 || _pUnit > (t.st.poisonUnit || 0)) {
+                t.st.poison = 50; t.st.poisonTick = 10;                      // 持續 5 秒、1 層
+                t.st.poisonStacks = 1;
+                t.st.poisonUnit = _pUnit;
+                t.st.poisonDmg = _pUnit;
+            }
         }
         let mark = (heavy && isCrit) ? '會心一擊' : (isCrit ? '爆擊' : (heavy ? '重擊' : ''));
         logCombat(`${kp}<span class="text-sky-300 font-bold">【協力·${ally._allyName}】</span>攻擊 <span class="${getMobColor(t.lv)}">${t.n}</span>，造成 ${dmg} 點傷害${mark?'（'+mark+'!）':''}。`, 'player');
