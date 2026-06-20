@@ -485,7 +485,7 @@
                 <button id="combat-log-unlock" onclick="combatLogToBottom()" class="hidden absolute left-1/2 -translate-x-1/2 bottom-2 z-10 px-3 py-1 text-xs font-bold rounded-full shadow-lg bg-amber-700/90 hover:bg-amber-600 border border-amber-400 text-amber-50">🔒 已鎖定捲動 ▾ 回到最新</button>
             </div>
 
-            <div id="syslog-panel" class="panel h-1/5 flex flex-col overflow-hidden relative">
+            <div id="syslog-panel" class="panel h-1/3 flex flex-col overflow-hidden relative">
                 <div class="panel-header text-slate-100 text-lg border-b border-blue-900/40 flex items-center justify-between gap-2">
                     <span class="shrink-0">系統與物品日誌</span>
                     <span id="syslog-pandora" class="text-sm font-normal truncate text-right min-w-0"></span>
@@ -3058,7 +3058,7 @@ function flushAwaySummary() {
                 .join('、'));
         }
         if (_awayAcc.gold > 0) {
-            /* 🔧 系統與物品日誌不顯示金幣（已計入 player.gold、即時顯示於左側面板）：避免金幣訊息洗掉物品紀錄 */
+            /* 🔧 掛機期間獲得的金幣不輸出日誌（已計入 player.gold、即時顯示於左側面板）；賣出/花費/消耗等金幣訊息仍保留 */
         }
     }
     // 無論是否達門檻都清空（未達門檻者視為一般即時遊玩的計時抖動，不輸出）
@@ -4918,7 +4918,7 @@ function consumeArrow() {
                 if (player.gold >= cost) {
                     player.gold -= cost;
                     gainItem('wpn_22', 1000, true, true);
-                    logSys(`自動補充了 1000 銀箭。`);
+                    logSys(`自動花費 ${cost} 金幣購買了 1000 銀箭。`);
                     let freshArrow = player.inv.find(i => i.id === 'wpn_22');
                     if (freshArrow) equipItem(freshArrow);
                 } else {
@@ -7829,7 +7829,7 @@ function toggleAlly(slotN) {
             else {
                 let a = buildAlly(slotN);
                 if (!a) { logSys(`<span class="text-red-400">存檔 ${slotN} 沒有可用的角色。</span>`); }
-                else { player.gold -= cost; player.allies.push(a); logSys(`<span class="text-emerald-300 font-bold">招募 ${a._allyName}（存檔 ${slotN}，Lv.${sum.lv}）加入作戰！</span>`); }
+                else { player.gold -= cost; player.allies.push(a); logSys(`<span class="text-emerald-300 font-bold">花費 ${cost.toLocaleString()} 金幣招募 ${a._allyName}（存檔 ${slotN}，Lv.${sum.lv}）加入作戰！</span>`); }
             }
         }
     }
@@ -8360,7 +8360,7 @@ function autoActions() {
             if (needed > 0 && player.gold >= needed * unitPrice) {
                 player.gold -= needed * unitPrice;
                 gainItem(potId, needed, true, true);
-                logSys(`自動補充了 ${needed} 瓶${DB.items[potId].n}。`);
+                logSys(`自動消耗 ${needed * unitPrice} 金幣購買了 ${needed} 瓶${DB.items[potId].n}。`);
                 let fresh = player.inv.find(i => i.id === potId);
                 if(fresh) useItem(fresh.uid, true);
             }
@@ -10685,7 +10685,7 @@ function sellAllJunk() {
     let _grantSold = toSell.some(i => DB.items[i.id] && DB.items[i.id].grantSkills);
     player.inv = player.inv.filter(i => !toSell.includes(i));
     player.gold += totalGold;
-    logSys(`一鍵賣出 ${toSell.length} 件(共 ${totalCount} 個)廢品。`);
+    logSys(`一鍵賣出 ${toSell.length} 件(共 ${totalCount} 個)廢品，獲得 <span class="text-yellow-400 font-bold">${totalGold}</span> 金幣。`);
     renderTabs();
     updateUI();
     if(_grantSold) { calcStats(); renderSkillSelects(); }
@@ -10711,7 +10711,7 @@ function sellItem(uid, count, unitPrice) {
     let totalGot = sellCount * unitPrice;
     player.gold += totalGot;
     item.cnt -= sellCount;
-    logSys(`賣出了 ${sellCount} 個 ${DB.items[item.id].n}。`);
+    logSys(`賣出了 ${sellCount} 個 ${DB.items[item.id].n}，獲得 ${totalGot} 金幣。`);
     if (item.cnt <= 0) {
         player.inv = player.inv.filter(i => i.uid !== uid);
         closeModal();
@@ -11382,7 +11382,7 @@ function kristaExchange(kind) {
         player.inv = player.inv.filter(it => it.cnt > 0);
         gainItem('new_item_uncurse', 1, true, true);
         renderTabs(); updateUI(); saveGame();
-        logSys(`以 1 張 祝福的 對武器施法的卷軸 ＋ 1 張 祝福的 對盔甲施法的卷軸，換得 1 張 <span class="text-cyan-200 font-bold">解除詛咒的卷軸</span>。`);
+        logSys(`花費 ${UNCURSE_GOLD.toLocaleString()} 金幣 ＋ 1 張 祝福的 對武器施法的卷軸 ＋ 1 張 祝福的 對盔甲施法的卷軸，換得 1 張 <span class="text-cyan-200 font-bold">解除詛咒的卷軸</span>。`);
         let _eu = document.getElementById('interaction-content'); if (_eu) renderKristaExchange(_eu);
         return;
     }
@@ -11401,7 +11401,7 @@ function kristaExchange(kind) {
     player.inv = player.inv.filter(it => it.cnt > 0);
     gainItem(cfg.out, 1, true, true);
     renderTabs(); updateUI(); saveGame();
-    logSys(`以 ${cfg.need} 張 ${cfg.nm}，換得 1 張 <span class="text-purple-300 font-bold">${cfg.outNm}</span>。`);
+    logSys(`花費 ${GOLD.toLocaleString()} 金幣與 ${cfg.need} 張 ${cfg.nm}，換得 1 張 <span class="text-purple-300 font-bold">${cfg.outNm}</span>。`);
     let _e = document.getElementById('interaction-content'); if (_e) renderKristaExchange(_e);
 }
 function renderKristaExchange(el) {
@@ -11506,7 +11506,7 @@ function ismaelBuyAcc() {
     gainItem('scroll_acc', 1, true, true);
     player.ismaelAccUsed = true;   // 🔧 次數制：本額度用畢，攻城獲勝時重置
     saveGame();   // 高價購買立即存檔
-    logSys('購買了 1 張 <span class="text-sky-300 font-bold">對飾品施法的卷軸</span>。（攻城獲勝後可再次購買）');
+    logSys('花費 1,000,000 金幣購買了 1 張 <span class="text-sky-300 font-bold">對飾品施法的卷軸</span>。（攻城獲勝後可再次購買）');
     updateUI();
     let el = document.getElementById('interaction-content'); if (el) renderIsmaelExchange(el);
 }
@@ -13055,7 +13055,7 @@ function chooseElfElement(ele) {
         if(player.gold < ELF_SWITCH_COST) { logSys('金幣不足，無法轉換屬性。'); return; }
         if(!confirm(`確定花費 ${ELF_SWITCH_COST.toLocaleString()} 金幣將屬性轉換為「${ELF_ELE[ele].name}」？`)) return;
         player.gold -= ELF_SWITCH_COST;
-        logSys(`你的屬性轉換為 <span class="${ELF_ELE[ele].cls}">${ELF_ELE[ele].name}屬性</span>。`);
+        logSys(`你花費 ${ELF_SWITCH_COST.toLocaleString()} 金幣，屬性轉換為 <span class="${ELF_ELE[ele].cls}">${ELF_ELE[ele].name}屬性</span>。`);
     } else {
         logSys(`你選擇了 <span class="${ELF_ELE[ele].cls}">${ELF_ELE[ele].name}屬性</span>。`);
     }
@@ -13754,7 +13754,7 @@ function resetStatsCandle() {
         player.inv = player.inv.filter(i => !collarIds.includes(i.id));
         player.gold += g;
         player.partners = [];   // 項圈已全數賣出，解除所有夥伴
-        logSys(`重置配點：自動賣出所有項圈共 ${cnt} 個。`);
+        logSys(`重置配點：自動賣出所有項圈共 ${cnt} 個，獲得 <span class="text-yellow-400 font-bold">${g}</span> 金幣。`);
     }
     calcStats();
     updateUI();
@@ -14873,7 +14873,7 @@ function buyPandoraItem() {
     player.gold -= m.price;
     let gi = gainItem(m.id, 1, true, false, false);   // 黑市購買：即所見、不附帶詞綴
     let inst = gi || { id: m.id };
-    logSys(`在潘朵拉黑市購買了 <span class="${getItemColor(inst)} font-bold">${getItemFullName(inst)}</span>。`);
+    logSys(`在潘朵拉黑市花費 <span class="text-yellow-300">${m.price.toLocaleString()}</span> 金幣購買了 <span class="${getItemColor(inst)} font-bold">${getItemFullName(inst)}</span>。`);
     m.sold = true;   // 🔧 購買後標記「已售出」：本輪不可再購買，須等 10 分鐘刷新才會上架新商品
     updateUI(); saveGame();
     pandoraRenderMarket(_pandoraDiv);
