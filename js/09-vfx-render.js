@@ -28,7 +28,7 @@ function _vfxFlush() {
     if (!_vfxPending.length) return;
     let layer = _vfxLayer();
     let ml = document.getElementById('mob-list');
-    if (layer.childElementCount < 80 && ml) {   // 防洪：場上已有大量特效時略過本批（上限 110→80）
+    if (ml) {
         // 🚀 先一次讀完所有格子座標(批次量測)、再一次產生所有特效→消除「讀-寫-讀」反覆強制重排(layout thrashing)
         let reads = [];
         for (const p of _vfxPending) {
@@ -41,8 +41,10 @@ function _vfxFlush() {
         }
         for (const it of reads) {
             let cx = it.cx, cy = it.top + it.h * 0.45;
-            _vfxImpact(cx, cy, it.p.ele, it.p.big);   // ✨ 命中衝擊環＋屬性火花
-            _vfxNumber(cx + (Math.random() * 26 - 13), it.top + it.h * 0.40, it.p.dmg, it.p.ele, it.p.big);
+            // 🩸 傷害數字＝玩家最在意的資訊、單一輕量文字節點→放寬上限至 200，使快速/多段攻擊(龍騎士、AoE、傭兵/召喚同時打)也穩定顯示，不再整批被略過
+            if (layer.childElementCount < 200) _vfxNumber(cx + (Math.random() * 26 - 13), it.top + it.h * 0.40, it.p.dmg, it.p.ele, it.p.big);
+            // ✨ 命中衝擊環＋屬性火花＝較重(blur/box-shadow/多節點)→維持原防洪上限 80；場上特效過多時只略過「粒子」、傷害數字照常顯示
+            if (layer.childElementCount < 80) _vfxImpact(cx, cy, it.p.ele, it.p.big);
         }
     }
     _vfxPending = [];
@@ -103,6 +105,15 @@ function vfxKill(mob) {
         let cx = r.left + r.width / 2, cy = r.top + r.height * 0.45;
         _vfxLastKillRect = { left: r.left, top: r.top, width: r.width, height: r.height };   // 供稀有掉落閃光定位
         let layer = _vfxLayer();
+        // 🩸 致命一擊的傷害數字：死怪在下一幀渲染前已被 settleDeadMobs 移除→渲染側 HP-delta 抓不到，故在此(格子 DOM 仍在)補顯示，使龍騎士等「一/二擊秒殺」也看得到傷害
+        { let _prev = (mob._vfxHp != null) ? mob._vfxHp : (mob.hp || 0);
+          let _kdmg = Math.floor(_prev - mob.curHp);   // 自上次渲染以來累積傷害(含致命擊；curHp 可能為負＝溢殺，顯示實際打出的數值)
+          let _kbig = mob._vfxBig; mob._vfxBig = false;   // 'crit'|'heavy'：致命擊的爆擊/重擊旗標仍在(渲染未重設)
+          if (_kdmg > 0 && layer.childElementCount < 200) {
+              let _kele = (mob.justHit && mob.justHit !== true) ? mob.justHit : 'normal';
+              _vfxNumber(cx + (Math.random() * 26 - 13), r.top + r.height * 0.40, _kdmg, _kele, _kbig);
+          }
+        }
         let color = mob.boss ? '#ffd54f' : '#ff8a5c';
         let n = mob.boss ? 22 : 13;
         for (let i = 0; i < n; i++) {
