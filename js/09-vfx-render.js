@@ -353,6 +353,7 @@ function _vfxFlush() {
     _vfxPending = [];
 }
 function _vfxNumber(x, y, dmg, ele, big) {
+    if (window.__vfxNumOff) return;   // 🔢 v3.0.2 「只關傷害數字」獨立開關：關掉所有飄動傷害數字(致命/非致命皆走此唯一渲染點)·其餘特效不受影響
     let el = document.createElement('div');
     el.className = 'vfx-dmg' + (big ? ' vfx-crit' : '');
     el.style.left = x + 'px'; el.style.top = y + 'px';
@@ -428,7 +429,7 @@ function _mobImgAnchor(imgEl) {
 // 擊殺粒子爆裂：在 killMob 標記死亡後、重繪前呼叫（此時格子 DOM 仍在）
 function vfxKill(mob) {
     try {
-        if (window.__vfxOff || !mob) return;
+        if (!mob) return;   // 🎚️ v3.0.1 關閉特效時「保留死亡動畫」：不再整個 return，改為只擋「傷害數字/頭目閃光」等純裝飾（見下），死亡序列殘影(death_*.png)＋死亡特效層(death_effect)照播＝怪物死亡畫面不消失
         let ml = document.getElementById('mob-list');
         let slot = ml && ml.querySelector('.mob-target[data-uid="' + mob.uid + '"]');
         if (!slot) return;
@@ -441,7 +442,7 @@ function vfxKill(mob) {
         _vfxLastKillRect = { left: r.left, top: r.top, width: r.width, height: r.height };   // 供稀有掉落閃光定位
         let layer = _vfxLayer();
         // 🩸 致命一擊的傷害數字：死怪在下一幀渲染前已被 settleDeadMobs 移除→渲染側 HP-delta 抓不到，故在此(格子 DOM 仍在)補顯示，使龍騎士等「一/二擊秒殺」也看得到傷害
-        { let _prev = (mob._vfxHp != null) ? mob._vfxHp : (mob.hp || 0);
+        if (!window.__vfxOff) { let _prev = (mob._vfxHp != null) ? mob._vfxHp : (mob.hp || 0);   // 🎚️ v3.0.1 致命傷害數字＝純裝飾→關閉特效時不顯示（死亡動畫仍照播）
           let _kdmg = Math.floor(_prev - mob.curHp);   // 自上次渲染以來累積傷害(含致命擊；curHp 可能為負＝溢殺，顯示實際打出的數值)
           let _kbig = mob._vfxBig; mob._vfxBig = false;   // 'crit'|'heavy'：致命擊的爆擊/重擊旗標仍在(渲染未重設)
           if (_kdmg > 0 && layer.childElementCount < 200) {
@@ -513,7 +514,7 @@ function vfxKill(mob) {
             // 🚫 v2.7.49 移除死亡衝擊波環(vfx-killring)/核心爆閃(vfx-particle) CSS 特效——只保留死亡序列幀 anim
         }
         // 🚫 v2.7.49 移除死亡爆裂粒子(vfx-particle) CSS 特效——只保留死亡序列幀 anim
-        if (mob.boss) {   // 👑 頭目擊殺：戰場金白閃光
+        if (!window.__vfxOff && mob.boss) {   // 👑 頭目擊殺：戰場金白閃光（🎚️ v3.0.1 純裝飾→關閉特效時不閃）
             let bv = document.getElementById('battle-view'); let br = bv && bv.getBoundingClientRect();
             if (br && br.width > 0) {
                 let fl = document.createElement('div'); fl.className = 'vfx-areaflash';
@@ -675,6 +676,7 @@ function vfxPlayerHit(dmg) {
 
 // 🎚️ 戰鬥特效開關（僅標題畫面提供；遊戲中不再出現）：玩家選擇持久化於 localStorage，載入時套用到 window.__vfxOff
 const _VFX_PREF_KEY = 'lineage_vfx_off';
+const _VFX_NUM_PREF_KEY = 'lineage_vfx_num_off';   // 🔢 v3.0.2 「只關傷害數字」獨立偏好
 function _applyVfxPref() {
     let off = false;
     try { off = localStorage.getItem(_VFX_PREF_KEY) === '1'; } catch (e) {}
@@ -686,10 +688,26 @@ function _applyVfxPref() {
             ? 'bg-rose-900 hover:bg-rose-800 border-rose-700'
             : 'bg-emerald-800 hover:bg-emerald-700 border-emerald-600');
     }
+    // 🔢 v3.0.2 傷害數字獨立開關（與「戰鬥特效」互不影響：可全開只關數字）
+    let numOff = false;
+    try { numOff = localStorage.getItem(_VFX_NUM_PREF_KEY) === '1'; } catch (e) {}
+    window.__vfxNumOff = numOff;
+    let bn = document.getElementById('btn-vfxnum-toggle');
+    if (bn) {
+        bn.textContent = numOff ? '🔢 傷害數字：關閉' : '🔢 傷害數字：開啟';
+        bn.className = 'btn text-base w-72 py-2.5 ' + (numOff
+            ? 'bg-rose-900 hover:bg-rose-800 border-rose-700'
+            : 'bg-emerald-800 hover:bg-emerald-700 border-emerald-600');
+    }
 }
 function toggleVfxPref() {
     let off = !window.__vfxOff;
     try { localStorage.setItem(_VFX_PREF_KEY, off ? '1' : '0'); } catch (e) {}
+    _applyVfxPref();
+}
+function toggleVfxNumPref() {   // 🔢 v3.0.2 切換「只關傷害數字」
+    let off = !window.__vfxNumOff;
+    try { localStorage.setItem(_VFX_NUM_PREF_KEY, off ? '1' : '0'); } catch (e) {}
     _applyVfxPref();
 }
 
