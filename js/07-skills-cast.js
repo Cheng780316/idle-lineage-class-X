@@ -367,9 +367,13 @@ function castSkillInner(skId) {
             ? Math.max(1, Math.floor((rollDice(sk.healDice[0], sk.healDice[1]) + (sk.healBase || 0)) * _spCoefHeal))   // (XdY + healBase) × 魔法傷害公式
             : Math.max(1, (sk.valBase || 0) + roll(sk.valDice[0], sk.valDice[1]) + player.d.magicDmg);
         heal = waterVitalHeal(heal);   // 🔧 水之元氣：下次恢復魔法治癒加倍
-        player.hp = Math.min(player.mhp, player.hp + heal);
+        // 🤝 v3.0.94 隊長治癒也幫隊員：目標＝隊伍(玩家＋未倒地傭兵)中 HP% 最低者（原僅治癒玩家自己；鏡像傭兵 allyTryHeal 的選人規則）
+        let _hTgt = player, _hPct = (player.mhp > 0) ? (player.hp / player.mhp) : 1;
+        (player.allies || []).forEach(a => { if (a && !a._downed && (a.curHp || 0) > 0 && (a.mhp || 0) > 0) { let _p2 = a.curHp / a.mhp; if (_p2 < _hPct) { _hPct = _p2; _hTgt = a; } } });
+        if (_hTgt === player) player.hp = Math.min(player.mhp, player.hp + heal);
+        else _hTgt.curHp = Math.min(_hTgt.mhp, (_hTgt.curHp || 0) + heal);
         player.cds.healSk = getAutoCastInterval();
-        logCombat(`施放 ${sk.n}，恢復了 ${heal} 點 HP。${sk.msg || ''}`, 'heal');
+        logCombat(`施放 ${sk.n}，恢復了${_hTgt === player ? '' : (' 協力·' + _hTgt._allyName)} ${heal} 點 HP。${sk.msg || ''}`, 'heal');
         return true;
     }
     
@@ -801,6 +805,8 @@ function autoActions() {
         let sk = DB.skills[sid];
         if(sk.type === 'buff') {
             if(sk.haste && (player.buffs.haste > 0 || player._equipHaste)) return;  // 已有加速來源（含裝備常駐），不重複施放
+            // 💨 v3.0.94 強力加速術優先：加速術/強力加速術同時勾選→只施放強力加速術（加速術讓位；原本加速術先施放後 buffs.haste>0 會永遠擋住強力加速術→其 buff 鍵不存在、狀態圖示也不顯示）
+            if(sid === 'sk_haste_spell') { let _g = document.getElementById('auto-sk-sk_greater_haste'); if (_g && _g.checked && player.skills.includes('sk_greater_haste')) return; }
             if(sid === 'sk_sunlight' && KING_ROOMS[mapState.current]) return;   // 🔧 軍王之室／底比斯祭壇：日光術無效，跳過自動施放（否則每 tick 被擋下並狂洗系統日誌）
             if(sk.darkStealth && player._darkStealthCd > state.ticks) return;   // 🔧 暗隱術：冷卻中不自動施放（須身上無暗隱術且冷卻結束才再施放）
             if(sk.awaken && player.mastery !== 'k_awaken' && ['sk_dragon_awaken_antares','sk_dragon_awaken_falion','sk_dragon_awaken_baraka'].some(a => (player.buffs[a]||0) > 0)) return;   // 🐉 覺醒互斥：已有一種覺醒生效時不自動施放其他覺醒（避免互相清除而反覆耗HP/MP）；覺醒精通可同時三種
@@ -874,7 +880,10 @@ function autoCastSpells() {
     let healSk = document.getElementById('sel-heal-skill').value;
     let healThr = parseInt(document.getElementById('set-mp-heal').value) || 0;
     // 治癒魔法改為「HP <= X%」觸發（與恢復生命藥水相同機制）；MP 是否足夠由 castSkill 內部判斷
-    if(healSk && hpPct <= healThr) castSkill(healSk);
+    // 🤝 v3.0.94 隊長治癒也幫隊員：觸發條件改看「隊伍(玩家＋未倒地傭兵)最低 HP%」——隊員低於門檻也會施放（castSkill 治癒分支自會選 HP% 最低者施放）
+    let _teamLowPct = hpPct;
+    (player.allies || []).forEach(a => { if (a && !a._downed && (a.curHp || 0) > 0 && (a.mhp || 0) > 0) { let _p2 = (a.curHp / a.mhp) * 100; if (_p2 < _teamLowPct) _teamLowPct = _p2; } });
+    if(healSk && _teamLowPct <= healThr) castSkill(healSk);
 }
 
 // 詞綴抽取（新制）：掉落/製作/潘朵拉/血盟 等管道只會隨機產生「祝福的」(bless) 1%；不再有單/雙/三詞綴或屬性/遠古的隨機掉落。
