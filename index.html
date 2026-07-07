@@ -468,6 +468,18 @@
         </div>
     </div>
 
+    <!-- 🏺 遺物收集冊 全螢幕書頁 -->
+    <div id="relic-book" class="hidden fixed inset-0 z-[45] bg-black/75 backdrop-blur-sm flex items-center justify-center p-3" onclick="relicBookBackdrop(event)">
+        <div class="w-full max-w-5xl max-h-[92vh] flex flex-col bg-slate-900/95 rounded-2xl border-2 border-sky-700/60 shadow-[0_0_60px_rgba(0,0,0,0.85)] overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-3 border-b border-slate-700 bg-gradient-to-b from-[#0b2e40] to-[#08222e]">
+                <h2 class="text-2xl font-bold c-relic tracking-wide">🏺 遺物收集冊</h2>
+                <button onclick="closeRelicBook()" class="btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border-slate-500 text-slate-200 font-bold">✕ 關閉</button>
+            </div>
+            <div id="relic-book-tabs" class="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-slate-700 bg-slate-900/80"></div>
+            <div id="relic-book-body" class="flex-1 overflow-y-auto p-4"></div>
+        </div>
+    </div>
+
     <!-- 📦 收藏面板（裝備 / 道具 / 怪物 三大入口）-->
     <div id="collection-panel" class="hidden fixed inset-0 z-[46] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onclick="collectionPanelBackdrop(event)">
         <div class="w-full max-w-sm flex flex-col bg-slate-900/95 rounded-2xl border-2 border-amber-700/60 shadow-[0_0_60px_rgba(0,0,0,0.85)] overflow-hidden">
@@ -479,6 +491,7 @@
                 <button onclick="collectionOpenEquip()" class="btn py-5 text-xl font-bold" style="background: linear-gradient(135deg, #10283a, #1d4ed8); color: #bfdbfe; border-color: #3b82f6;">🗡️ 裝備</button>
                 <button onclick="collectionOpenMisc()" class="btn py-5 text-xl font-bold" style="background: linear-gradient(135deg, #3a2f12, #b3850e); color: #fde68a; border-color: #d4a017;">🧰 道具</button>
                 <button onclick="collectionOpenCard()" class="btn py-5 text-xl font-bold" style="background: linear-gradient(135deg, #3a1230, #a21caf); color: #f5d0fe; border-color: #c026d3;">🎴 怪物</button>
+                <button onclick="collectionOpenRelic()" class="btn py-5 text-xl font-bold" style="background: linear-gradient(135deg, #0b2e40, #0284c7); color: #bae6fd; border-color: #38bdf8;">🏺 遺物</button>
             </div>
         </div>
     </div>
@@ -522,5 +535,6 @@
 <script src="js/17-audio.js"></script>
 <script src="js/19-equipment-window.js?v=20260702c"></script>
 <script src="js/20-warehouse-window.js?v=20260702a"></script>
+<script src="js/21-relic-book.js"></script>
 </body>
 </html>
