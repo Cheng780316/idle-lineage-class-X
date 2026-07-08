@@ -16,7 +16,7 @@ function recomputeStats() {
     d.ac = 10; d.er = 0; d.dr = 0;
     d.meleeDmg = 0; d.meleeHit = 0; d.meleeCrit = 0;
     d.crushDr = 0; d.meleeHaste = 0; d.atkSpdPct = 0;   // 🏺 遺物 第二批：受重擊減傷% / 裝近戰武器攻速% / 通用攻速%
-    d.thornsDmg = 0; d.instakillFull = 0; d.onDmgHeal = null;   // 🏺 遺物 第三批：受擊反傷固定值 / 命中滿血怪即死率 / 受擊自癒技能id
+    d.thornsDmg = 0; d.instakillFull = 0; d.onDmgHeal = null; d.onDmgHealCd = 0; d.onDmgHealName = '';   // 🏺 遺物 第三批：受擊反傷固定值 / 命中滿血怪即死率 / 受擊自癒技能id（onDmgHealCd=冷卻秒數、onDmgHealName=來源名稱）
     d.hurtExplode = 0;   // 🏺 遺物 第四批 爆彈花蕊：受擊時對自己與全體敵人的火魔傷固定值
     d.moveSpeedPct = 0;  // 🏺 遺物 寄居蟹背殼：移動速度%（負=變慢→怪物重生變慢·js/03 重生延遲讀取·與加速buff相乘）
     d.rangedDmg = 0; d.rangedHit = 0; d.rangedCrit = 0;
@@ -80,6 +80,12 @@ function recomputeStats() {
     // 🪆 魔法娃娃全收集：裝備收集冊 doll 部位全收集(50 隻) → 六維各 +1（提前套用→吃進 AC/HP/MP/近遠魔傷害/命中/爆擊等衍生值；受下方 80 上限夾擠）。
     //    收集判定走 player.equipDex(共用桶)；recomputeStats 只對玩家執行(p 恆＝player)，傭兵不走此路徑故不吃。label 由 js/16 EQUIP_CAT_BONUS.doll 顯示。
     if (typeof equipCatComplete === 'function' && equipCatComplete('doll')) { d.str += 1; d.dex += 1; d.con += 1; d.int += 1; d.wis += 1; d.cha += 1; }
+
+    // 🏺 遺物「百變的透明內衣」(highestAttrPlus)：目前最高的六維屬性 +1（並列最高皆 +1）。置於六維加總完、上限夾擠前→吃進衍生值(HP/近傷/命中等)。掃 p.eq(玩家或換身傭兵)。
+    { let _hap = false; if (p.eq) { for (let _k in p.eq) { let _e = p.eq[_k]; if (_e) { let _hd = DB.items[_e.id]; if (_hd && _hd.highestAttrPlus) { _hap = true; break; } } } }
+      if (_hap) { let _mx = Math.max(d.str, d.dex, d.con, d.int, d.wis, d.cha);
+        if (d.str === _mx) d.str += 1; if (d.dex === _mx) d.dex += 1; if (d.con === _mx) d.con += 1;
+        if (d.int === _mx) d.int += 1; if (d.wis === _mx) d.wis += 1; if (d.cha === _mx) d.cha += 1; } }
 
     // 🎯 六維屬性效果上限 80：效果表(getStr/Dex/Int/Con/Wis... 系列)最高只設定到 80，超過 80 無對應能力。
     //    故在此(Phase 1 加總完、Phase 2 換算前)把最終屬性夾擠至 ≤80：
@@ -299,7 +305,7 @@ d.mr += (baseMr + bonusMr);
         if(ed.atkSpdPct) d.atkSpdPct += ed.atkSpdPct;  // 🏺 遺物 綠色妖鬼的指甲：攻速 +atkSpdPct%（無條件）
         if(ed.thorns) d.thornsDmg += ed.thorns;        // 🏺 遺物 犰狳尖刺頭盔：受擊反傷固定值（js/04 受擊路徑套用）
         if(ed.instakillFull) d.instakillFull += ed.instakillFull;  // 🏺 遺物 隱蔽的死亡草葉：一般攻擊命中滿血怪即死率
-        if(ed.onDmgHeal) d.onDmgHeal = ed.onDmgHeal;   // 🏺 遺物 白螞蛋殼：受擊自癒技能 id（cd 由 _shellHealCd 節流）
+        if(ed.onDmgHeal) { d.onDmgHeal = ed.onDmgHeal; d.onDmgHealCd = ed.onDmgHealCd || 5; d.onDmgHealName = ed.n; }   // 🏺 遺物 白螞蟻蛋殼(初級/5秒) / 孵育螞蟻精華(中級/8秒)：受擊自癒技能 id＋冷卻秒數＋來源名稱（cd 由 _shellHealCd 節流·僅單一副手槽→無疊加）
         if(ed.hurtExplode) d.hurtExplode += ed.hurtExplode;   // 🏺 遺物 爆彈花蕊：受擊爆裂火魔傷固定值
         if(ed.moveSpeedPct) d.moveSpeedPct += ed.moveSpeedPct;   // 🏺 遺物 寄居蟹背殼：移動速度%（影響怪物重生延遲）
         // 🛡️ 臂甲（副手）：每強化+1 → HP+10；門檻特效（達 +5/+7/+9 套用對應階、取最高階、非累加）

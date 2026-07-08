@@ -391,6 +391,7 @@ function tick() {
         if(player.dead) break;
     }
 
+    if(!player.dead) { let _auraSnap = _dpsSnap(); try { relicAuraTick(); } catch(e){} let _auraDealt = _dpsDealt(_auraSnap); if(_auraDealt > 0) _dps.player += _auraDealt; }   // 🏺 蠅災的詛咒等 auraDmg：玩家階段週期全體固定魔傷（自帶快照→正確計入玩家 DPS·修 code-review#1）
     if(!player.dead) { _combatSrc = 'summon'; let _dpsSumSnap = _dpsSnap(); summonTick(player.summon, () => { player.summon = null; }); summonTick(player.charmed, () => { player.charmed = null; }); if(player.cls === 'illusion') { cubeTick(); illuSummonTick(); } { let _sd = _dpsDealt(_dpsSumSnap); if (_sd > 0) _dps.summon += _sd; }   /* 🎯 DPS：召喚（玩家召喚/迷魅/幻術立方）輸出 */ _combatSrc = 'mercenary'; alliesTick(); _combatSrc = null; }   // ⚔️ 召喚(含迷魅)/傭兵 戰鬥訊息來源情境；🔮 幻術士立方週期效果＋幻術精通幻象
     if(!player.dead) pledgeBlessTick();   // 生命的祝福：場上血盟怪物持續治療
     // 盟主祝福到期清理（每秒檢查；到期即移除並重算屬性）
@@ -1052,6 +1053,31 @@ function procMagicStrike(t, isSpread) {
         }
     }
 }
+// 🏺 遺物「蠅災的詛咒」等 auraDmg 裝備：每 interval tick 對場上所有敵人造成固定魔法傷害（無屬性·不吃魔抗/防禦·固定值）。
+//    掃玩家全部裝備欄（各件依自身 interval 節流）；於玩家階段呼叫→掉血計入玩家 DPS。安全區無怪自動跳過。經典模式亦生效（非「一般限定」武器特效）。
+function relicAuraTick() {
+    if (!player || player.dead || !player.eq) return;
+    let live = mapState.mobs ? mapState.mobs.filter(m => m && m.curHp > 0 && !m._dead) : [];
+    if (!live.length) return;
+    for (let k in player.eq) {
+        let e = player.eq[k]; if (!e) continue; let d = DB.items[e.id]; if (!d || !d.auraDmg) continue;
+        let a = d.auraDmg, iv = a.interval || 20, dmg = a.dmg || 0;
+        if (dmg <= 0 || (state.ticks % iv) !== 0) continue;
+        let names = [];
+        mapState.mobs.forEach(m => {
+            if (!m || m.curHp <= 0 || m._dead) return;
+            m.curHp -= dmg; m.justHit = (a.ele && a.ele !== 'none') ? a.ele : 'magic'; mobWake(m);
+            names.push(`<span class="${getMobColor(m.lv)}">${m.n}</span> ${dmg}`);
+        });
+        if (names.length) logCombat(`<span class="font-bold" style="color:#a3e635;text-shadow:0 0 6px #65a30d;">【${d.n}】</span>${names.join('、')}`, 'dot');
+        // 擊殺結算：uid 快照後逐一 killMob（避免 killMob 改動索引造成位移/漏殺）
+        mapState.mobs.filter(m => m && m.curHp <= 0 && !m._dead).map(m => m.uid).forEach(uid => {
+            let idx = mapState.mobs.findIndex(m => m && m.uid === uid && m.curHp <= 0 && !m._dead);
+            if (idx !== -1) killMob(idx);
+        });
+    }
+    if (!state.ff) renderMobs();
+}
 // 魔擊 proc 判定：裝備力量魔法杖時，每次攻擊(命中與否) 力量/60 機率；主目標已死則轉移到場上隨機存活怪
 function magicStrikeProc(target) {
     if (player.classicMode) return;   // 🎮 經典模式：停用魔擊
@@ -1111,6 +1137,7 @@ function procCounter(t) {
     let res = getPhysicalDmg(dice, t, wpn, null, false, true, false, hasMastery('k_counter'));   // forceHeavy=false, forceHit=true；🏅 反擊精通：必定爆擊
     let dmg = Math.max(1, Math.floor(res.dmg * (hasMastery('k_counter') ? 0.65 : 0.50)));   // 傷害 50%（🏅 反擊精通：+30% → 65%）
     if (player.buffs.sk_counter_barrier > 0 && player.eq.wpn && getWeaponTags(player.eq.wpn.id).includes('單手劍')) dmg = Math.max(1, Math.floor(dmg * 2));   // 🔧 反擊屏障：原生反擊(單手劍)武器最終傷害×2
+    if (player.buffs.sk_counter_barrier > 0 && wpn && wpn.counterBarrierX2) dmg = Math.max(1, Math.floor(dmg * 2));   // 🏺 資深殘兵的重型劍：反擊屏障觸發的反擊傷害×2（雙手劍靠此旗標·非單手劍原生）
     t.curHp -= dmg;
     t.justHit = getWpnEle(player.eq.wpn, wpn);
     mobWake(t);
