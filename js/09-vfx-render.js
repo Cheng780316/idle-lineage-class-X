@@ -1413,7 +1413,11 @@ function _battleSpriteProbe(form) {
     _morphBattleCache[form.key] = 'probing';
     let out = { shadow: {}, weapon: {} };
     let pending = form.wpn ? 17 : 15;   // 🗡️ v3.0.70 職業形態多探 2 項：武器專屬 skill（<wpn>_skill_·黑暗妖精雙刀/鋼爪·龍騎士雙手劍/鎖鏈劍·戰士各武器）
-    let finish = () => { if (--pending <= 0) _morphBattleCache[form.key] = out; };
+    let finish = () => { if (--pending <= 0) {
+        // 🏹 弓/十字弓無專屬技能動畫(bow_skill_)：施放技能(如妖精三重矢)時原退回「通用 skill_」空手施法姿勢→改借用弓攻擊(bow_attack)姿勢，持弓者施放技能不再變空手（玩家＋傭兵共用此快取·同套用影子層）
+        if (form.wpn === 'bow' && !out.wskill && out.attack) { out.wskill = out.attack; if (out.shadow && !out.shadow.wskill && out.shadow.attack) out.shadow.wskill = out.shadow.attack; }
+        _morphBattleCache[form.key] = out;
+    } };
     let probeSeq = (target, key, pfx, minF) => {
         let frames = [], _min = minF || 2;
         let tryLoad = (i) => {
