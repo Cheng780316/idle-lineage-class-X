@@ -658,8 +658,12 @@ function vfxKill(mob) {
                 if (_deathSeq && _img && _img.src && _img.naturalWidth !== 0) {   // 🚫 v2.7.49 只在有死亡序列幀(anim)時播殘影；移除靜態怪的 CSS 白閃殘影
                     let gh = document.createElement('img');
                     gh.className = 'vfx-ghost'; gh.src = _img.src;
-                    gh.style.left = bcx + 'px'; gh.style.top = bcy + 'px';   // 殘影＝整張圖複製→定位方框中心以完整覆蓋原圖(對齊)
-                    gh.style.width = r.width + 'px'; gh.style.height = r.height + 'px';
+                    // 🎯 v3.1.67 殘影尺寸/位置錨到「本體 img 實際 rect」而非 .mob-img-inner 方框：max-height 讓動畫怪 img 溢出方框(如哈維 185px img vs 112px 帶高)時，用方框尺寸會把死亡殘影 object-fit:contain 縮回帶高＝死亡瞬間變小。改用 img rect→殘影與生前本體同尺寸同位。方框為 0/未載入時退回原方框值。
+                    let _ir = _img.getBoundingClientRect();
+                    let _grx = _ir.width > 0 ? (_ir.left + _ir.width / 2) : bcx, _gry = _ir.width > 0 ? (_ir.top + _ir.height / 2) : bcy;
+                    let _grw = _ir.width > 0 ? _ir.width : r.width, _grh = _ir.width > 0 ? _ir.height : r.height;
+                    gh.style.left = _grx + 'px'; gh.style.top = _gry + 'px';   // 殘影＝整張圖複製→定位本體 img 中心以完整覆蓋原圖(對齊)
+                    gh.style.width = _grw + 'px'; gh.style.height = _grh + 'px';
                     gh.style.transformOrigin = (_anc.hc * 100).toFixed(1) + '% ' + (_anc.vc * 100).toFixed(1) + '%';   // 🎯 v2.6.45 放大自「怪物身體中心」擴散(非方框中心)→白閃由怪身發散
                     layer.appendChild(gh);
                     if (_deathSeq) {   // 🎞️ v2.6.86 死亡序列（death_*.png）：殘影原位逐幀播一輪→短淡出（取代白閃；怪卡本體照常移除）
