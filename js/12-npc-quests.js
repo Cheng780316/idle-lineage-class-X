@@ -1000,7 +1000,7 @@ function doRedExchange() {
     let _c = document.getElementById('interaction-content'); if (_c) renderRedQuest(_c);   // 就地重渲染（可連續兌換、更新材料數）
 }
 
-// 🔧 黑暗妖精限定試煉（v3.0.78 接取制）：倫得=15級/康=30級/布魯迪卡=45級＋50級試煉
+// 🔧 黑暗妖精限定試煉（v3.0.78 接取制）：倫得=30級/康=15級（v3.1.39 交換·key 名 dark15/dark30 未動故與 lv 不對應屬正常）/布魯迪卡=45級＋50級試煉
 const DARK_TRIAL_NPC = { npc_runde: { npc: '倫得', key: 'dark15' }, npc_kang: { npc: '康', key: 'dark30' }, npc_brudica: { npc: '布魯迪卡', key: 'dark45' } };
 let _darkTrialNpc = 'npc_runde';   // 供重繪用（renderDarkTrial 需第二參數）
 function renderDarkTrialR(div) { renderDarkTrial(div, _darkTrialNpc); }
