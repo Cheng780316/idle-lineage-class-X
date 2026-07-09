@@ -263,6 +263,8 @@ function royalMagicFreeCast() {
     _royalFreeCast = true;
     try { castSkill(_id); } finally { _royalFreeCast = false; }
 }
+let _silenceLogAt = 0;   // ⏱️ 沉默／魔法封印提示節流：自動施法每 tick 會重試→原本每 tick 洗一次頻。共用時間戳，最多每 1 秒顯示 1 次。
+function _logSilenceOnce(msg){ let now = (typeof Date !== 'undefined') ? Date.now() : 0; if(now - _silenceLogAt < 1000) return; _silenceLogAt = now; logSys(msg); }
 function castSkillInner(skId) {
     let sk = DB.skills[skId];
     if(!sk) return false;
@@ -271,11 +273,11 @@ function castSkillInner(skId) {
     if(skId === 'sk_magic_shield' && (player.magicShieldCd || 0) > 0) return false;   // 魔法屏障抵擋技能後冷卻中，無法施放
     
     if(player.statuses.silence > 0) {   // 🔧 沉默：所有魔法皆無法施放（含魔法相消術——只有沉默/魔法封印能擋下相消術）
-        logSys(`沉默狀態中，無法施展魔法。`);
+        _logSilenceOnce(`沉默狀態中，無法施展魔法。`);   // ⏱️ 節流：最多每秒 1 次，避免自動施法洗頻
         return false;
     }
     if(player.statuses.magicseal > 0) {   // 🔧 魔法封印（怪物技能「沉默」所施加）：同上，魔法相消術亦遭封印
-        logSys(`魔法封印狀態中，無法施展技能。`);
+        _logSilenceOnce(`魔法封印狀態中，無法施展技能。`);   // ⏱️ 節流：共用沉默時間戳
         return false;
     }
     
