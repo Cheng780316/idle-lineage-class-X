@@ -62,7 +62,11 @@ function playerAttack() {
         // 🏺 遺物武器即死 proc（強韌的大腿骨：20% 對「等級 maxLv 以下」的指定 tag 生物即死）
         if (wpn && wpn.procInstakill) {
             let _pk = wpn.procInstakill;
-            if ((!_pk.maxLv || target.lv <= _pk.maxLv) && tryInstakill(target, { p: _pk.p, tag: _pk.tag || null }, wpn.n, mapState.targetIdx)) return;
+            let _thp = target.hp || 1;   // 🐍 獻祭：先取被消滅敵人最大HP（即死後 target.hp 仍為滿值）
+            if ((!_pk.maxLv || target.lv <= _pk.maxLv) && tryInstakill(target, { p: _pk.p, tag: _pk.tag || null }, wpn.n, mapState.targetIdx)) {
+                if (_pk.healPct) { player.hp = Math.min(player.mhp, player.hp + Math.max(1, Math.floor(_thp * _pk.healPct))); updateUI(); }   // 🐍 阿茲特獻祭亡靈：即死後恢復被消滅敵人 HP% (對頭目 tryInstakill 內建免疫)
+                return;
+            }
         }
         // 🏺 遺物 隱蔽的死亡草葉：一般攻擊命中「滿血」非BOSS怪，instakillFull 機率即死（斗篷授予·此處 target.curHp 為命中前值）
         if (player.d.instakillFull && target.curHp === target.hp && tryInstakill(target, { p: player.d.instakillFull, tag: null }, '隱蔽的死亡草葉', mapState.targetIdx)) return;
@@ -113,9 +117,13 @@ function playerAttack() {
         if (wpn && wpn.softMult && _mainHardSkin <= 0) result.dmg = Math.max(1, Math.floor(result.dmg * wpn.softMult));   // 🏺 不死將軍的珍愛巨劍：一般攻擊對「沒有硬皮值」的敵人傷害 ×1.3
         if (wpn && wpn.fullHpMult && target.curHp === target.hp) result.dmg = Math.max(1, Math.floor(result.dmg * wpn.fullHpMult));   // 🏺 遺忘者的狙擊弓：一般攻擊對滿血敵人傷害 ×3（傷害尚未扣、target.curHp 仍為滿血）
         if (wpn && wpn.silencedBonusDmg && target.st && target.st.magicseal > 0) result.dmg += wpn.silencedBonusDmg;   // 🏺 沉默的毒液：對「沉默(magicseal)」狀態敵人額外固定傷害 +20
+        if (wpn && wpn.poisonedBonusDmg && target.st && target.st.poison > 0) result.dmg += wpn.poisonedBonusDmg;   // 🐍 艾庫卡伊拉的毒牙：對中毒狀態敵人額外固定傷害 +15
+        if (wpn && wpn.slowedBonusDmg && target.st && target.st.slow > 0) result.dmg += wpn.slowedBonusDmg;   // 🐍 艾庫艾托的鞭笞藤：對緩速狀態敵人額外固定傷害 +10
+        if (wpn && wpn.selfBreakProc && Math.random() < 0.03) { result.dmg = Math.max(1, Math.floor(result.dmg * 1.5)); if (player.statuses) player.statuses.broken = (wpn.selfBreakProc.dur || 5) * 10; }   // 🐍 特產易碎泥偶：一般攻擊 3% 機率傷害×1.5，並使自身陷入壞物術（下方 getPhysicalDmg 期間傷害 -20%）
         if (wpn && wpn.raceBonus && target.race === wpn.raceBonus.race) result.dmg = Math.max(1, Math.floor(result.dmg * (wpn.raceBonus.mult || 1)));   // 🕷️ 刺針：一般攻擊對特定種族（蜘蛛）造成傷害 ×N
         if (wpn && wpn.raceFlat && target.race === wpn.raceFlat.race) result.dmg = result.dmg + (wpn.raceFlat.add || 0);   // 🏺 遺物 上古蜘蛛之爪：一般攻擊對特定種族（動物）造成額外固定傷害 +N
         target.curHp -= result.dmg;
+        if (target.curHp > 0) consumeStrawCurse(target);   // 🐍 詛咒稻草人：受到攻擊時額外扣 80 水魔傷（每次消耗 1 層·最多 3 層）
         if (result.dmg > 0) { try { playMobHurt(target); } catch(e){} }   // 🔊 音效：怪物受傷（依怪名對應；全域節流）
         if (player._setDragonblood2 && result.dmg > 0) player.hp = Math.min(player.mhp, player.hp + Math.max(1, Math.floor(result.dmg * (player.hp < player.mhp * 0.5 ? 0.05 : 0.01))));   // 🐉 龍血2/5：造成物理傷害吸血1%（自身HP<50%→5%）
         if (wpn && wpn.vampPct && result.dmg > 0) player.hp = Math.min(player.mhp, player.hp + Math.floor(result.dmg * wpn.vampPct));   // 🐉 嗜血者鎖鏈劍：吸取一般攻擊傷害的 % 為 HP
@@ -138,6 +146,7 @@ function playerAttack() {
         if (player._setWhiteBird5 && target.curHp > 0) { if (!target.st) target.st = newMobStatus(); target.st.fragile = 30; }   // 🔮 白鳥 5/5：脆弱 3 秒（重複觸發刷新）
         if (wpn && wpn.onHitEleVuln === 'fire' && target.curHp > 0) target._fireVulnUntil = state.ticks + 30;   // 🏺 遺物 灼熱蜥蜴長舌：命中使目標獲得火屬性弱點 3 秒（受火屬性攻擊 +30%·getPhysicalDmg 讀取）
         if (wpn && wpn.hasteStrike && player.buffs && player.buffs.haste > 0) { player.buffs.haste = 0; if (typeof calcStats === 'function') calcStats(); }   // 🏺 遺物 殺人蜂的尾刺：一般攻擊命中時失去加速狀態
+        if (wpn && wpn.strawCurse && target.curHp > 0 && Math.random() * 100 < wpn.strawCurse.rate) { if (!target.st) target.st = newMobStatus(); target.st.strawCurse = Math.max(target.st.strawCurse || 0, wpn.strawCurse.stacks || 3); }   // 🐍 庫庫爾坎之矛/鐵手甲/蛇神獠牙：命中 rate% 種下詛咒稻草人（3 層）
 
 		// 穿透（貝卡合金）：場上有兩名以上敵人時，普攻額外攻擊「主目標以外隨機一名敵人」，
 		// 每個波及目標各自獨立判定是否命中，命中則造成與主目標相同的傷害與屬性；僅一名敵人時與一般近戰相同（不額外攻擊）。
@@ -426,6 +435,14 @@ function weaponSpellProc(target) {
     }
     if (wpn.spellProc) procWeaponSpell(t, wpn.spellProc, en);
     else if (wpn.procSkill) procFreeMagicSkill(t, wpn.procSkill, en);   // 🔧 冰之女王魔杖：免費施放法師技能（冰錐），傷害依強化值 ×(1+強化/20)
+}
+// 🐍 詛咒稻草人：目標帶 st.strawCurse 層數時，受到攻擊即消耗 1 層並額外承受 80 點水屬性魔法固定傷害（無視魔抗/防禦·比照 onHitEleDmg）。3 把武器種下(庫庫爾坎之矛/鐵手甲/蛇神倒勾獠牙)。掛玩家主攻擊(js/04)與傭兵主攻擊(js/06)兩處主命中。
+function consumeStrawCurse(m) {
+    if (!m || m.curHp <= 0 || !m.st || !(m.st.strawCurse > 0)) return;
+    m.st.strawCurse--;
+    m.curHp -= 80; m.justHit = 'water'; mobWake(m);
+    logCombat(`<span class="font-bold" style="color:#60a5fa;">【詛咒稻草人】</span>對 <span class="${getMobColor(m.lv)}">${m.n}</span> 額外造成 80 點水屬性魔法傷害。`, 'player-special');
+    if (m.curHp <= 0) { let ri = mapState.mobs.findIndex(x => x && x.uid === m.uid); if (ri !== -1) killMob(ri); }
 }
 // 🏺 遺物 特定技能傷害倍率：掃描所有裝備欄，若帶 skillDmgMult{skId或技能名:倍率} 則相乘（暴走兔胡蘿蔔=冰錐 sk_ice_spike ×1.5、光束強化魔杖=光箭 sk_lightarrow/究極光裂術 sk_disintegrate ×1.5）。施放(castSkill·js/07)與觸發(procFreeMagicSkill)兩路徑皆呼叫。
 function equipSkillDmgMult(sk, skId) {
@@ -791,6 +808,7 @@ function enemyPhysicalAttack(mob, idx, stunChance = 0, atkDmg = null, atkDb = nu
           if (player._setFury5) _drMult *= (1 - furyRageRatio());        // 😡 狂怒 5/5：依失血最多 -20%
           _drMult *= teamDmgReduceMult();                                // 🛡️ 鋼鐵防護：全隊受傷 -5%（玩家自身也套）
           if (heavy && player.d.crushDr > 0) _drMult *= (1 - Math.min(80, player.d.crushDr) / 100);   // 🏺 遺物 妖魔的兜襠布：受到重擊(敵人骰20)時傷害 -crushDr%（上限 80%）
+          if (player.d.physDrGated > 0 && state.ticks >= (player._physDrCd || 0)) { _drMult *= (1 - Math.min(90, player.d.physDrGated) / 100); player._physDrCd = state.ticks + 30; }   // 🐍 祭祀儀式陶罐：受一般攻擊傷害 -physDrGated%，每 3 秒(30 ticks)最多觸發 1 次
           totalDmg = Math.max(0, Math.floor(totalDmg * _drMult)); }
 
         // 常駐被動：看破（敵人版）— 命中時依機率造成兩倍傷害（5 + 等級/10 %）
@@ -894,12 +912,14 @@ function enemyPhysicalAttack(mob, idx, stunChance = 0, atkDmg = null, atkDb = nu
 // 🤝 仇恨權重（玩家與傭兵同規則，不分身分）：法師/幻術士、或持弓/遠程武器(弓・十字弓)者＝1；近戰 騎士/戰士/龍騎士＝4；近戰 妖精/黑暗妖精/王族＝3；其餘＝1。（v2.6.30 近戰重裝 3→4・近戰輕裝 2→3）
 function mercAggroWeight(c) {
     if (!c) return 0;
-    if (c.cls === 'mage' || c.cls === 'illusion') return 1;   // 施法者：恆 1
+    let _agB = 0;   // 🐍 艾庫卡伊拉的華麗兜帽：裝備 aggroWeight → 提高被攻擊權重（玩家/傭兵通用）
+    if (c.eq) for (let k in c.eq) { let e = c.eq[k]; if (e) { let d = DB.items[e.id]; if (d && d.aggroWeight) _agB += d.aggroWeight; } }
+    if (c.cls === 'mage' || c.cls === 'illusion') return 1 + _agB;   // 施法者：恆 1
     let w = (c.eq && c.eq.wpn) ? DB.items[c.eq.wpn.id] : null;
-    if (w && (w.isBow || w.ranged)) return 1;   // 持弓/遠程：恆 1（弓・十字弓）
-    if (c.cls === 'knight' || c.cls === 'warrior' || c.cls === 'dragon') return 4;   // 近戰重裝
-    if (c.cls === 'elf' || c.cls === 'dark' || c.cls === 'royal') return 3;          // 近戰輕裝
-    return 1;
+    if (w && (w.isBow || w.ranged)) return 1 + _agB;   // 持弓/遠程：恆 1（弓・十字弓）
+    if (c.cls === 'knight' || c.cls === 'warrior' || c.cls === 'dragon') return 4 + _agB;   // 近戰重裝
+    if (c.cls === 'elf' || c.cls === 'dark' || c.cls === 'royal') return 3 + _agB;          // 近戰輕裝
+    return 1 + _agB;
 }
 // 🏺 聖甲蟲的孵育巢（aggroHide 旗標）：掃 entity 全部裝備欄是否裝備「迴避仇恨」物品（玩家/傭兵通用）。
 function _hasAggroHide(c) {
@@ -1062,7 +1082,7 @@ function castMobMagic(mob, sk) {
     if (mob && mob.curHp > 0 && typeof _mobAnimTrigger === 'function') _mobAnimTrigger(mob, 'skill');   // 🎞️ 序列幀：技能動作（🔒 鎖定·強制放完·播放中的新觸發被忽略）
     if (mob && mob.curHp > 0) { try { if (typeof playMobSkill === 'function') playMobSkill(mob); } catch (e) {} }   // 🔊 怪物技能(施法)音（查 MOB_SKILL_SFX·查無/缺檔靜音·冰之女王 3564）
     if (mob && mob.curHp > 0 && mob.n === '死亡騎士') { try { if (typeof vfxCastShake === 'function') vfxCastShake(); } catch (e) {} }   // ✨ 死亡騎士施法→整個戰場震動（cosmetic·吃 __vfxOff）
-    let redirectable = !!sk.dmg || ['stone', 'paralyze', 'silence', 'magicseal', 'freeze', 'scald', 'stun', 'slowatk', 'poison', 'burn'].includes(sk.type);
+    let redirectable = !!sk.dmg || ['stone', 'paralyze', 'silence', 'magicseal', 'freeze', 'scald', 'stun', 'slowatk', 'poison', 'burn', 'frost_breath'].includes(sk.type);   // ❄️ v3.1.54 寒冰吐息(frost_breath)納入可轉向→'寒冰吐息' 已在 MOB_PARTY_AOE_SKILLS→全體(玩家+傭兵)驅散增益＋緩速
     if (!redirectable) { applyMobMagic(mob, sk); return; }
     let allies = (player.allies || []).filter(a => a && !a._downed && (a.curHp || 0) > 0);
     if ((typeof MOB_PARTY_AOE_SKILLS !== 'undefined') && MOB_PARTY_AOE_SKILLS.has(sk.skn)) {   // 全體：玩家＋全部非倒地傭兵
@@ -1101,6 +1121,18 @@ function applyMobMagicToAlly(mob, sk, ally) {
     if (sk.type === 'scald') { if (Math.random() * 100 < _ch(200)) { st.scald = (sk.dur || 15) * 10; st.scaldDmg = _shMul * (sk.d || 100); st.scaldTick = (sk.tick || 3) * 10; logCombat(`<span class="${getMobColor(mob.lv)}">${mob.n}</span> 施放${sk.skn || '魔法'}，${nm} 被燙傷了！`, 'enemy'); } return; }
     if (sk.type === 'poison') { if (d.immPoison) return; if (Math.random() * 100 < _ch(100)) { st.poison = sk.dur * 10; st.poisonDmg = _shMul * sk.d; st.poisonTick = sk.tick * 10; logCombat(`<span class="${getMobColor(mob.lv)}">${mob.n}</span> 施放${sk.skn || '魔法'}，${nm} 中毒了！`, 'enemy'); } return; }
     if (sk.type === 'burn') { st.burn = sk.dur * 10; st.burnDmg = _shMul * sk.d; st.burnTick = sk.tick * 10; logCombat(`<span class="${getMobColor(mob.lv)}">${mob.n}</span> 施放${sk.skn || '魔法'}，${nm} 陷入灼燒！`, 'enemy'); return; }
+    // ❄️ 寒冰吐息：(pbase − 傭兵MR)/2 % 機率驅散該傭兵所有增益（保留變身/迷魅/誘捕/召喚），並使其攻擊速度減慢100%（比照玩家 js/04:1330·全體 AoE 同時打玩家與各傭兵）
+    if (sk.type === 'frost_breath') {
+        let chance = Math.max(0, ((sk.pbase !== undefined ? sk.pbase : 200) - mr) / 2);
+        if (Math.random() * 100 < chance) {
+            if (ally.buffs) { let kept = {}; for (let k in ally.buffs) { let skd = DB.skills[k]; if (k === 'sk_charm' || k === 'taming' || k === 'poly' || (skd && skd.summon)) kept[k] = ally.buffs[k]; } ally.buffs = kept; }
+            let _slowed = !allyStatusResisted(ally, 'slow');
+            if (_slowed) st.slowAtk = (sk.dur || 8) * 10;
+            if (typeof _allyLevelRecompute === 'function') _allyLevelRecompute(ally);   // 驅散後即時重算 ally.d（否則增益效果殘留到下次 allyMaintainBuffs）
+            logCombat(`<span class="${getMobColor(mob.lv)}">${mob.n}</span> 施放${sk.skn || '寒冰吐息'}，驅散了 ${nm} 的增益狀態${_slowed ? '，並使其攻擊速度大幅減慢！' : '。'}`, 'enemy');
+        }
+        return;
+    }
     if (sk.dmg) {
         let _asleepA = st.sleep > 0;   // 🆕 v2.6.13 #5b 魔法迴避層（比照玩家·作用於傷害魔法；睡眠中不可迴避）
         if (!_asleepA && ally._setMoon5 && roll(1, 100) <= effResistPct((d.er || 0))) { logCombat(`<span class="font-bold" style="color:#c4b5fd;">【月光 5/5】</span>協力·${ally._allyName} 迴避掉 <span class="${getMobColor(mob.lv)}">${mob.n}</span> 的 ${sk.skn || '魔法'}。`, 'evade', 'enemy'); return; }   // 🔮 月光5：ER 也能閃魔法

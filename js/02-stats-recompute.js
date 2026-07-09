@@ -20,6 +20,8 @@ function recomputeStats() {
     d.hurtExplode = 0;   // 🏺 遺物 第四批 爆彈花蕊：受擊時對自己與全體敵人的火魔傷固定值
     d.fireNullify = false;   // 🏺 遺物 火熱愛意：免疫受到的火屬性傷害（每10秒最多1次·js/04 火魔傷攔截·player._fireNullCd 節流）
     d.wearerEle = '';        // 🏺 遺物 火焰/寒冷化身：裝備者化為某屬性→受剋屬性傷害增加、剋制屬性傷害減少（js/04 受擊路徑 elementCounterMult(mob.e, wearerEle)）
+    d.physDrGated = 0;       // 🐍 遺物 祭祀儀式陶罐：受一般攻擊傷害減少%（每3秒最多1次·js/04 enemyPhysicalAttack·player._physDrCd 節流）
+    d.lowMpRegenBonus = 0;   // 🐍 遺物 蛇神的凝視：MP<15% 時 MP自然恢復量額外+N（js/03 regenTick）
     d.moveSpeedPct = 0;  // 🏺 遺物 寄居蟹背殼：移動速度%（負=變慢→怪物重生變慢·js/03 重生延遲讀取·與加速buff相乘）
     d.poisonHealMult = 0;   // 🏺 遺物 毒液化身：受到毒性 DoT 時恢復所受傷害×此倍率的 HP（js/03 中毒 tick 讀取·0=無）
     d.rangedDmg = 0; d.rangedHit = 0; d.rangedCrit = 0;
@@ -315,6 +317,8 @@ d.mr += (baseMr + bonusMr);
         if(ed.hurtExplode) d.hurtExplode += ed.hurtExplode;   // 🏺 遺物 爆彈花蕊：受擊爆裂火魔傷固定值
         if(ed.fireNullify) d.fireNullify = true;              // 🏺 遺物 火熱愛意：免疫火屬性傷害（10秒節流·js/04 攔截）
         if(ed.wearerEle) d.wearerEle = ed.wearerEle;          // 🏺 遺物 火焰/寒冷化身：裝備者化為某屬性（受擊屬性剋制·js/04）
+        if(ed.physDrGated) d.physDrGated += ed.physDrGated;   // 🐍 遺物 祭祀儀式陶罐：受一般攻擊傷害減少%（3秒節流·js/04）
+        if(ed.lowMpRegenBonus) d.lowMpRegenBonus += ed.lowMpRegenBonus;   // 🐍 遺物 蛇神的凝視：MP<15% 時 MP自然恢復額外+N（js/03 regenTick）
         if(ed.moveSpeedPct) d.moveSpeedPct += ed.moveSpeedPct;   // 🏺 遺物 寄居蟹背殼：移動速度%（影響怪物重生延遲）
         if(ed.poisonHealMult) d.poisonHealMult = Math.max(d.poisonHealMult, ed.poisonHealMult);   // 🏺 遺物 毒液化身：毒性 DoT 轉治癒倍率（取最高·不疊加）
         // 🛡️ 臂甲（副手）：每強化+1 → HP+10；門檻特效（達 +5/+7/+9 套用對應階、取最高階、非累加）
@@ -895,6 +899,20 @@ const OSIRIS_BOX_HIGH = [
     ['new_item_151', 14], ['new_item_154', 14], ['new_item_160', 14], ['new_item_157', 14],
     ['new_item_152', 8], ['new_item_155', 8], ['new_item_158', 8], ['new_item_161', 8]
 ];
+// 🐍 提卡爾 庫庫爾坎寶箱：4 傳說裝(初級 0.25%/高級 0.75%)＋卷軸＋寶石（結構同歐西里斯寶箱）
+const KUKULKAN_BOX_BASIC = [
+    ['wpn_kukulkan_spear', 0.25], ['wpn_kukulkan_gauntlet', 0.25], ['shd_kukulkan', 0.25], ['hlm_kukulkan', 0.25],
+    ['scroll_weapon', 3], ['scroll_armor', 4],
+    ['new_item_151', 15], ['new_item_154', 15], ['new_item_160', 15], ['new_item_157', 15],
+    ['new_item_152', 8], ['new_item_155', 8], ['new_item_158', 8], ['new_item_161', 8]
+];
+const KUKULKAN_BOX_HIGH = [
+    ['wpn_kukulkan_spear', 0.75], ['wpn_kukulkan_gauntlet', 0.75], ['shd_kukulkan', 0.75], ['hlm_kukulkan', 0.75],
+    ['scroll_weapon', 4], ['scroll_armor', 5],
+    ['new_item_151', 14], ['new_item_154', 14], ['new_item_160', 14], ['new_item_157', 14],
+    ['new_item_152', 8], ['new_item_155', 8], ['new_item_158', 8], ['new_item_161', 8]
+];
+const BOX_LOOT_BY_ID = { item_osiris_box_basic: OSIRIS_BOX_BASIC, item_osiris_box_high: OSIRIS_BOX_HIGH, item_kukulkan_box_basic: KUKULKAN_BOX_BASIC, item_kukulkan_box_high: KUKULKAN_BOX_HIGH };
 function osirisBoxRoll(table) {
     let total = 0; for (let e of table) total += e[1];   // 總權重（一般情況=100）
     let r = lootRng('osiris') * total, acc = 0;   // 🎲 committed RNG（防 SL 重抽歐西里斯寶箱開到哪件）
@@ -932,7 +950,7 @@ function doOpenOsirisBox(uid, n) {
     let item = player.inv.find(i => i.uid === uid);
     if (!item) { closeOsirisBoxModal(); return; }
     let d = DB.items[item.id];
-    let table = (d.boxTier === 'high') ? OSIRIS_BOX_HIGH : OSIRIS_BOX_BASIC;
+    let table = BOX_LOOT_BY_ID[item.id] || ((d.boxTier === 'high') ? OSIRIS_BOX_HIGH : OSIRIS_BOX_BASIC);   // 🐍 依寶箱 id 選 loot 表（歐西里斯/庫庫爾坎），未列則回退 boxTier
     n = Math.max(1, Math.floor(n));
     let opened = 0, gained = {};
     let _svTrad = _tradLootCtx; _tradLootCtx = true;   // 🏛️ 傳統模式：寶箱開出的底比斯裝備比照掉落/製作，自帶隨機強化值（gainItem 內 traditionalActive() 閘·非傳統恆 +0；強化值走 committed lootRng 防 SL）

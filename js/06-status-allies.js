@@ -1,6 +1,6 @@
 function newMobStatus() {
     return { freeze:0, stun:0, stone:0, sleep:0, poison:0, poisonTick:30, poisonDmg:0, poisonStacks:0, poisonUnit:0,
-             blind:0, blindVal:0, weaken:0, disease:0, vacuum:0, broken:0, slow:0, mrhalf:0, magicseal:0, armorbreak:0, confuse:0, panic:0, guardbreak:0, terror:0, doom:0 };
+             blind:0, blindVal:0, weaken:0, disease:0, vacuum:0, broken:0, slow:0, mrhalf:0, magicseal:0, armorbreak:0, confuse:0, panic:0, guardbreak:0, terror:0, doom:0, strawCurse:0 };
 }
 function mobEffAC(m, actor) { let _weakOk = (m.weakExpose > 0) && ((actor && actor !== player) ? allyHasMastery(actor, 'k_weakness') : hasMastery('k_weakness')); return (m.ac || 0) + ((m.st && m.st.disease > 0) ? 8 : 0) + ((m.st && (m.st.confuse > 0 || m.st.panic > 0)) ? 5 : 0) + ((m.st && m.st.guardbreak > 0) ? 10 : 0) + (_weakOk ? 3 * Math.min(5, m.weakExpose) : 0) - ((m._acGuardEnd > state.ticks) ? (m._acGuardVal || 0) : 0); }   // 🔮 混亂/恐慌：AC+5；🐉 護衛毀滅：AC+10；🐉 弱點精通：每層弱點曝光 AC+3（更易被命中·讀「攻擊者」精通：傭兵傳 actor→吃傭兵自身精通、玩家/召喚無 actor→吃玩家精通）   // 🗼 鋼鐵防護：暫時降低 AC
 function mobActDisabled(m) {
@@ -412,9 +412,13 @@ function allyAttackOnce(ally) {
         if (wpn && wpn.softMult && _hsT <= 0) dmg = Math.max(1, Math.floor(dmg * wpn.softMult));   // 🏺 不死將軍的珍愛巨劍：對「無硬皮」敵人傷害×1.3（傭兵鏡像玩家）
         { let _fhmA = wpn && (_allyInTriple ? (!_allyTripleFhmUsed ? wpn.fullHpMultTriple : null) : wpn.fullHpMult); if (_fhmA && t.curHp === t.hp) { dmg = Math.max(1, Math.floor(dmg * _fhmA)); if (_allyInTriple) _allyTripleFhmUsed = true; } }   // 🏺 遺忘者的狙擊弓：三重矢對滿血×2（每次施放最多 1 箭·對齊玩家「僅第一箭」·防第1箭擊殺滿血怪後轉目標再吃×2）／一般攻擊對滿血×3（傭兵鏡像玩家·_allyInTriple 區分兩者）
         if (wpn && wpn.silencedBonusDmg && t.st && t.st.magicseal > 0) dmg += wpn.silencedBonusDmg;   // 🏺 沉默的毒液：對沉默(magicseal)敵人額外固定傷害 +20（傭兵鏡像玩家）
+        if (wpn && wpn.poisonedBonusDmg && t.st && t.st.poison > 0) dmg += wpn.poisonedBonusDmg;   // 🐍 艾庫卡伊拉的毒牙：對中毒敵人額外固定傷害 +15（傭兵鏡像玩家）
+        if (wpn && wpn.slowedBonusDmg && t.st && t.st.slow > 0) dmg += wpn.slowedBonusDmg;   // 🐍 艾庫艾托的鞭笞藤：對緩速敵人額外固定傷害 +10（傭兵鏡像玩家）
         if (wpn && wpn.raceBonus && t.race === wpn.raceBonus.race) dmg = Math.max(1, Math.floor(dmg * (wpn.raceBonus.mult || 1)));   // 🕷️ 刺針：對特定種族（蜘蛛）傷害×N（傭兵鏡像玩家）
         if (wpn && wpn.raceFlat && t.race === wpn.raceFlat.race) dmg = dmg + (wpn.raceFlat.add || 0);   // 🏺 遺物 上古蜘蛛之爪：對特定種族（動物）額外固定傷害 +N（傭兵鏡像玩家）
         t.curHp -= dmg; t.justHit = getWpnEle(ally.eq ? ally.eq.wpn : null, wpn); mobWake(t);
+        if (t.curHp > 0) consumeStrawCurse(t);   // 🐍 詛咒稻草人：傭兵主攻擊亦消耗並額外扣 80 水魔傷（鏡像玩家）
+        if (wpn && wpn.strawCurse && t.curHp > 0 && Math.random() * 100 < wpn.strawCurse.rate) { if (!t.st) t.st = newMobStatus(); t.st.strawCurse = Math.max(t.st.strawCurse || 0, wpn.strawCurse.stacks || 3); }   // 🐍 傭兵種下詛咒稻草人（鏡像玩家）
         if (ally._setDragonblood2 && dmg > 0) ally.curHp = Math.min(ally.mhp || 1, (ally.curHp || 0) + Math.max(1, Math.floor(dmg * ((ally.curHp < (ally.mhp || 1) * 0.5) ? 0.05 : 0.01))));   // 🐉 v2.6.9 #1b 龍血2/5（傭兵）：造成物理傷害吸血1%（自身HP<50%→5%）·回復戰鬥HP(curHp)
         // 🔧 黑暗妖精傭兵：預設攻擊自動維持附加劇毒（學過 sk_dark_poison 即視為常駐增益）；命中 50%／劇毒精通 100% 使目標中毒（與玩家同規則）
         if (ally.cls === 'dark' && ally.skills && ally.skills.includes('sk_dark_poison') && t.curHp > 0 && Math.random() < (allyHasMastery(ally, 'd_poison') ? 1 : 0.5)) {
@@ -1983,7 +1987,7 @@ function allyTryPotion(ally) {
     stack.cnt--; player.inv = player.inv.filter(i => (i.cnt || 0) > 0);   // 消耗隊長 1 瓶
     let _conPct = (typeof getConPotionPct === 'function') ? getConPotionPct((ally.d && ally.d.con) || 0) : 0;   // 比照玩家：CON 提升藥水恢復%
     let _dollPot = (ally.eq && ally.eq.doll && DB.items[ally.eq.doll.id]) ? (DB.items[ally.eq.doll.id].potionBonus || 0) : 0;   // 🆕 v2.6.10 #3：魔法娃娃 potionBonus%（吸血鬼娃娃）
-    let h = Math.max(1, Math.floor(pdef.val * (1 + (_conPct + _dollPot) / 100)));
+    let h = Math.max(1, Math.floor(potionHealBase(pdef) * (1 + (_conPct + _dollPot) / 100)));   // 🍶 藥水基準改隨機區間 valMin~valMax（傭兵比照玩家）
     ally.curHp = Math.min(mhp, cur + h);
     ally._potCd = 10;                                       // ~1 秒冷卻（10 ticks·比照玩家 cds.pot=1 秒）
     logCombat(`<span class="text-emerald-300 font-bold">協力·${ally._allyName}</span> 飲用 ${pdef.n}，恢復 ${h} 點 HP。`, 'heal', 'mercenary');

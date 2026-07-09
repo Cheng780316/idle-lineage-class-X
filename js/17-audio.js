@@ -317,6 +317,23 @@ MOB_ATTACK_SFX["長老．琪娜"] = 3580;
 const MOB_SKILL_SFX = {
   "冰之女王": 761, "冰魔": 3559, "死亡騎士": 91, "長老．琪娜": 3582, "法令軍王蕾雅": 3564,
 };
+// 🐍 v3.1.61 提卡爾(蛇神降臨)18 怪四組戰鬥音（用戶 CSV·[名, 攻擊, 技能, 受傷, 死亡]·僅雄/雌 BOSS 有技能音 4977·其餘技能欄空→施法靜音）。名稱皆唯一精確對應（不觸發攻擊音子字串借用）。
+[
+  ["提卡爾杰弗雷庫(雄)", 988, 4977, 4995, 4978], ["提卡爾杰弗雷庫(雌)", 988, 4977, 4995, 4978],
+  ["提卡爾艾庫卡伊拉(藍)", 586, null, 615, 4925], ["提卡爾艾庫卡伊拉(黃)", 586, null, 615, 4925],
+  ["提卡爾艾庫巴拉", 4913, null, 4915, 4917], ["提卡爾艾庫巴拉(紅)", 4913, null, 4915, 4917],
+  ["提卡爾艾庫尤卡(藍)", 4936, null, 4939, 4938], ["提卡爾艾庫尤卡(白)", 4936, null, 4939, 4938],
+  ["提卡爾薩德提歐(藍)", 4931, null, 4932, 4933], ["提卡爾薩德提歐(黃)", 4931, null, 4932, 4933],
+  ["提卡爾艾庫艾托", 4919, null, 4921, 4918], ["提卡爾艾庫艾托(枯竭)", 4919, null, 4921, 4918],
+  ["提卡爾薩德司卡(紫)", 4910, null, 4912, 4924], ["提卡爾薩德司卡(紅)", 4910, null, 4912, 4924],
+  ["提卡爾薩德泥偶", 4910, null, 4944, 4924], ["提卡爾薩德泥偶(黑)", 4910, null, 4944, 4924],
+  ["提卡爾艾庫阿茲特", 4910, null, 4944, 4924], ["提卡爾艾庫阿茲特(黃)", 4910, null, 4944, 4924],
+].forEach(function (r) {
+    MOB_ATTACK_SFX[r[0]] = r[1];
+    if (r[2] != null) MOB_SKILL_SFX[r[0]] = r[2];
+    MOB_HURT_SFX[r[0]] = r[3];
+    MOB_KILL_SFX[r[0]] = r[4];
+});
 var _sfxDynTried = {}, _mobHurtLast = 0, _spellCastLast = 0, _killLast = 0, _mobAtkLast = 0, _mobSkillLast = 0;
 var _mobAtkKeysByLen = null, _mobAtkResolveCache = {};
 function _mobAtkSfxNum(name) {   // 解析怪名→攻擊音編號（精確→別名→最長子字串借用）·查無回 undefined
@@ -458,6 +475,9 @@ var TOWN_BGM_LIST = [
 var BGM_TRACKS = { title: 'title', create: 'create', town: 'town', battle: 'battle', boss: 'boss' };
 TOWN_BGM_LIST.forEach(function (id) { BGM_TRACKS[id] = id; });   // 各專屬城鎮：scene=id、檔=assets/bgm/<id>.<ext>
 var _TOWN_BGM = {}; TOWN_BGM_LIST.forEach(function (id) { _TOWN_BGM[id] = 1; });
+// 🐍 狩獵區專屬 BGM（地圖 id → 曲目檔名·assets/bgm/<檔>.<ext>）：提卡爾蛇神降世 3 圖。優先於通用 battle/boss，故祭壇(純頭目房)也放自己的曲。
+var HUNT_BGM = { 'tikal_area': 'music122', 'tikal_deep': 'music123', 'tikal_altar': 'music125' };
+Object.keys(HUNT_BGM).forEach(function (id) { BGM_TRACKS[HUNT_BGM[id]] = HUNT_BGM[id]; });   // 註冊曲目 scene=檔名，_bgmInit 會預解析 URL
 var _bgmUrl = {}, _bgmEls = [null, null], _bgmActive = -1, _bgmScene = null, _bgmFadeTimer = null, _bgmInited = false;
 
 function _bgmLoadCfg() {
@@ -491,6 +511,7 @@ function _bgmDetectScene() {
     if (typeof player === 'undefined' || !player || !player.cls) return _bgmIsCreateScreen() ? 'create' : 'title';   // 未建角：創角畫面→create、否則標題
     var cur = (typeof mapState !== 'undefined' && mapState) ? mapState.current : '';
     if (cur && cur.indexOf('town_') === 0) return _TOWN_BGM[cur] ? cur : 'town';   // 專屬城鎮→自己的曲；其餘安全區→共通 town
+    if (cur && HUNT_BGM[cur]) return HUNT_BGM[cur];   // 🐍 狩獵區專屬 BGM（提卡爾 3 圖）→優先於通用 battle/boss（祭壇即使頭目戰也放 music125）
     if (typeof mapState !== 'undefined' && mapState && mapState.mobs && mapState.mobs.some(function (m) { return m && m.boss && m.curHp > 0; })) return 'boss';
     return 'battle';
 }
