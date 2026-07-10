@@ -1195,6 +1195,10 @@ button.classic-skill-cell { cursor:pointer; }
     transform-origin:center bottom;
     filter:drop-shadow(0 14px 12px rgba(0,0,0,.84)) contrast(1.08) saturate(1.05);
 }
+.load-slot-card[data-key="m_warrior"] img,
+.load-slot-card[data-key="f_warrior"] img {
+    transform:scale(1.20);   /* 戰士幀為200x270，其餘職業為160x270；補回 contain 因較寬畫布造成的高度縮小 */
+}
 .load-slot-card.filled:not(.selected) img {
     filter:grayscale(1) brightness(.48) contrast(1.08) drop-shadow(0 12px 10px rgba(0,0,0,.9));
     opacity:.78;

@@ -1531,7 +1531,7 @@ const CLASS_ANIM_SETS = {
 // 🧭 v3.2.12 職業動畫三方向（依攻擊目標選 左前/前方/右前）——用戶 CSV：≡2 右前(=<avatar>)、≡1 前方(=<avatar>F)、≡0 左前(=<avatar>2)。
 //   名單內 avatar：每個 sprite（主玩家＋各隊員）依「自己 sprite→攻擊目標格」的螢幕水平向量選朝向；名單外 avatar 維持原「依角色分兩組」靜態行為。
 //   ⚠️ 名單內 avatar 的三個資料夾必須共畫布（一次 --multi 轉三方向）→ 換向只換幀不重建 DOM、尺寸/left 不跳。
-const CLASS_ANIM_3DIR = new Set(['男妖精']);   // 🏹 v3.2.12 試點（其餘 15 職業待批次轉檔後逐一加入）
+const CLASS_ANIM_3DIR = new Set(['男騎士', '女騎士', '男妖精', '女妖精', '王子', '公主', '男法師', '女法師', '男黑暗妖精', '女黑暗妖精', '男龍騎士', '女龍騎士', '男幻術士', '女幻術士', '男戰士', '女戰士']);   // 🏹 v3.2.13 全 16 職業（三方向 R/F/L 皆已共畫布部署）
 // 依 who 目前攻擊目標（who._faceTgt·js/04/js/06 攻擊掛點寫入）相對於 who sprite el 的水平位置，回傳 'L'|'F'|'R'（並記錄 who._face3 供無目標時延續）
 function _class3Facing(who, el) {
     try {

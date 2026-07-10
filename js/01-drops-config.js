@@ -1198,17 +1198,17 @@ let createBase = {
 };
 let curCreate = { rawCls: 'm_royal', cls: 'royal', str:0, dex:0, con:0, int:0, wis:0, cha:0 };
 
-// ===== 犬類夥伴定義：項圈ID / 屬性 / 傷害骰偏移(1D(等級+diceOff)+魅力) / 命中偏移 =====
+// ===== 犬類夥伴定義：傷害骰=1D(floor(等級×levelMult)+diceOff)，再加魅力×chaMult；命中另走等級/魅力柔性成長 =====
 const PET_DEF = {
-    '杜賓狗': { collar:'new_item_184', ele:'fire',  eleName:'火', diceOff:5, hitOff:0 },
-    '狼':     { collar:'new_item_185', ele:'wind',  eleName:'風', diceOff:1, hitOff:4 },
-    '哈士奇': { collar:'new_item_collar_husky', ele:'water', eleName:'水', diceOff:3, hitOff:2 },
-    '牧羊犬': { collar:'new_item_238', ele:'earth', eleName:'地', diceOff:4, hitOff:1 },
-    // 🐾 進化夥伴：傷害=1D(等級+diceOff)+魅力×chaMult；命中=等級+魅力×hitChaMult+hitOff−怪等級+怪AC；每擊10%觸發 proc 法術(套用玩家施法數值)
-    '暴走兔': { collar:'new_collar_rabbit',    ele:'water', eleName:'水', diceOff:11, hitOff:5, chaMult:1.2, hitChaMult:1.3, proc:'sk_ice_spike' },
-    '狐狸':   { collar:'new_collar_fox',       ele:'fire',  eleName:'火', diceOff:18, hitOff:3, chaMult:1.3, hitChaMult:1.2, proc:'sk_fireball' },     // 🔧 火箭→燃燒的火球
-    '小獵犬': { collar:'new_collar_beagle',    ele:'earth', eleName:'地', diceOff:15, hitOff:4, chaMult:1.3, hitChaMult:1.2, proc:'sk_rock_prison' },  // 🔧 地獄之牙→岩牢
-    '聖伯納': { collar:'new_collar_stbernard', ele:'wind',  eleName:'風', diceOff:10, hitOff:6, chaMult:1.2, hitChaMult:1.3, proc:'sk_thunder' }        // 🔧 風刃→極道落雷
+    '杜賓狗': { collar:'new_item_184', ele:'fire',  eleName:'火', diceOff:5, hitOff:0, levelMult:0.65, chaMult:0.65 },
+    '狼':     { collar:'new_item_185', ele:'wind',  eleName:'風', diceOff:1, hitOff:4, levelMult:0.65, chaMult:0.65 },
+    '哈士奇': { collar:'new_item_collar_husky', ele:'water', eleName:'水', diceOff:3, hitOff:2, levelMult:0.65, chaMult:0.65 },
+    '牧羊犬': { collar:'new_item_238', ele:'earth', eleName:'地', diceOff:4, hitOff:1, levelMult:0.65, chaMult:0.65 },
+    // 🐾 進化夥伴：較高等級/魅力成長；每擊8%觸發法術。暴走兔/聖伯納偏命中，狐狸/小獵犬偏傷害。
+    '暴走兔': { collar:'new_collar_rabbit',    ele:'water', eleName:'水', diceOff:11, hitOff:5, levelMult:0.75, chaMult:0.80, hitChaMult:1.15, procRate:0.08, proc:'sk_ice_spike' },
+    '狐狸':   { collar:'new_collar_fox',       ele:'fire',  eleName:'火', diceOff:18, hitOff:3, levelMult:0.75, chaMult:0.90, hitChaMult:1.05, procRate:0.08, proc:'sk_fireball' },
+    '小獵犬': { collar:'new_collar_beagle',    ele:'earth', eleName:'地', diceOff:15, hitOff:4, levelMult:0.75, chaMult:0.90, hitChaMult:1.05, procRate:0.08, proc:'sk_rock_prison' },
+    '聖伯納': { collar:'new_collar_stbernard', ele:'wind',  eleName:'風', diceOff:10, hitOff:6, levelMult:0.75, chaMult:0.80, hitChaMult:1.15, procRate:0.08, proc:'sk_thunder' }
 };
 // 🦴 寵物裝備加成：裝在 player.eq.pet 的「之牙」→ 夥伴額外傷害/命中（含強化：每+1 各+1，飾品上限+5）
 function petGearBonus() {

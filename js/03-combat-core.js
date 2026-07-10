@@ -468,20 +468,25 @@ function tick() {
                     if (!meat || meat.cnt <= 0) break;   // 沒有肉就停止
                     meat.cnt--;
                     if (meat.cnt <= 0) player.inv = player.inv.filter(it => it.id !== 'new_item_143');
-                    // 命中 = 玩家等級 + 魅力×hitChaMult + 偏移(+寵裝命中) - 怪物等級 + 怪物AC
-                    let hv = Math.max(1, Math.min(20, player.lv + Math.floor(cha * ((pd.hitChaMult || 1) * (hasMastery('k_royal_pet') ? 1.2 : 1))) + pd.hitOff + pg.hit - target.lv + mobEffAC(target) + (hasSummonCtrlRing() ? 5 : 0) + (typeof _relicPartnerHit === 'function' ? _relicPartnerHit(nm) : 0)));   // 🔧 召喚控制戒指：召喚物命中+5；👑 夥伴精通：魅力命中係數×1.2；🏺 遺物夥伴專屬命中（哈士奇的骨棒：哈士奇+6）
+                    // 命中成長補償中後期怪物AC，並走玩家相同的柔性地板；夥伴精通仍使魅力命中係數×1.2。
+                    let masteryMult = hasMastery('k_royal_pet') ? 1.2 : 1;
+                    let hitGrowth = Math.floor(player.lv * 0.85 + cha * 0.35 * (pd.hitChaMult || 1) * masteryMult);
+                    let rawHit = player.lv + hitGrowth + pd.hitOff + pg.hit - target.lv + mobEffAC(target) + (hasSummonCtrlRing() ? 5 : 0) + (typeof _relicPartnerHit === 'function' ? _relicPartnerHit(nm) : 0);
+                    let hv = stretchHitValue(rawHit);
                     let r = roll(1, 20);
                     if (r === 20 || (r !== 1 && hv >= r) || (r === 19 && hasSummonCtrlRing())) {
-                        let dmg = Math.max(1, roll(1, Math.max(1, player.lv + pd.diceOff)) + Math.floor(cha * ((pd.chaMult || 1) * (hasMastery('k_royal_pet') ? 1.2 : 1))) + pg.dmg - (target.dr || 0));   // 👑 夥伴精通：魅力傷害係數×1.2
+                        let diceSides = Math.max(1, Math.floor(player.lv * (pd.levelMult || 0.65)) + pd.diceOff);
+                        let chaDmg = Math.floor(cha * (pd.chaMult || 0.65) * masteryMult);
+                        let dmg = Math.max(1, roll(1, diceSides) + chaDmg + pg.dmg - (target.dr || 0));   // 👑 夥伴精通：魅力傷害係數×1.2
                         dmg = Math.max(1, Math.floor(dmg * royalAllyMult()));   // 👑 王族魅力加成：項圈夥伴造成傷害 ×(1+魅力/100)（非王族＝×1）
                         target.curHp -= dmg; target.justHit = pd.ele; mobWake(target);
                         logCombat(`夥伴 [${nm}] 撕咬 <span class="${getMobColor(target.lv)}">${target.n}</span>，造成 ${dmg} 點${pd.eleName}屬性傷害！`, 'player-special');
                     } else {
                         logCombat(`夥伴 [${nm}] 的攻擊未命中。`, 'miss');
                     }
-                    // 🐾 進化夥伴：攻擊時 10% 觸發 proc 法術（傷害＝玩家自身施法數值；必定命中、吃魔抗）
+                    // 🐾 進化夥伴：攻擊時依各自 procRate 觸發法術（傷害＝玩家自身施法數值；必定命中、吃魔抗）
                     // 🔧 依技能 target:"all" → 對全場敵人各自結算（各吃自身魔抗/DR）；單體技能僅打當前目標
-                    if (pd.proc && target.curHp > 0 && Math.random() < 0.10) {
+                    if (pd.proc && target.curHp > 0 && Math.random() < (pd.procRate || 0.08)) {
                         let _ps = DB.skills[pd.proc];
                         if (_ps) {
                             let _pts = (_ps.target === 'all') ? mapState.mobs.filter(m => m && m.curHp > 0) : [target];
