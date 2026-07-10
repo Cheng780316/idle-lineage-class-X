@@ -1,6 +1,6 @@
 /** 遊戲核心資料庫 */
 // 🏷️ 遊戲版本號（顯示於登入頁面下方·單一真相來源）：更新版本時只改這一行，登入頁面自動同步。
-const GAME_VERSION = 'v3.2.5';
+const GAME_VERSION = 'v3.2.7';
 // ===== 💾 存檔壓縮（LZString compressToUTF16/decompressFromUTF16·MIT, Pieroxy）：localStorage 內部以 UTF-16 壓縮，省 ~89%，繞過 5MB 上限 =====
 //  ⚠️ 只壓 localStorage（存檔位/倉庫/共用桶/_bak）；匯出檔維持明文 JSON（可攜·importSave 用 JSON.parse 驗證）。_lzGet 相容舊明文存檔（無 'LZ1:' 前綴→原樣回傳）。
 var LZString = (function () {
@@ -284,6 +284,9 @@ const DB = {
         "wpn_witchwand": { n: "巫術魔法杖", type: "wpn", dmgS: 2, dmgL: 3, hit: 0, mdmg: 1, spd: 1.0, req: "mage", safe: 6, p: 12600, gachaWeight: 50, extraMpPerEn: 1 },
         "wpn_strwand": { n: "力量魔法杖", type: "wpn", dmgS: 9, dmgL: 9, hit: 0, dmgBonus: 3, mdmg: -2, str: 3, spd: 1.0, req: "mage", safe: 6, p: 71500, meleeHitPerEn: 1, eff: "magicstrike", gachaWeight: 10 },
         "wpn_manawand": { n: "瑪那魔杖", type: "wpn", dmgS: 3, dmgL: 3, hit: -1, spd: 1.0, req: "mage", safe: 6, p: 10000, eff: "mp_drain", gachaWeight: 20 },
+        // 🔷🔶 鋼鐵瑪那魔杖（象牙塔『神秘的魔法師』客製製作·成品恆 +0）：單手魔杖（名稱含「魔杖」→ 自動歸類魔杖家族＋貫穿）；mpOnHitBase:2 → 命中回 2 MP、+7 起每強化再 +1
+        "wpn_steel_manawand_blue": { n: "藍色鋼鐵瑪那魔杖", type: "wpn", dmgS: 15, dmgL: 15, hit: 6, dmgBonus: 3, str: 3, mdmg: 3, spd: 1.0, req: "mage,illusion", safe: 6, p: 75000, mpOnHit: true, mpOnHitBase: 2, gachaWeight: 10, d: "以鋼鐵重鑄的瑪那魔杖，杖心的魔法寶石映著幽藍冷光。<br>共鳴（一般限定）；力量 +3、魔法傷害 +3；一般攻擊命中恢復 2 MP（突破安定值每 +1 額外恢復 1 MP）；近距離傷害 +3、近距離命中 +6。" },
+        "wpn_steel_manawand_red": { n: "紅色鋼鐵瑪那魔杖", type: "wpn", dmgS: 15, dmgL: 15, hit: 6, dmgBonus: 3, str: 3, mdmg: 3, spd: 1.0, req: "mage,illusion", safe: 6, p: 75000, eff: "magicstrike", mpOnHit: true, mpOnHitBase: 2, gachaWeight: 10, d: "以鋼鐵重鑄的力量魔法杖，杖心的魔法寶石燃著赤紅烈焰。<br>魔擊（一般限定）；力量 +3、魔法傷害 +3；一般攻擊命中恢復 2 MP（突破安定值每 +1 額外恢復 1 MP）；近距離傷害 +3、近距離命中 +6。" },
         "wpn_crystalwand": { n: "水晶魔杖", type: "wpn", dmgS: 1, dmgL: 1, hit: 0, spd: 1.0, req: "mage", safe: 6, p: 10000, mpR: 10, mpROverSafe: 2, gachaWeight: 20 },
         "wpn_powerless_baless": { n: "失去魔力的巴列斯魔杖", type: "wpn", dmgS: 1, dmgL: 1, hit: 0, dmgBonus: 0, spd: 1.0, req: "all", safe: 0, p: 0, gachaWeight: 0, noEnhance: true, d: "魔力早已枯竭的古老魔杖，杖芯卻仍隱隱悸動。攜帶它並使用『靈魂之球』，或許能喚回沉睡的力量……（封印狀態無法強化；傳統模式下解封印才附加隨機強化值。可販售，售價 0）" },   // 🔧 巴列斯任務武器；🏛️ noEnhance＝封印恆 +0（傳統模式自帶強化值延後到靈魂之球解封印時附加）
         "wpn_baless": { n: "巴列斯魔杖", type: "wpn", dmgS: 2, dmgL: 3, hit: 0, dmgBonus: 0, mdmg: 2, spd: 1.0, req: "mage", safe: 0, p: 250000, mpR: 10, mpROverSafe: 2, legend: true, gachaWeight: 1, d: "重獲魔力的傳說魔杖，杖身蘊含撼動萬物的共鳴之力。" },   // 🏅 傳說武器（共鳴：見 WAND_LIGHTARROW_IDS）；🔧 安定值0：+0 為 MP自然恢復10，每強化+1再+2（10/12/14…）
@@ -2275,7 +2278,8 @@ const DB = {
                 { id: "npc_bayes", n: "巴耶斯", title: "魔法商人", type: "shop", d: "博覽群書的巴耶斯，書架上盡是深奧的咒文。販售各種高階魔法書。" },
                 { id: "npc_bian", n: "碧恩", title: "賦予屬性", type: "bless", d: "屬性強化師碧恩，能將四大元素之力銘刻於武器。使用屬性強化卷軸為裝備中的武器（與副手武器）賦予或提升屬性（成功率 7%，失敗僅消耗卷軸）。" },
                 { id: "npc_digallatin", n: "迪嘉勒廷", title: "試煉", type: "quest", d: "嚴苛的試煉主持者迪嘉勒廷，只認可真正的強者。主持騎士、妖精、法師與王族的 50 級試煉（需等級 50 接取；完成階段任務後開啟魔族神殿）。" },
-                { id: "npc_dytite", n: "迪泰特", title: "解除封印", type: "craft", d: "通曉古法的迪泰特，能讀懂被歲月遺忘的封印。以古代的卷軸解除被遺忘裝備的封印，還原成古老的武器與防具。" }
+                { id: "npc_dytite", n: "迪泰特", title: "解除封印", type: "craft", d: "通曉古法的迪泰特，能讀懂被歲月遺忘的封印。以古代的卷軸解除被遺忘裝備的封印，還原成古老的武器與防具。" },
+                { id: "npc_mystic_mage", n: "神秘的魔法師", title: "魔杖改造", type: "craft", d: "不願透露姓名的魔法師，擅長以鋼鐵重鑄法器。以 +7 以上的瑪那魔杖或力量魔法杖，加上魔法寶石與金屬塊，鍛造出鋼鐵瑪那魔杖（成品為 +0）。" }
             ]
         },
         "town_witon": {

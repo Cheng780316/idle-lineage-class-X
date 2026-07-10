@@ -261,6 +261,7 @@ function buildAlly(slotN) {
     let p; try { p = JSON.parse(raw).p; } catch(e) { return null; }
     if (!p || !p.cls) return null;
     let ally = JSON.parse(JSON.stringify(p));   // 深拷貝，不動原存檔
+    ally._mercPermanentPotions = true;   // 🤝 全職常駐加速；勇敢/餅乾/慎重依職業於 recomputeStats 套用
     // 安全防護：補齊 calcStats 會取用的欄位，並清掉協力者自身的召喚/夥伴/變身
     ally.buffs = ally.buffs || {}; ally.statuses = ally.statuses || {}; ally.eq = ally.eq || {}; ally.skills = ally.skills || [];
     ally.blessings = (ally.blessings && typeof ally.blessings === 'object') ? ally.blessings : {};
@@ -615,7 +616,7 @@ function allyCastMagic(ally, sk) {
     if (!ally._echoing) {
         let _wi = ally.eq && ally.eq.wpn, _w = _wi ? DB.items[_wi.id] : null;
         if (_w) {
-            if (_w.eff === 'mp_drain' || _w.mpOnHit) { let _en = capWpnEn(_wi.en); ally.mp = Math.min(ally.mmp || 0, (ally.mp || 0) + ((_w.mpOnHitAmt != null) ? _w.mpOnHitAmt : (1 + Math.max(0, _en - 6)))); }   // 命中回 MP（同 allyWeaponProcs·mpOnHitAmt 固定量優先·邪惡蜥蜴的眼瞳 +6·v3.1.33 稽核修）
+            if (_w.eff === 'mp_drain' || _w.mpOnHit) { ally.mp = Math.min(ally.mmp || 0, (ally.mp || 0) + mpOnHitAmount(_w, capWpnEn(_wi.en))); }   // 命中回 MP（同 allyWeaponProcs·單一真相 mpOnHitAmount）
             if (typeof WAND_LIGHTARROW_IDS !== 'undefined' && WAND_LIGHTARROW_IDS.includes(_wi.id) && !ally.classicMode && !allyHasMastery(ally, 'm_strike') && Math.random() < ((d.int || 0) / 60)) { let _rt = _allyProcTarget(getTarget()); if (_rt) allyProcLightArrow(ally, _rt); }   // 共鳴：int/60 免費光箭回魔（同 allyWeaponProcs）；🏅 v2.6.70 魔擊精通傭兵共鳴已改發魔擊→本補償塊(只補回魔·不套傷害proc)不再施放光箭
         }
     }
@@ -1088,9 +1089,8 @@ function allyWeaponProcs(ally, target, hitInfo) {
             logCombat(`<span class="font-bold" style="color:#60a5fa;text-shadow:0 0 6px #2563eb;">【協力·${ally._allyName}·藍惡靈奪魔】</span>奪取魔力，恢復 ${_mp} 點 MP。`, 'player-special');
         }
     }
-    if (hitInfo && hitInfo.hit && (wpn.eff === 'mp_drain' || wpn.mpOnHit)) {   // 瑪那魔杖/惡魔王魔杖(mpOnHit)：命中恢復MP → 傭兵自身（恢復量同玩家：1 + max(0, 強化-6)）
-        let en = capWpnEn(wpnInst.en);
-        ally.mp = Math.min(ally.mmp||0, (ally.mp||0) + ((wpn.mpOnHitAmt != null) ? wpn.mpOnHitAmt : (1 + Math.max(0, en - 6))));   // 🏺 邪惡蜥蜴的眼瞳：mpOnHitAmt 固定恢復量（!= null 判定·傭兵鏡像玩家）
+    if (hitInfo && hitInfo.hit && (wpn.eff === 'mp_drain' || wpn.mpOnHit)) {   // 瑪那魔杖/惡魔王魔杖(mpOnHit)：命中恢復MP → 傭兵自身（恢復量同玩家）
+        ally.mp = Math.min(ally.mmp||0, (ally.mp||0) + mpOnHitAmount(wpn, capWpnEn(wpnInst.en)));   // 💧 單一真相 mpOnHitAmount（js/03）：傭兵鏡像玩家
     }
     {
         let _amk = allyHasMastery(ally, 'm_strike') && !ally.classicMode;   // 🏅 v2.6.70 魔擊精通（傭兵）：共鳴改發魔擊；v2.6.71 觸發率比照原生魔擊＝力量/60（鏡像玩家·經典模式維持光箭吃智力）
@@ -1960,15 +1960,24 @@ function allyTryDispel(ally) {
     logCombat(`<span class="text-emerald-300 font-bold">協力·${ally._allyName}</span> 施放 ${skd.n}，解除了 ${_dispelTargetName(_tgt)} 的負面狀態。`, 'heal', 'mercenary');
     return true;
 }
+// 傭兵一般行動間隔：使用完整 ally.d.aspd（職業/性別/武器＋常駐藥水＋變身/精通/負重），暫態切割與緩速在此補入。
+function allyAttackIntervalTicks(ally, st) {
+    let itv = Math.max(1, Math.round(((ally.d && ally.d.aspd) ? ally.d.aspd : atkSpdBaseItv(ally)) * 10));
+    if (!ally.classicMode && ally._cleaveTicks > 0 && !allyHasMastery(ally, 'k_cleave')) itv = Math.max(1, Math.round(itv * 0.8));
+    if (st && st.slowAtk > 0) itv *= 2;
+    return itv;
+}
 function alliesTick() {
     if (!player.allies || !player.allies.length) return;
     player.allies.forEach(ally => {
         if (!ally) return;
+        if (!ally._mercPermanentPotions) { ally._mercPermanentPotions = true; try { _allyLevelRecompute(ally); } catch (e) {} }   // 舊存檔既有傭兵首次 tick 即補上常駐職業藥水效果
         if (ally._downed) { if ((ally._reviveCd || 0) > 0) ally._reviveCd--; if ((ally._reviveCd || 0) <= 0) tryAutoReviveMercScroll(ally); return; }   // 🤝 Phase 3：倒地傭兵完全停止行動（不立方/不颶風/不回魔/不攻擊），僅倒數復活冷卻（含背景補跑）；🎫 v2.6.6：15 秒冷卻結束→身上有復活卷軸自動使用
         if (processAllyStatusTick(ally)) return;   // 🤝 Phase4：異常狀態 DoT 結算（中毒/灼燒/燙傷/出血→可致倒地）；倒地則本回合不行動
         if ((ally._potCd || 0) > 0) ally._potCd--;   // 🍶 傭兵自動喝藥水冷卻（每 tick 遞減·~1 秒）
         allyTryPotion(ally);   // 🍶 HP% 低於安全線→消耗隊長設定的藥水回血（獨立於行動·硬控中仍可喝·安全線=0 則略過）
         allyMaintainBuffs(ally);   // 🆕 v2.6.8 #1a：每秒自動維持傭兵自我增益 buff（覺醒/加速/狂暴術/神聖武器/屬性buff…）·重算 ally.d 使其生效（須在幻覺 _iRn 擷取前）
+        allyTryBluePotion(ally);   // 🔵 隊長勾選自動藍水時，每名傭兵各自消耗隊長庫存並維持藍水
         if ((ally._atkSkillCd || 0) > 0) ally._atkSkillCd--;   // ⏳ 攻擊技能施放間隔（每 tick 遞減·比照玩家 cds.atkSk）
         allyTryDispel(ally);   // 🆕 v2.6.15 #6→v2.6.28 團隊淨化：自己非硬控/沉默時幫全隊解可解狀態（自己硬控中則不施放·由其他自由隊員代解）
         // 🩸 v2.6.25 傭兵召喚物 tick（造屍術/召喚術/精靈召喚·owner=ally）＋🩸 v2.6.26 幻術士幻象召喚（歐吉/巫妖/鑽石高崙·i_illusion 精通·學過該技即召·stat aura 由隊長 teamIlluAura 提供避免雙套）：owner=ally·輸出獨立歸 _dps.summon（不計入本傭兵回合 _dpsAllyTurn·硬控中召喚物仍行動·擊殺獎勵歸真隊長·不換身）。倒地傭兵已於上方 return 不驅動。
@@ -2015,20 +2024,17 @@ function alliesTick() {
         if (!_ccBlock && (ally._atkCd = (ally._atkCd || 0) - 1) <= 0) {
             ally._stunCycle = false;   // ⚔️ 硬直：攻擊週期結束→重置旗標（下週期被擊可再延遲一次）
             if (_castBlock) {   // 🤝 Phase4：沉默/魔法封印→只能基本攻擊（不施放 _atkSkill 與治癒）
-                ally._atkCd = (_ast.slowAtk > 0 ? 40 : 20); allyAttackOnce(ally);
+                ally._atkCd = allyAttackIntervalTicks(ally, _ast); allyAttackOnce(ally);
             } else if (ally._healSkill && allyTryHeal(ally)) {   // 🤝 Phase 3：隊伍有人低於門檻→改施放治癒（消耗本回合行動）
                 ally._atkCd = 20;
             } else if (ally.cls === 'mage') {
-                ally._atkCd = (_ast.slowAtk > 0 ? 40 : 20);   // 法師施法間隔 ~2 秒（緩速×2）
+                ally._atkCd = allyAttackIntervalTicks(ally, _ast);   // 法師使用真正職業/武器攻速與常駐加速（不再固定 2 秒）
                 allyActWithSkillGate(ally, allyMageAct);   // ⏳ 法師：攻擊魔法週期施放·平時基礎光箭普攻
             } else {
                 let wpn = (ally.eq && ally.eq.wpn) ? DB.items[ally.eq.wpn.id] : null;
                 // ⚔️ v3.0.98 傭兵攻速改用 recompute 後的完整 ally.d.aspd（＝base×spdMult：加速術/強力加速/行走加速/勇敢/餅乾/切割·劍術·巨斧·雙斧·王族劍術·奇古·魔劍精通/覺醒/血之渴望/變身/負重 全含·比照玩家 player.d.aspd）。
                 //   原本只用 atkSpdBaseItv(base)＋手動 cleave/劍術/奇古 且 floor 8＝0.8s → 漏掉加速術等、且把已算的精通夾在 0.8s（傭兵過慢主因）。buff 變動由 allyMaintainBuffs→_allyLevelRecompute 即時重算 ally.d.aspd；floor 改 1 比照玩家(js/03:290)使加速確實生效。
-                let _itv = Math.max(1, Math.round(((ally.d && ally.d.aspd) ? ally.d.aspd : atkSpdBaseItv(ally)) * 10));
-                if (!ally.classicMode && ally._cleaveTicks > 0 && !allyHasMastery(ally, 'k_cleave')) _itv = Math.max(1, Math.round(_itv * 0.8));   // 🔧 切割「觸發」瞬間加速（_cleaveTicks·非精通暫態·recompute 未含）：非切割精通者補 ×0.80（切割精通常駐 0.50 已在 spdMult）；🎮 經典模式停用
-                if (_ast.slowAtk > 0) _itv *= 2;   // 🐢 緩速術：攻擊間隔翻倍（比照玩家 js/03:291·recompute 未含此暫態·物理職 else 分支原漏此判定）
-                ally._atkCd = _itv;
+                ally._atkCd = allyAttackIntervalTicks(ally, _ast);
                 let _actFn = (ally.cls === 'elf') ? allyElfAct : (ally.cls === 'dark') ? allyDarkAct : (ally.cls === 'knight') ? allyKnightAct : (ally.cls === 'dragon') ? allyDragonAct : (ally.cls === 'illusion') ? allyIllusionAct : (ally.cls === 'warrior') ? allyWarriorAct : (ally.cls === 'royal') ? allyRoyalAct : null;
                 if (_actFn) allyActWithSkillGate(ally, _actFn); else allyAttackOnce(ally);   // ⏳ 攻擊技能週期施放(每~2秒)·平時走職業各自普攻
             }
@@ -2125,6 +2131,34 @@ function allyTryPotion(ally) {
     ally.curHp = Math.min(mhp, cur + h);
     ally._potCd = 10;                                       // ~1 秒冷卻（10 ticks·比照玩家 cds.pot=1 秒）
     logCombat(`<span class="text-emerald-300 font-bold">協力·${ally._allyName}</span> 飲用 ${pdef.n}，恢復 ${h} 點 HP。`, 'heal', 'mercenary');
+}
+// 🔵 傭兵藍色藥水：跟隨隊長「藍色藥水」勾選；每名傭兵各消耗 1 瓶隊長庫存，缺貨且勾自動購買時比照治癒藥水補到 100 瓶。
+function allyTryBluePotion(ally) {
+    if (!ally || ally._downed || state.ticks % 10 !== 0 || typeof document === 'undefined') return;
+    let useChk = document.getElementById('set-blue');
+    if (!useChk || !useChk.checked) {
+        if (ally.buffs && (ally.buffs.blue || 0) > 0) { ally.buffs.blue = 0; try { _allyLevelRecompute(ally); } catch (e) {} }
+        return;
+    }
+    if (!ally.buffs) ally.buffs = {};
+    if ((ally.buffs.blue || 0) > 0) return;
+    let def = DB.items.potion_blue;
+    let stack = player.inv && player.inv.find(i => i.id === 'potion_blue' && (i.cnt || 0) > 0);
+    if (!stack) {
+        let buyChk = document.getElementById('set-auto-buy-blue');
+        if (!buyChk || !buyChk.checked) return;
+        let unit = (typeof shopPrice === 'function') ? shopPrice(def.p || 0) : (def.p || 0);
+        let need = 100;
+        if ((player.gold || 0) < need * unit) return;
+        player.gold -= need * unit;
+        gainItem('potion_blue', need, true, true);
+        logSys(`自動消耗 ${need * unit} 金幣購買了 ${need} 瓶${def.n}（供協力傭兵飲用）。`);
+        stack = player.inv.find(i => i.id === 'potion_blue' && (i.cnt || 0) > 0);
+        if (!stack) return;
+    }
+    if ((stack.cnt || 1) > 1) stack.cnt--; else player.inv = player.inv.filter(i => i !== stack);
+    ally.buffs.blue = def.dur || 600;
+    try { _allyLevelRecompute(ally); } catch (e) {}
 }
 // 🤝 Phase 3：原地復活倒地傭兵（隊伍面板按鈕）。限定使用「復活卷軸」(scroll_revive·與玩家原地復活同物品)；倒地後 15 秒冷卻內不可用；無卷軸只能回村免費復活。復活至 HP 50%、滿魔。
 // 傭兵原地復活：玩家可選「返生術」(消耗 MP·無冷卻·死亡後立即可用) 或「復活卷軸」(消耗1張·須死亡 15 秒後 _reviveCd 歸零才能用)。

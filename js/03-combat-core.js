@@ -955,7 +955,7 @@ function consumeArrow() {
 }
 
 // ===== 法杖共鳴：裝備指定魔法杖時，一般攻擊(不論命中與否)有 智力/60 機率免費施展光箭 =====
-const WAND_LIGHTARROW_IDS = ['wpn_oakwand', 'wpn_38', 'wpn_witchwand', 'wpn_manawand', 'wpn_crystalwand', 'wpn_baless', 'wpn_wand_rasta', 'wpn_red_crystalwand', 'wpn_laia_wand', 'wpn_icequeen_wand', 'wpn_demon_scythe', 'wpn_darkmage_wand', 'wpn_baphomet_wand', 'wpn_illu_wand', 'wpn_demon_wand_hidden', 'wpn_dark_crystalball', 'relic_amp_staff', 'relic_elder_thunder', 'relic_cerberus_wand', 'relic_evillizard_eye', 'relic_lightbeam_wand', 'relic_warlock_grimoire'];   // 🏺 遺物 安普長老的拐杖／長老的雷電能量／三頭犬魔杖／邪惡蜥蜴的眼瞳／光束強化魔杖亦共鳴 // 🔮 幻術士魔杖：共鳴（👹 隱藏的魔族魔杖亦共鳴；🏴‍☠️ 漆黑水晶球亦共鳴）   // 🏅 共鳴：含蕾雅魔杖／冰之女王魔杖／惡魔鐮刀／黑法師之杖／🔧巴風特魔杖（👑惡魔王魔杖已改為魔爆 eff:magicburst）
+const WAND_LIGHTARROW_IDS = ['wpn_oakwand', 'wpn_38', 'wpn_witchwand', 'wpn_manawand', 'wpn_crystalwand', 'wpn_baless', 'wpn_wand_rasta', 'wpn_red_crystalwand', 'wpn_laia_wand', 'wpn_icequeen_wand', 'wpn_demon_scythe', 'wpn_darkmage_wand', 'wpn_baphomet_wand', 'wpn_illu_wand', 'wpn_demon_wand_hidden', 'wpn_dark_crystalball', 'wpn_steel_manawand_blue', 'relic_amp_staff', 'relic_elder_thunder', 'relic_cerberus_wand', 'relic_evillizard_eye', 'relic_lightbeam_wand', 'relic_warlock_grimoire'];   // 🏺 遺物 安普長老的拐杖／長老的雷電能量／三頭犬魔杖／邪惡蜥蜴的眼瞳／光束強化魔杖亦共鳴 // 🔮 幻術士魔杖：共鳴（👹 隱藏的魔族魔杖亦共鳴；🏴‍☠️ 漆黑水晶球亦共鳴）   // 🏅 共鳴：含蕾雅魔杖／冰之女王魔杖／惡魔鐮刀／黑法師之杖／🔧巴風特魔杖（👑惡魔王魔杖已改為魔爆 eff:magicburst）
 function wandLightArrowProc(target) {
     if (player.classicMode) return;   // 🎮 經典模式：停用共鳴
     let wpn = player.eq.wpn;
@@ -1409,6 +1409,13 @@ function manaMasteryRefund(spent) {
 // 🔮 是否為魔杖/法杖類武器（沿用 js/10 同一套名稱判定，排除黃金權杖＝王族單手劍）：
 //    魔劍精通(i_magicsword)只把「非奇古獸的近戰武器」轉成奇古獸必中魔法路徑，魔杖本即施法武器、不應再轉（必中/攻速+30% 皆排除）。
 function isWandWeapon(d) { return !!(d && d.type === 'wpn' && (d.isWand || /魔杖|法杖/.test(d.n || '') || (/杖/.test(d.n || '') && !/權杖/.test(d.n || '')))); }   // 🔮 d.isWand：名稱非「杖」但實為單手魔杖者（惡魔鐮刀）顯式標記
+// 💧 一般攻擊命中回 MP 的恢復量（單一真相·玩家/傭兵/tooltip 共用）：mpOnHitAmt 固定量最優先（邪惡蜥蜴的眼瞳 +6）；
+//    否則 = mpOnHitBase（預設 1·鋼鐵瑪那魔杖 2）＋ 突破安定值 6 之後每 +1 再多恢復 1。en 需先過 capWpnEn。
+function mpOnHitAmount(wpn, en) {
+    if (!wpn) return 0;
+    if (wpn.mpOnHitAmt != null) return wpn.mpOnHitAmt;
+    return (wpn.mpOnHitBase || 1) + Math.max(0, (en || 0) - 6);
+}
 // 🔮 幻術士 奇古獸一般攻擊：[奇古獸骰 × (1 + 魔法傷害/16)] + 額外魔法點數 + 額外傷害；視為魔法傷害、100%命中、受目標MR減免（奇古獸精通無視MR）。
 //    觸發路徑：裝備奇古獸(wpn.qigu)恆走此式；或 魔劍精通 + 任意非弓「且非魔杖」武器亦套用此式。屬性詞綴→對應屬性(剋屬性+6)。
 // 🔮 幻術士專屬加成：所有傷害(奇古獸普攻/特效/傷害技能/立方/幻覺召喚物)最終 ×(1+等級/50)；非幻術士回 1（玩家傳 player、傭兵傳 ally）
@@ -1440,9 +1447,9 @@ function qiguPlayerAttack(target, wpn) {
     qiguWeaponProc(target, wpn);        // 奇古獸特效（幻影衝擊/心靈破壞；主擊已擊殺則內部 guard 跳過、自行處理擊殺）
     wandLightArrowProc(target);         // 🔮 共鳴（幻術士魔杖在 WAND_LIGHTARROW_IDS；非共鳴武器內部 no-op，主目標已死自動轉移）
     // 🔮 魔劍精通可裝備一般武器：補齊一般武器命中特效（與傭兵 allyQiguAttack/allyWeaponProcs 一致；各函式/分支自帶武器判定，非對應武器即 no-op）
-    if (wpn.eff === 'mp_drain' || wpn.mpOnHit) {   // 命中恢復 MP（瑪那魔杖等；mpOnHitAmt 固定量優先·邪惡蜥蜴的眼瞳 +6·v3.1.33 稽核修）
+    if (wpn.eff === 'mp_drain' || wpn.mpOnHit) {   // 命中恢復 MP（瑪那魔杖等）→ 單一真相 mpOnHitAmount
         let _en = capWpnEn((player.eq.wpn && player.eq.wpn.en) || 0);
-        player.mp = Math.min(player.mmp, player.mp + ((wpn.mpOnHitAmt != null) ? wpn.mpOnHitAmt : (1 + Math.max(0, _en - 6)))); updateUI();
+        player.mp = Math.min(player.mmp, player.mp + mpOnHitAmount(wpn, _en)); updateUI();
     }
     magicStrikeProc(target);            // 魔擊（力量魔法杖）
     weaponSpellProc(target);            // 附魔施放：spellProc/procSkill/procPoison/procStatusSkill（巴風特魔杖/冰之女王魔杖/死亡之指等）

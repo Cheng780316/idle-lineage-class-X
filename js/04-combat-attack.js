@@ -47,7 +47,7 @@ function playerAttack() {
 
         if (wpn && (wpn.eff === 'mp_drain' || wpn.mpOnHit)) {   // 🔧 mpOnHit：eff 已被其他特效(如惡魔王魔杖魔爆)佔用仍可保留命中回MP
             let en = capWpnEn((player.eq.wpn && player.eq.wpn.en) || 0);
-            let mpGain = (wpn.mpOnHitAmt != null) ? wpn.mpOnHitAmt : (1 + Math.max(0, en - 6));   // 🏺 遺物 邪惡蜥蜴的眼瞳：mpOnHitAmt 固定恢復量（!= null 判定·0 也算有效覆寫）；否則 +0~+6 恢復1MP、之後每+1多恢復1（+7:2、+8:3…）
+            let mpGain = mpOnHitAmount(wpn, en);   // 💧 單一真相 mpOnHitAmount（js/03）：固定量 → 基底＋突破安定值加成
             player.mp = Math.min(player.mmp, player.mp + mpGain); updateUI();
         }
 		if (wpn && wpn.eff === 'dice_death') {

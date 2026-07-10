@@ -473,6 +473,8 @@ const LOAD_CLASS_TO_START_KEY = {
 let _loadSelectedSlot = 1;
 let _loadPage = 0;
 let _loadAnimState = { key: null, frame: 0, noneFrame: LOAD_NONE_ANIM_FRAMES[0], lastAt: 0, stepMs: 92 };
+let _loadLastClickSlot = 0;
+let _loadLastClickAt = 0;
 function loadEsc(v){
     return String(v === undefined || v === null ? '' : v).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
@@ -500,11 +502,13 @@ function openLoadSelect(){
     if(create) create.classList.add('hidden');
     if(oldSlots) oldSlots.classList.add('hidden');
     if(load) load.classList.remove('hidden');
+    _loadLastClickSlot = 0; _loadLastClickAt = 0;
     _loadPage = 0;
     _loadSelectedSlot = [1,2,3,4].find(n => !!slotSummary(n)) || 1;
     renderLoadSelect();
 }
 function loadSetPage(page){
+    _loadLastClickSlot = 0; _loadLastClickAt = 0;
     _loadPage = page === 2 ? 1 : 0;
     const start = _loadPage * 4 + 1;
     const slots = [start, start + 1, start + 2, start + 3];
@@ -514,6 +518,7 @@ function loadSetPage(page){
 function loadBackToMenu(){
     const load = document.getElementById('load-select-panel');
     const main = document.getElementById('main-menu');
+    _loadLastClickSlot = 0; _loadLastClickAt = 0;
     if(load) load.classList.add('hidden');
     if(main) main.classList.remove('hidden');
 }
@@ -580,7 +585,16 @@ function loadSelectSlot(n){
         showCreation();
         return;
     }
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const doubleClick = _loadLastClickSlot === n && now - _loadLastClickAt <= 500;
+    _loadLastClickSlot = doubleClick ? 0 : n;
+    _loadLastClickAt = doubleClick ? 0 : now;
     _loadSelectedSlot = n;
+    if(doubleClick){ loadEnterSelected(); return; }
+    if(document.querySelector(`.load-slot-card.selected[data-slot="${n}"]`)){
+        updateLoadInfo();
+        return;
+    }
     renderLoadSelect();
 }
 function loadCreateSelected(){
@@ -594,6 +608,7 @@ function loadCreateSelected(){
 function loadEnterSelected(){
     const sum = slotSummary(_loadSelectedSlot);
     if(!sum){ loadSelectSlot(_loadSelectedSlot); return; }
+    _loadLastClickSlot = 0; _loadLastClickAt = 0;
     currentSlot = _loadSelectedSlot;
     loadGame();
 }

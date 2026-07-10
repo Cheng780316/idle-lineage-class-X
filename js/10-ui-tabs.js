@@ -718,8 +718,9 @@ function buildItemDescHTML(item) {
         // 瑪那魔杖等「命中恢復MP」武器：依此物品的強化等級(+N)動態顯示恢復量
         if(d.eff === 'mp_drain' || d.mpOnHit) {
             let en = capEn(item.en, d);
-            let mpGain = 1 + Math.max(0, en - 6);
-            desc += `<br><span class="text-sky-300">命中時恢復 ${mpGain} 點 MP（+7 起每強化 +1）。</span>`;
+            let mpGain = mpOnHitAmount(d, en);   // 💧 單一真相 mpOnHitAmount（js/03）：固定量(mpOnHitAmt) → 基底(mpOnHitBase)＋突破安定值加成
+            let _grow = (d.mpOnHitAmt == null) ? '（+7 起每強化 +1）' : '';   // 🏺 固定恢復量者（邪惡蜥蜴的眼瞳 +6）不隨強化成長→不顯示成長註記
+            desc += `<br><span class="text-sky-300">命中時恢復 ${mpGain} 點 MP${_grow}。</span>`;
         }
         if(d.mpROverSafe) {
             let en = capEn(item.en, d);
