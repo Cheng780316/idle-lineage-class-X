@@ -776,6 +776,20 @@ function trialRun(reqs, rewardId, sherine) {
 function trialExName(n, rewardId) { return `${DB.items[rewardId].n}${n > 1 ? ` ×${n}` : ''}`; }
 
 // ===== 🦴 v3.1.68 席琳遺骸 NPC（席琳神殿）=====
+const SHERINE_ENCHANT_EXCHANGE = [
+    { id:'scroll_weapon_b', cnt:100, out:1 }, { id:'scroll_armor_b', cnt:100, out:1 },
+    { id:'scroll_weapon_c', cnt:200, out:1 }, { id:'scroll_armor_c', cnt:200, out:1 },
+    { id:'scroll_weapon', cnt:400, out:1 }, { id:'scroll_armor', cnt:400, out:1 },
+    { id:'sherine_crystal', cnt:1, out:2 }
+];
+const ENHANCE_PROTECT_PRICE = 50000000;   // 5000萬天幣
+function renderSherineEnchanter(el) {
+    let rows=SHERINE_ENCHANT_EXCHANGE.map((r,i)=>{let d=DB.items[r.id],have=questCountId(r.id);return `<div class="flex items-center justify-between gap-2 bg-slate-900/70 border border-fuchsia-800/50 rounded p-2"><span class="text-sm ${have>=r.cnt?'text-slate-200':'text-slate-500'}">${d.n} ×${r.cnt} <b>→ 附魔卷軸 ×${r.out}</b>（持有 ${have}）</span><button class="btn bg-fuchsia-900 hover:bg-fuchsia-800 border-fuchsia-600 px-3 py-1 font-bold" onclick="doSherineEnchantExchange(${i})">兌換</button></div>`;}).join('');
+    el.innerHTML=`<div class="p-4"><div class="text-fuchsia-300 text-xl font-bold mb-2">米斯特・裝備附魔</div><div class="text-slate-400 text-sm mb-3">附魔卷軸可為正常掉落的裝備附加隨機能力。攻擊類能力只出現在武器；防具與飾品偏向生存、回血與回魔。</div><div class="space-y-2">${rows}</div><div class="mt-3 bg-slate-900/70 border border-cyan-800/50 rounded p-3 flex items-center justify-between gap-2"><span class="text-cyan-200">武器裝備強化保護卷軸 ×1<br><small>售價 50,000,000 天幣；目前 ${player.gold.toLocaleString()}</small></span><button class="btn bg-cyan-900 hover:bg-cyan-800 border-cyan-600 px-3 py-2 font-bold" onclick="buyEnhanceProtectScroll()">購買</button></div></div>`;
+}
+function doSherineEnchantExchange(idx){let r=SHERINE_ENCHANT_EXCHANGE[idx];if(!r)return;if(questCountId(r.id)<r.cnt){logSys('<span class="text-red-400">兌換材料不足。</span>');return;}questConsumeId(r.id,r.cnt);gainItem('scroll_mystic_enchant',r.out,true,true);logSys(`<span class="text-fuchsia-300 font-bold">兌換裝備魔力附魔卷軸 ×${r.out}。</span>`);renderSherineEnchanter(document.getElementById('interaction-content'));saveGame();}
+function buyEnhanceProtectScroll(){if(player.gold<ENHANCE_PROTECT_PRICE){logSys('<span class="text-red-400">天幣不足，需要 50,000,000。</span>');return;}player.gold-=ENHANCE_PROTECT_PRICE;gainItem('scroll_enhance_protect',1,true,true);updateUI();renderSherineEnchanter(document.getElementById('interaction-content'));saveGame();}
+
 // 伊奧：席琳結晶 1 顆 → 兌換指定部位遺骸（8 選 1·必附隨機一種席琳詞綴·committed lootRng 防 SL 重抽）
 // 版型比照「製作」(renderUniversalCraft js/14)：左＝遺骸圖示＋名稱＋兌換材料(craftReqHtml)，右＝數量輸入＋兌換鈕。
 function renderIoExchange(div) {

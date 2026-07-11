@@ -29,6 +29,7 @@ function recomputeStats() {
     d.eleWpnMult = null;     // 🏺 遺物 四之牙臂甲：裝備對應屬性武器時一般攻擊傷害 ×mult（{ele,mult}·js/03 getPhysicalDmg＋js/06 傭兵攻擊）
     d.rangedDmg = 0; d.rangedHit = 0; d.rangedCrit = 0;
     d.extraDmg = 0; d.extraHit = 0; d.equipExtraAtk = 0;   // 🐉 d.equipExtraAtk：裝備授予的額外一般攻擊次數（龍鱗臂甲）
+    d.mysticVampPct = 0; d.mysticMpOnHit = 0;   // 裝備魔力附魔：武器吸血／吸魔
     d.magicDmg = 0; d.magicHit = 0; d.magicCrit = 0; d.extraMp = 0; d.mpReduce = 0;
     let _baseCritDmg = (p.cls === 'dark') ? 100 : 50;   // 🔧 黑暗妖精基礎爆擊傷害 100%（其餘職業 50%）；裝備/精通等加成於其上疊加
     d.meleeCritDmg = _baseCritDmg; d.rangedCritDmg = _baseCritDmg; d.magicCritDmg = _baseCritDmg;

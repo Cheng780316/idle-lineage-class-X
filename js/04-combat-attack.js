@@ -53,6 +53,7 @@ function playerAttack() {
             let mpGain = mpOnHitAmount(wpn, en);   // 💧 單一真相 mpOnHitAmount（js/03）：固定量 → 基底＋突破安定值加成
             player.mp = Math.min(player.mmp, player.mp + mpGain); updateUI();
         }
+        if(player.d.mysticMpOnHit>0){player.mp=Math.min(player.mmp,player.mp+player.d.mysticMpOnHit);updateUI();}
 		if (wpn && wpn.eff === 'dice_death') {
             // 1% 機率即死（對非 BOSS）。tag 為 null 代表不限怪物種類
             let diceIkParams = { p: 0.01, tag: null }; 
@@ -130,6 +131,7 @@ function playerAttack() {
         if (result.dmg > 0) { try { playMobHurt(target); } catch(e){} }   // 🔊 音效：怪物受傷（依怪名對應；全域節流）
         if (player._setDragonblood2 && result.dmg > 0) player.hp = Math.min(player.mhp, player.hp + Math.max(1, Math.floor(result.dmg * (player.hp < player.mhp * 0.5 ? 0.05 : 0.01))));   // 🐉 龍血2/5：造成物理傷害吸血1%（自身HP<50%→5%）
         if (wpn && wpn.vampPct && result.dmg > 0) player.hp = Math.min(player.mhp, player.hp + Math.floor(result.dmg * wpn.vampPct));   // 🐉 嗜血者鎖鏈劍：吸取一般攻擊傷害的 % 為 HP
+        if(player.d.mysticVampPct>0&&result.dmg>0)player.hp=Math.min(player.mhp,player.hp+Math.max(1,Math.floor(result.dmg*player.d.mysticVampPct)));
         if (wpn && wpn.procHealFlat && result.dmg > 0 && Math.random() * 100 < wpn.procHealFlat.rate) { player.hp = Math.min(player.mhp, player.hp + wpn.procHealFlat.hp); logCombat(`<span class="text-emerald-300 font-bold">【${wpn.n}】</span>恢復了 ${wpn.procHealFlat.hp} 點 HP。`, 'heal'); }   // 🏺 v3.1.80 處刑人的護身斧：一般攻擊命中 3% 機率恢復 10 HP
         // 🔧 黑暗妖精：附加劇毒（命中 50%／劇毒精通 100% 使目標中毒：每秒該次攻擊 60%／劇毒精通 200% 傷害，持續 5 秒，最多 1 層，取較高傷害並刷新持續時間）
         if (player.buffs && player.buffs.sk_dark_poison > 0 && target.curHp > 0 && Math.random() < (hasMastery('d_poison') ? 1 : 0.5)) {

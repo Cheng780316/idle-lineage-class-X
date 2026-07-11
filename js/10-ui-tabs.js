@@ -886,6 +886,7 @@ function buildItemDescHTML(item) {
     }
 
     desc += mysticDescHTML(item);
+    if(item.enhanceProtect) desc += '<br><span class="text-cyan-300 font-bold">🛡️ 強化保護：1 次</span>';
     return desc;
 }
 
@@ -1357,7 +1358,7 @@ function buildQuickHeader(type) {
         let someSel = eligible.some(i => jnk.sel[i.uid]);
         hdr.innerHTML = `<div class="flex items-center gap-1 bg-slate-900/80 border border-amber-800/60 rounded p-1">
             <button onclick="cancelQuickJunk('${type}')" class="btn border-slate-600 bg-slate-700 hover:bg-slate-600 px-2 py-1 text-xs font-bold text-white rounded">取消</button>
-            <button onclick="runQuickJunk('${type}')" class="btn border-amber-600 bg-amber-800 hover:bg-amber-700 px-2 py-1 text-xs font-bold text-amber-100 rounded">確認</button>
+            <button onclick="${jnk.sellMode?`runQuickSell('${type}')`:`runQuickJunk('${type}')`}" class="btn border-amber-600 bg-amber-800 hover:bg-amber-700 px-2 py-1 text-xs font-bold text-amber-100 rounded">${jnk.sellMode?'確認賣出':'確認'}</button>
             <label class="flex items-center gap-1 text-xs text-slate-300 cursor-pointer select-none whitespace-nowrap ml-auto"><input type="checkbox" ${allSel ? 'checked' : ''} onchange="quickJunkSelectAll('${type}', this.checked)"> 全選</label>
         </div>`;
         let cb = hdr.querySelector('label input'); if (cb) cb.indeterminate = someSel && !allSel;
@@ -1367,16 +1368,19 @@ function buildQuickHeader(type) {
     let btns = '';
     if (hasEnh) btns += `<button onclick="toggleQuickEnhance('${type}')" class="flex-1 btn border-blue-700 bg-blue-900/70 hover:bg-blue-800 py-1.5 text-sm font-bold text-blue-200 rounded shadow">⚡ 快速強化</button>`;
     btns += `<button onclick="toggleQuickJunk('${type}')" class="flex-1 btn border-amber-700 bg-amber-900/60 hover:bg-amber-800 py-1.5 text-sm font-bold text-amber-200 rounded shadow">🗑️ 快速廢品</button>`;
+    btns += `<button onclick="toggleQuickSell('${type}')" class="flex-1 btn border-red-700 bg-red-900/60 hover:bg-red-800 py-1.5 text-sm font-bold text-red-200 rounded shadow">💰 一鍵賣出</button>`;
     hdr.innerHTML = `<div class="flex gap-1">${btns}</div>`;
     return hdr;
 }
 // 啟用快速廢品：取消同分頁快速強化＋預先勾選「已是廢品」者（用戶要求：廢品一開始就是勾選中）
 function toggleQuickJunk(type) {
     if ((type === 'wpn' || type === 'arm') && quickEnh[type].active) { quickEnh[type].active = false; quickEnh[type].sel = {}; }
-    let st = quickJunk[type]; st.active = true; st.sel = {}; st.known = {};
+    let st = quickJunk[type]; st.active = true; st.sellMode=false; st.sel = {}; st.known = {};
     _qjEligibleItems(type).forEach(i => { st.known[i.uid] = true; if (i.junk) st.sel[i.uid] = true; });   // 開啟當下：全部納入 known，已是廢品者預先勾選
     renderTabs(true);
 }
+function toggleQuickSell(type){if((type==='wpn'||type==='arm')&&quickEnh[type].active){quickEnh[type].active=false;quickEnh[type].sel={};}let st=quickJunk[type];st.active=true;st.sellMode=true;st.sel={};st.known={};_qjEligibleItems(type).forEach(i=>st.known[i.uid]=true);renderTabs(true);}
+function runQuickSell(type){let st=quickJunk[type],ids=new Set(Object.keys(st.sel).filter(k=>st.sel[k]));let sold=player.inv.filter(i=>ids.has(i.uid)&&!i.lock&&DB.items[i.id]&&!DB.items[i.id].noSell);if(!sold.length){logSys('<span class="text-slate-400">尚未選擇可販售物品。</span>');return;}let gold=0,cnt=0;sold.forEach(i=>{gold+=getSellPrice(i)*(i.cnt||1);cnt+=(i.cnt||1);});player.inv=player.inv.filter(i=>!ids.has(i.uid)||i.lock||(DB.items[i.id]&&DB.items[i.id].noSell));player.gold+=gold;st.active=false;st.sellMode=false;st.sel={};st.known={};logSys(`<span class="text-red-300 font-bold">一鍵賣出 ${sold.length} 件（共 ${cnt} 個），獲得 ${gold.toLocaleString()} 天幣。</span>`);renderTabs(true);updateUI();calcStats();renderSkillSelects();saveGame();}
 // 🔧 面板開啟後才掉落／新增的可廢品物品：比照「開啟當下」納入面板——標記 known，且「已是廢品(junkPrefs 自動標記)」者預先勾選。
 //    這樣確認時不會把這些新廢品當成「未勾選」而誤 i.junk=false＋刪除 junkPrefs（刪簽章＝整類廢品記憶被取消）。已在 known 者不再覆寫其勾選狀態（尊重使用者手動取消勾選）。
 function _qjSync(type) {

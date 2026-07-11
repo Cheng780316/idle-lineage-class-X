@@ -45,11 +45,8 @@ function gainItem(id, cnt=1, silent=false, forceNormal=false, affixOld=false) {
     let seteff = false;
 
     // 🔍 暗黑式鑑定：非商店/固定獎勵取得的裝備會先封存詞綴，鑑定前不揭露也不生效。
-    let _mysticEligible = !forceNormal && d && !d.isArrow && !isRelic(d)
-        && (d.type === 'wpn' || d.type === 'arm' || d.type === 'acc');
-    let identified = !_mysticEligible;
-    let mystic = null;   // 未鑑定品堆疊；真正能力於逐件鑑定時才抽取
-    if (_mysticEligible) { bless = false; anc = false; attr = false; }   // 既有詞綴也延後到鑑定時生成，避免同裝備被隱藏詞綴拆成多堆
+    let identified = true;   // 裝備掉落恢復原狀；神秘能力改由「裝備魔力附魔卷軸」賦予
+    let mystic = null;
 
     let _tEn = 0;   // 🏛️ v3.0.83 傳統模式已取消：掉落自帶強化值停用（任何來源恆 +0·手動強化照常）
     let _probe = { id: id, en: _tEn, bless: bless, anc: anc, attr: attr, seteff: seteff, identified: identified, mystic: mystic };
@@ -185,7 +182,9 @@ const MYSTIC_AFFIXES = [
     { k:'mdmg', n:'魔法傷害', base:[1,2] }, { k:'hp', n:'最大 HP', base:[10,25] },
     { k:'mp', n:'最大 MP', base:[5,15] }, { k:'ac', n:'防禦（AC）', base:[1,2] },
     { k:'mr', n:'魔防（MR）', base:[2,5] }, { k:'dr', n:'傷害減免', base:[1,2] },
-    { k:'crit', n:'爆擊率', base:[1,3] }
+    { k:'crit', n:'爆擊率', base:[1,3] }, { k:'hpR', n:'HP 自然恢復', base:[1,4] },
+    { k:'mpR', n:'MP 自然恢復', base:[1,3] }, { k:'vamp', n:'吸血', base:[1,3] },
+    { k:'mpDrain', n:'吸魔', base:[1,2] }
 ];
 const MYSTIC_SKILL_POOLS = {
     bow: ['sk_elf_windshot','sk_elf_winddash','sk_elf_stormeye','sk_elf_stormshot','sk_elf_preciseshot'],
@@ -217,7 +216,8 @@ function _mysticRoll(tag) { return typeof lootRng === 'function' ? lootRng('iden
 function rollMysticEquipment(d, itemId) {
     let r = _mysticRoll('rarity');
     let rarity = r < 0.03 ? 'mythic' : r < 0.15 ? 'epic' : r < 0.45 ? 'rare' : 'magic';
-    let rd = MYSTIC_RARITIES[rarity], pool = MYSTIC_AFFIXES.slice(), affixes = [];
+    let rd = MYSTIC_RARITIES[rarity], attackKeys=['dmg','hit','mdmg','crit','vamp','mpDrain'];
+    let pool = MYSTIC_AFFIXES.filter(a => d.type === 'wpn' ? !['ac','mr','dr','hpR','mpR'].includes(a.k) : !attackKeys.includes(a.k)), affixes = [];
     for (let i=0; i<rd.count && pool.length; i++) {
         let idx = Math.floor(_mysticRoll('affix_' + i) * pool.length), a = pool.splice(idx, 1)[0];
         let raw = a.base[0] + Math.floor(_mysticRoll('value_' + i) * (a.base[1] - a.base[0] + 1));
@@ -243,6 +243,8 @@ function applyMysticItemStats(item, p, d) {
         else if(a.k==='hp')p.mhp+=v; else if(a.k==='mp')p.mmp+=v; else if(a.k==='ac')d.ac-=v;
         else if(a.k==='mr')d.mr+=v; else if(a.k==='dr')d.dr+=v;
         else if(a.k==='crit'){d.meleeCrit+=v;d.rangedCrit+=v;d.magicCrit+=v;}
+        else if(a.k==='hpR')d.hpR+=v; else if(a.k==='mpR')d.mpR+=v;
+        else if(a.k==='vamp')d.mysticVampPct+=v/100; else if(a.k==='mpDrain')d.mysticMpOnHit+=v;
     });
     let sk=item.mystic.skill;
     if(sk&&DB.skills[sk]&&!player.skills.includes(sk)){if(!player.grantedSkills.includes(sk))player.grantedSkills.push(sk);player.skills.push(sk);}
@@ -367,10 +369,18 @@ function getItemFullName(item) {
     return `${segs}<span class="${getItemColor(item)}">${en}${setPrefix}${d.n}${cnt}</span>`;
 }
 
+let activeMysticScroll=null, activeProtectScroll=null;
+function openMysticEnchantModal(scroll){activeMysticScroll=scroll;let list=player.inv.filter(i=>{let d=DB.items[i.id];return d&&!d.isArrow&&!isRelic(d)&&(d.type==='wpn'||d.type==='arm'||d.type==='acc');});document.getElementById('modal-item-name').innerHTML='裝備魔力附魔';document.getElementById('modal-item-desc').innerHTML='選擇要附魔的武器、防具或飾品：';document.getElementById('modal-actions').innerHTML=list.length?list.map(i=>`<button class="col-span-2 btn bg-fuchsia-900 border-fuchsia-600 py-2 ${getItemColor(i)}" onclick="doMysticEnchant('${i.uid}')">${getItemFullName(i)}</button>`).join(''):'<span class="text-slate-400">背包沒有可附魔裝備。</span>';document.getElementById('item-modal').classList.remove('hidden');}
+function doMysticEnchant(targetUid){let s=activeMysticScroll,t=player.inv.find(i=>i.uid===targetUid);if(!s||!t)return;let d=DB.items[t.id];if((t.cnt||1)>1){t.cnt--;t={...t,cnt:1,uid:uid(),lock:false,junk:false};player.inv.push(t);}consume(s);t.mystic=rollMysticEquipment(d,t.id);t.identified=true;logSys(`<span class="text-fuchsia-300 font-bold">附魔完成：${getItemFullName(t)}</span>`);activeMysticScroll=null;renderTabs(true);calcStats();saveGame();openModal(t,false);}
+function openEnhanceProtectModal(scroll){activeProtectScroll=scroll;let list=player.inv.filter(i=>{let d=DB.items[i.id],en=Number(i.en)||0;return d&&!d.isArrow&&((d.type==='wpn'&&en>=10)||(d.type==='arm'&&en>=8));});document.getElementById('modal-item-name').innerHTML='強化保護';document.getElementById('modal-item-desc').innerHTML='選擇武器 +10 以上或防具 +8 以上的裝備：';document.getElementById('modal-actions').innerHTML=list.length?list.map(i=>`<button class="col-span-2 btn bg-cyan-900 border-cyan-600 py-2 ${getItemColor(i)}" onclick="applyEnhanceProtect('${i.uid}')">${getItemFullName(i)}${i.enhanceProtect?'（已有保護）':''}</button>`).join(''):'<span class="text-slate-400">沒有符合條件的裝備。</span>';document.getElementById('item-modal').classList.remove('hidden');}
+function applyEnhanceProtect(targetUid){let s=activeProtectScroll,t=player.inv.find(i=>i.uid===targetUid);if(!s||!t||t.enhanceProtect)return;consume(s);t.enhanceProtect=1;activeProtectScroll=null;logSys(`<span class="text-cyan-300 font-bold">${getItemFullName(t)} 已獲得 1 次強化保護。</span>`);renderTabs(true);saveGame();openModal(t,false);}
+
 function useItem(u, silent = false) {
     let item = player.inv.find(i => i.uid === u);
     if (!item) return;
     if (player.dead) { if (!silent) logSys(`死亡狀態無法使用道具，請先復活。`); return; }   // 死亡(未復活前)鎖住手動使用
+    if (DB.items[item.id] && DB.items[item.id].eff === 'mystic_enchant') { openMysticEnchantModal(item); return; }
+    if (DB.items[item.id] && DB.items[item.id].eff === 'enhance_protect') { openEnhanceProtectModal(item); return; }
     if (inAbsBarrier()) { if(!silent) logSys('絕對屏障期間與世界隔絕，無法使用藥水與道具。'); return; }   // 🛡️ 絕對屏障：禁止使用任何道具（自動使用 silent 亦略過）
     if (item.id === 'scroll_revive') { if(!silent) logSys(`復活卷軸無法從道具欄使用，死亡時可於畫面下方點選『原地復活』。`); return; }
     let d = DB.items[item.id];
@@ -1039,12 +1049,8 @@ function doEnhance(targetUid, isEq = true) {
         let _enTxt = '+' + capEn(target.en, d);   // 🔧 顯示 +N（夾擠至強化上限）
         logSys(`<span class="text-yellow-400 font-bold">${_enTxt} ${d.n} ${prefix}發出銀色的光芒。</span>`);
     } else if (destroy) {
-        logSys(`<span class="text-red-500 font-bold">${fn} 強烈的發出銀色的光芒就消失了。</span>`);
-        if (isEq) {
-            player.eq[slot] = null; // 碎掉身上裝備
-        } else {
-            player.inv = player.inv.filter(i => i.uid !== target.uid); // 碎掉背包裝備
-        }
+        if(target.enhanceProtect){target.enhanceProtect=0;logSys(`<span class="text-cyan-300 font-bold">強化保護發動！${fn} 未消失，保護次數已消耗。</span>`);}
+        else {logSys(`<span class="text-red-500 font-bold">${fn} 強烈的發出銀色的光芒就消失了。</span>`);if(isEq)player.eq[slot]=null;else player.inv=player.inv.filter(i=>i.uid!==target.uid);}
     } else {
         logSys(`<span class="text-slate-400">${fn} 一瞬間發出銀色的光芒。</span>`);
     }

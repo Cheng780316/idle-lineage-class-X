@@ -704,7 +704,7 @@ function itemSig(it) {
     if (it.identified === false) return it.id + '|' + (it.en || 0) + '|U';   // 🔍 未鑑定同裝備可堆疊；隱藏能力於逐件鑑定時才生成
     let mystic = it.mystic ? JSON.stringify(it.mystic) : '';
     let identified = it.identified === false ? 'U' : 'I';
-    return it.id + '|' + (it.en || 0) + '|' + (it.bless === true ? 'B' : (it.bless ? 'C' : 0)) + '|' + (it.anc === true ? 'A' : (it.anc || 0)) + '|' + (it.attr || '') + '|' + (it.seteff || '') + '|' + identified + '|' + mystic;
+    return it.id + '|' + (it.en || 0) + '|' + (it.bless === true ? 'B' : (it.bless ? 'C' : 0)) + '|' + (it.anc === true ? 'A' : (it.anc || 0)) + '|' + (it.attr || '') + '|' + (it.seteff || '') + '|' + identified + '|' + mystic + '|' + (it.enhanceProtect?'P':'');
 }   // 🔮 含席琳套裝效果＋暗黑式鑑定詞綴：未鑑定/不同能力的裝備絕不誤合併
 function sameItemSig(a, b) { return itemSig(a) === itemSig(b); }
 
