@@ -943,7 +943,8 @@ function openModal(item, isEq, slot) {
             act += `<button class="col-span-2 w-full btn border-green-700 bg-emerald-800 hover:bg-emerald-700 text-green-100 py-3 text-lg font-bold" onclick="useItem('${item.uid}')">使用卷軸</button>`;
         }
         if(item.identified === false) {
-            act += `<button class="col-span-2 w-full btn border-amber-500 bg-amber-900 hover:bg-amber-800 text-amber-100 py-3 text-lg font-bold" onclick="identifyEquipment('${item.uid}')">🔍 鑑定裝備</button>`;
+            act += `<button class="col-span-2 w-full btn border-amber-500 bg-amber-900 hover:bg-amber-800 text-amber-100 py-3 text-lg font-bold" onclick="identifyEquipment('${item.uid}',1)">🔍 鑑定 1 件</button>`;
+            if((item.cnt||1)>1) act += `<button class="col-span-2 w-full btn border-orange-500 bg-orange-900 hover:bg-orange-800 text-orange-100 py-3 text-lg font-bold" onclick="identifyEquipment('${item.uid}',10)">🔍 鑑定最多 10 件（目前 ${(item.cnt||1)} 件）</button>`;
         } else if(d.type === 'wpn' || d.type === 'arm' || d.type === 'acc') {
             act += `<button class="col-span-2 w-full btn border-blue-700 bg-blue-900 hover:bg-blue-800 text-blue-200 py-3 text-lg font-bold" onclick="equipItem(${JSON.stringify(item).replace(/"/g, '&quot;')})">裝備</button>`;
         }

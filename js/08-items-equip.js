@@ -247,15 +247,20 @@ function applyMysticItemStats(item, p, d) {
     let sk=item.mystic.skill;
     if(sk&&DB.skills[sk]&&!player.skills.includes(sk)){if(!player.grantedSkills.includes(sk))player.grantedSkills.push(sk);player.skills.push(sk);}
 }
-function identifyEquipment(itemUid) {
+function identifyEquipment(itemUid, amount=1) {
     let stack=player.inv.find(i=>i.uid===itemUid); if(!stack||stack.identified!==false)return;
-    let item=stack, d=DB.items[stack.id];
-    if((stack.cnt||1)>1){stack.cnt--;item={...stack,cnt:1,uid:uid(),lock:false,junk:false};player.inv.push(item);}
-    item.mystic=rollMysticEquipment(d,item.id);
-    let af=rollAffixesNew(); item.attr=af.attr; item.bless=af.bless; item.anc=af.anc;
-    item.identified=true; let rd=MYSTIC_RARITIES[item.mystic.rarity]||MYSTIC_RARITIES.magic;
-    logSys(`<span class="${rd.cls} font-bold">🔍 鑑定完成：${getItemFullName(item)}</span>`);
-    renderTabs(true); updateUI(); saveGame(); openModal(item,false);
+    let d=DB.items[stack.id], qty=Math.min(Math.max(1,Math.floor(Number(amount)||1)),10,stack.cnt||1), results=[];
+    for(let n=0;n<qty;n++){
+        let item=stack;
+        if((stack.cnt||1)>1){stack.cnt--;item={...stack,cnt:1,uid:uid(),lock:false,junk:false};player.inv.push(item);}
+        item.mystic=rollMysticEquipment(d,item.id);
+        let af=rollAffixesNew(); item.attr=af.attr; item.bless=af.bless; item.anc=af.anc;
+        item.identified=true; results.push(item);
+    }
+    let counts={}; results.forEach(i=>{let r=i.mystic.rarity;counts[r]=(counts[r]||0)+1;});
+    let summary=Object.keys(MYSTIC_RARITIES).filter(r=>counts[r]).map(r=>`${MYSTIC_RARITIES[r].n}×${counts[r]}`).join('、');
+    logSys(`<span class="text-amber-300 font-bold">🔍 已鑑定 ${results.length} 件 ${d.n}</span>${summary?`（${summary}）`:''}`);
+    renderTabs(true); updateUI(); saveGame(); openModal(results[results.length-1],false);
 }
 
 function getItemColor(item) {
