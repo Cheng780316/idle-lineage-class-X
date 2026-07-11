@@ -1199,6 +1199,18 @@ function loadGame() {
         player.inv.forEach(_normAttr);
         for (let k in player.eq) _normAttr(player.eq[k]);
         (player.allies || []).forEach(a => { if (a && a.eq) { for (let k in a.eq) _normAttr(a.eq[k]); } if (a && a.inv) a.inv.forEach(_normAttr); });
+        // 🔍 鑑定技能改為僅治療/輔助：清除舊測試版本已鑑定裝備上的攻擊技能；未鑑定品的能力改於逐件鑑定時生成。
+        let _normMystic = (i) => {
+            if (!i) return;
+            if (i.identified === false) i.mystic = null;
+            if (i.mystic && i.mystic.skill) {
+                let sk = DB.skills[i.mystic.skill];
+                if (!sk || (sk.type !== 'heal' && sk.type !== 'buff')) i.mystic.skill = null;
+            }
+        };
+        player.inv.forEach(_normMystic);
+        for (let k in player.eq) _normMystic(player.eq[k]);
+        (player.allies || []).forEach(a => { if (a && a.eq) for (let k in a.eq) _normMystic(a.eq[k]); if (a && a.inv) a.inv.forEach(_normMystic); });
         // 🔮 席琳套裝效果改置腰帶：一次性清除既有「項鍊」上的套裝效果（背包/裝備/傭兵快照/共用倉庫）
         {
             let _fixSet = (it) => { if (it && it.seteff) { let dd = DB.items[it.id]; if (dd && dd.slot === 'amulet') it.seteff = false; } };

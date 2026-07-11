@@ -48,7 +48,8 @@ function gainItem(id, cnt=1, silent=false, forceNormal=false, affixOld=false) {
     let _mysticEligible = !forceNormal && d && !d.isArrow && !isRelic(d)
         && (d.type === 'wpn' || d.type === 'arm' || d.type === 'acc');
     let identified = !_mysticEligible;
-    let mystic = _mysticEligible ? rollMysticEquipment(d, id) : null;
+    let mystic = null;   // 未鑑定品堆疊；真正能力於逐件鑑定時才抽取
+    if (_mysticEligible) { bless = false; anc = false; attr = false; }   // 既有詞綴也延後到鑑定時生成，避免同裝備被隱藏詞綴拆成多堆
 
     let _tEn = 0;   // 🏛️ v3.0.83 傳統模式已取消：掉落自帶強化值停用（任何來源恆 +0·手動強化照常）
     let _probe = { id: id, en: _tEn, bless: bless, anc: anc, attr: attr, seteff: seteff, identified: identified, mystic: mystic };
@@ -187,16 +188,16 @@ const MYSTIC_AFFIXES = [
     { k:'crit', n:'爆擊率', base:[1,3] }
 ];
 const MYSTIC_SKILL_POOLS = {
-    bow: ['sk_elf_triple','sk_elf_groundtrap','sk_elf_magicerase','sk_elf_seal'],
-    knight: ['sk_shock_stun'],
-    mage: ['sk_lightarrow','sk_icearrow','sk_firearrow','sk_hell_fang','sk_fireball','sk_vampire','sk_rock_prison','sk_thunder','sk_ice_spike','sk_blizzard','sk_meteor','sk_disintegrate'],
-    dark: ['sk_dark_crit','sk_dark_armorbreak'],
-    illusion: ['sk_illu_confuse','sk_illu_crush','sk_illu_mindbreak','sk_illu_skullbreak','sk_illu_fantasy','sk_illu_panic'],
-    dragon: ['sk_dragon_guardbreak','sk_dragon_lavaspit','sk_dragon_slaughter','sk_dragon_terror','sk_dragon_lavabolt','sk_dragon_deathlightning','sk_dragon_reaper'],
-    warrior: ['sk_warrior_roar'],
-    royal: ['sk_royal_callally'],
-    elf: ['sk_elf_release','sk_elf_groundtrap','sk_elf_magicerase','sk_elf_seal'],
-    common: ['sk_lightarrow','sk_icearrow','sk_firearrow','sk_hell_fang']
+    bow: ['sk_elf_windshot','sk_elf_winddash','sk_elf_stormeye','sk_elf_stormshot','sk_elf_preciseshot'],
+    knight: ['sk_reduction_armor','sk_spike_armor','sk_counter_barrier'],
+    mage: ['sk_heal1','sk_heal_mid','sk_heal2','sk_full_heal','sk_shield','sk_shield2','sk_haste_spell','sk_greater_haste','sk_magic_shield','sk_regen'],
+    dark: ['sk_dark_str','sk_dark_mrup','sk_dark_stealth','sk_dark_poison','sk_dark_dex','sk_dark_burn','sk_dark_walkhaste','sk_dark_fang','sk_dark_dodge','sk_dark_erup','sk_dark_double'],
+    illusion: ['sk_illu_ogre','sk_illu_mirror','sk_illu_focus','sk_illu_lich','sk_illu_endure','sk_illu_golem','sk_illu_avatar','sk_illu_insight'],
+    dragon: ['sk_dragon_armor','sk_dragon_flameslash','sk_dragon_awaken_antares','sk_dragon_bloodlust','sk_dragon_awaken_falion','sk_dragon_deadlybody','sk_dragon_awaken_baraka'],
+    warrior: ['sk_warrior_throwaxe','sk_warrior_endurance','sk_warrior_outlaw'],
+    royal: ['sk_royal_precise','sk_royal_burnweapon','sk_royal_bravewill','sk_royal_shield'],
+    elf: ['sk_elf_mr','sk_elf_purify','sk_elf_eleres','sk_elf_winddash','sk_elf_earthguard','sk_elf_watervital','sk_elf_lifespring','sk_elf_lifebless','sk_elf_mirror'],
+    common: ['sk_heal1','sk_shield','sk_ench_wpn','sk_haste_spell']
 };
 function mysticSkillPool(d, itemId) {
     if (d.type === 'wpn') {
@@ -223,7 +224,7 @@ function rollMysticEquipment(d, itemId) {
         affixes.push({ k:a.k, v:Math.max(1, Math.round(raw * rd.mult)) });
     }
     let chance = rarity === 'mythic' ? 0.45 : rarity === 'epic' ? 0.15 : rarity === 'rare' ? 0.04 : 0;
-    let skillPool = mysticSkillPool(d, itemId).filter(sk => DB.skills[sk] && DB.skills[sk].type === 'atk');
+    let skillPool = mysticSkillPool(d, itemId).filter(sk => DB.skills[sk] && (DB.skills[sk].type === 'heal' || DB.skills[sk].type === 'buff'));
     let skill = skillPool.length && _mysticRoll('skill_chance') < chance ? skillPool[Math.floor(_mysticRoll('skill_pick') * skillPool.length)] : null;
     return { rarity:rarity, affixes:affixes, skill:skill };
 }
@@ -246,9 +247,13 @@ function applyMysticItemStats(item, p, d) {
     let sk=item.mystic.skill;
     if(sk&&DB.skills[sk]&&!player.skills.includes(sk)){if(!player.grantedSkills.includes(sk))player.grantedSkills.push(sk);player.skills.push(sk);}
 }
-function identifyEquipment(uid) {
-    let item=player.inv.find(i=>i.uid===uid); if(!item||item.identified!==false)return;
-    item.identified=true; let rd=MYSTIC_RARITIES[item.mystic&&item.mystic.rarity]||MYSTIC_RARITIES.magic;
+function identifyEquipment(itemUid) {
+    let stack=player.inv.find(i=>i.uid===itemUid); if(!stack||stack.identified!==false)return;
+    let item=stack, d=DB.items[stack.id];
+    if((stack.cnt||1)>1){stack.cnt--;item={...stack,cnt:1,uid:uid(),lock:false,junk:false};player.inv.push(item);}
+    item.mystic=rollMysticEquipment(d,item.id);
+    let af=rollAffixesNew(); item.attr=af.attr; item.bless=af.bless; item.anc=af.anc;
+    item.identified=true; let rd=MYSTIC_RARITIES[item.mystic.rarity]||MYSTIC_RARITIES.magic;
     logSys(`<span class="${rd.cls} font-bold">🔍 鑑定完成：${getItemFullName(item)}</span>`);
     renderTabs(true); updateUI(); saveGame(); openModal(item,false);
 }
@@ -343,6 +348,7 @@ function getItemFullName(item) {
     if(!d) return "未知的物品";
     if(item.identified===false) return `<span class="c-unidentified">未鑑定的 ${d.n}${item.cnt>1?` (${item.cnt})`:''}</span>`;
     let segs = '';
+    if(item.mystic && MYSTIC_RARITIES[item.mystic.rarity]) segs += `<span class="${MYSTIC_RARITIES[item.mystic.rarity].cls}">${MYSTIC_RARITIES[item.mystic.rarity].n}的 </span>`;
     let aff = getAttrAffix(item.attr);
     if (aff) {
         let acls = 'c-attr-' + attrCanon(item.attr) + (aff.tier === 5 ? ' c-attr-glow' : '');
