@@ -48,7 +48,7 @@ function gainItem(id, cnt=1, silent=false, forceNormal=false, affixOld=false) {
     let _mysticEligible = !forceNormal && d && !d.isArrow && !isRelic(d)
         && (d.type === 'wpn' || d.type === 'arm' || d.type === 'acc');
     let identified = !_mysticEligible;
-    let mystic = _mysticEligible ? rollMysticEquipment(d) : null;
+    let mystic = _mysticEligible ? rollMysticEquipment(d, id) : null;
 
     let _tEn = 0;   // 🏛️ v3.0.83 傳統模式已取消：掉落自帶強化值停用（任何來源恆 +0·手動強化照常）
     let _probe = { id: id, en: _tEn, bless: bless, anc: anc, attr: attr, seteff: seteff, identified: identified, mystic: mystic };
@@ -186,9 +186,34 @@ const MYSTIC_AFFIXES = [
     { k:'mr', n:'魔防（MR）', base:[2,5] }, { k:'dr', n:'傷害減免', base:[1,2] },
     { k:'crit', n:'爆擊率', base:[1,3] }
 ];
-const MYSTIC_SKILLS = ['sk_heal1','sk_fireball','sk_haste_spell'];
+const MYSTIC_SKILL_POOLS = {
+    bow: ['sk_elf_triple','sk_elf_windshot','sk_elf_stormeye','sk_elf_stormshot','sk_elf_preciseshot'],
+    knight: ['sk_reduction_armor','sk_spike_armor','sk_shock_stun','sk_counter_barrier'],
+    mage: ['sk_heal1','sk_heal_mid','sk_fireball','sk_vampire','sk_thunder','sk_haste_spell','sk_magic_shield'],
+    dark: ['sk_dark_poison','sk_dark_burn','sk_dark_fang','sk_dark_crit','sk_dark_double','sk_dark_armorbreak'],
+    illusion: ['sk_illu_ogre','sk_illu_confuse','sk_illu_crush','sk_illu_mindbreak','sk_illu_endure','sk_illu_avatar'],
+    dragon: ['sk_dragon_armor','sk_dragon_flameslash','sk_dragon_guardbreak','sk_dragon_bloodlust','sk_dragon_slaughter','sk_dragon_deadlybody'],
+    warrior: ['sk_warrior_throwaxe','sk_warrior_roar','sk_warrior_endurance','sk_warrior_outlaw'],
+    royal: ['sk_royal_precise','sk_royal_burnweapon','sk_royal_bravewill','sk_royal_shield'],
+    elf: ['sk_elf_mr','sk_elf_purify','sk_elf_eleres','sk_elf_soul','sk_elf_mirror'],
+    common: ['sk_heal1','sk_shield','sk_ench_wpn','sk_haste_spell']
+};
+function mysticSkillPool(d, itemId) {
+    if (d.type === 'wpn') {
+        if (d.isBow || d.ranged) return MYSTIC_SKILL_POOLS.bow;
+        if (d.qigu) return MYSTIC_SKILL_POOLS.illusion;
+        let tags = typeof getWeaponTags === 'function' ? getWeaponTags(itemId) : [];
+        if (tags.includes('單手鈍器') || tags.includes('雙手鈍器')) return MYSTIC_SKILL_POOLS.warrior;
+        if (tags.includes('雙刀') || tags.includes('鋼爪') || tags.includes('匕首')) return MYSTIC_SKILL_POOLS.dark;
+        if (d.w2h) return MYSTIC_SKILL_POOLS.knight;
+    }
+    let req = typeof d.req === 'string' ? d.req.split(',') : [];
+    let keys = [['mage','mage'],['illusion','illusion'],['dragon','dragon'],['warrior','warrior'],['dark','dark'],['elf','elf'],['royal','royal'],['knight','knight']];
+    let pools = keys.filter(x => req.includes(x[0])).flatMap(x => MYSTIC_SKILL_POOLS[x[1]]);
+    return pools.length ? pools : MYSTIC_SKILL_POOLS.common;
+}
 function _mysticRoll(tag) { return typeof lootRng === 'function' ? lootRng('identify_' + tag) : Math.random(); }
-function rollMysticEquipment(d) {
+function rollMysticEquipment(d, itemId) {
     let r = _mysticRoll('rarity');
     let rarity = r < 0.03 ? 'mythic' : r < 0.15 ? 'epic' : r < 0.45 ? 'rare' : 'magic';
     let rd = MYSTIC_RARITIES[rarity], pool = MYSTIC_AFFIXES.slice(), affixes = [];
@@ -198,7 +223,8 @@ function rollMysticEquipment(d) {
         affixes.push({ k:a.k, v:Math.max(1, Math.round(raw * rd.mult)) });
     }
     let chance = rarity === 'mythic' ? 0.45 : rarity === 'epic' ? 0.15 : rarity === 'rare' ? 0.04 : 0;
-    let skill = _mysticRoll('skill_chance') < chance ? MYSTIC_SKILLS[Math.floor(_mysticRoll('skill_pick') * MYSTIC_SKILLS.length)] : null;
+    let skillPool = mysticSkillPool(d, itemId).filter(sk => DB.skills[sk]);
+    let skill = skillPool.length && _mysticRoll('skill_chance') < chance ? skillPool[Math.floor(_mysticRoll('skill_pick') * skillPool.length)] : null;
     return { rarity:rarity, affixes:affixes, skill:skill };
 }
 function mysticAffixName(a) { let x = MYSTIC_AFFIXES.find(v => v.k === a.k); return x ? x.n : a.k; }
@@ -218,7 +244,7 @@ function applyMysticItemStats(item, p, d) {
         else if(a.k==='crit'){d.meleeCrit+=v;d.rangedCrit+=v;d.magicCrit+=v;}
     });
     let sk=item.mystic.skill;
-    if(sk&&DB.skills[sk]){if(!player.grantedSkills.includes(sk))player.grantedSkills.push(sk);if(!player.skills.includes(sk))player.skills.push(sk);}
+    if(sk&&DB.skills[sk]&&!player.skills.includes(sk)){if(!player.grantedSkills.includes(sk))player.grantedSkills.push(sk);player.skills.push(sk);}
 }
 function identifyEquipment(uid) {
     let item=player.inv.find(i=>i.uid===uid); if(!item||item.identified!==false)return;
