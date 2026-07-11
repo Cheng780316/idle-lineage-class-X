@@ -257,6 +257,7 @@ function recomputeStats() {
         // 🔥 屬性詞綴（v3.0.77 五階制）：額外傷害+N、額外魔法點數+N（N=1/3/5/7/9·ATTR_AFFIX js/08）；一般攻擊轉屬性走 getWpnEle/elementCounterMult
         let _wAtt = getAttrAffix(p.eq.wpn.attr);
         if (_wAtt) { d.extraDmg += _wAtt.dmg; d.extraMp += _wAtt.mp; }
+        applyMysticItemStats(p.eq.wpn, p, d);   // 🔍 鑑定後的暗黑式隨機能力／裝備技能
 
     }
 
@@ -265,6 +266,7 @@ function recomputeStats() {
         applyBlessStats(d, p.eq.offwpn.bless, 'wpn'); applyAncStats(d, p.eq.offwpn.anc, 'wpn');
         let _oAtt = getAttrAffix(p.eq.offwpn.attr);
         if (_oAtt) { d.extraDmg += _oAtt.dmg; d.extraMp += _oAtt.mp; }   // 🔥 副手屬性詞綴：額外傷害/魔法點數
+        applyMysticItemStats(p.eq.offwpn, p, d);
     }
 
     let setCheck = {}, _setSeen = {};
@@ -343,6 +345,7 @@ d.mr += (baseMr + bonusMr);
         // 祝福的：防具→AC-1、傷害減免+1；飾品→AC-1、MR+1
         applyBlessStats(d, e.bless, (ed.slot==='ring'||ed.slot==='amulet'||ed.slot==='belt'||ed.slot==='ear') ? 'acc' : 'arm');   // 祝福的/詛咒的
         applyAncStats(d, e.anc, (ed.slot==='ring'||ed.slot==='amulet'||ed.slot==='belt'||ed.slot==='ear') ? 'acc' : 'arm');   // 遠古系變體能力
+        applyMysticItemStats(e, p, d);   // 🔍 鑑定能力與可能附帶的技能
         // 🔥 v3.0.77 屬性詞綴改版：只能存在於武器（額外傷害/魔法點數，於上方武器區塊計入）；舊防具/飾品屬性詞綴（元素抗性+MR）已廢除並由 loadGame 清除
         if(ed.set && !_setSeen[e.id]) { _setSeen[e.id] = true; setCheck[ed.set] = (setCheck[ed.set]||0) + 1; }   // 🔧 以「不重複物品」計件：兩枚同款戒指只算 1 件，杜絕灌水湊套裝
         

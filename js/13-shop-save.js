@@ -1145,7 +1145,12 @@ function loadGame() {
         // 🔧 廢品記憶改以「完整簽章」為鍵（同 id＋完全相同詞綴才自動標記）；舊存檔的純 id 鍵轉為無詞綴簽章
         {
             let _np = {};
-            for (let k in player.junkPrefs) { if (player.junkPrefs[k]) _np[k.includes('|') ? k : (k + '|0|0|0||')] = true; }
+            for (let k in player.junkPrefs) {
+                if (!player.junkPrefs[k]) continue;
+                let nk = k.includes('|') ? k : (k + '|0|0|0||');
+                if (nk.split('|').length === 6) nk += '|I|';   // 🔍 舊簽章補上「已鑑定＋無神秘詞綴」
+                _np[nk] = true;
+            }
             player.junkPrefs = _np;
         }
         player.inv.forEach(i=>{let _d=DB.items[i.id];if(_d&&(_d.doll||_d.slot==='doll'))delete player.junkPrefs[itemSig(i)];});   // 🔧 v2.6.91 功能1：娃娃移出廢品記憶（未來掉落不再自動標記）

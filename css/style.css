@@ -90,6 +90,12 @@
         }
         /* 🏺 遺物：海藍色名稱＋海藍色圖示呼吸光芒 */
         .c-relic { color: #38bdf8 !important; font-weight: bold; text-shadow: 0 0 4px rgba(56,189,248,0.7), 0 0 10px rgba(2,132,199,0.5); }
+        .c-unidentified { color:#94a3b8 !important; font-weight:bold; text-shadow:0 0 7px rgba(148,163,184,.45); }
+        .c-mystic-magic { color:#60a5fa !important; font-weight:bold; text-shadow:0 0 7px rgba(59,130,246,.55); }
+        .c-mystic-rare { color:#facc15 !important; font-weight:bold; text-shadow:0 0 8px rgba(250,204,21,.55); }
+        .c-mystic-epic { color:#c084fc !important; font-weight:bold; text-shadow:0 0 9px rgba(168,85,247,.65); }
+        .c-mystic-mythic { color:#fb923c !important; font-weight:bold; text-shadow:0 0 5px #ef4444,0 0 12px rgba(249,115,22,.8); animation:mysticPulse 1.6s ease-in-out infinite alternate; }
+        @keyframes mysticPulse { from{filter:brightness(1)} to{filter:brightness(1.35)} }
         /* 🏺 遺物 ①強化光暈：更大更亮的呼吸藍光（比傳說金光更醒目·背包/裝備視窗/收集冊/商店全通用） */
         .relic-glow { animation: relicGlow 2s ease-in-out infinite; }
         @keyframes relicGlow {

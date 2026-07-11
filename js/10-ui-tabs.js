@@ -684,6 +684,7 @@ function weaponHasBleed(id){ let d = DB.items[id]; if (d && d.noBleed) return fa
 function buildItemDescHTML(item) {
     let d = DB.items[item.id];
     if(!d) return '';
+    if(item.identified===false) return '<span class="c-unidentified font-bold">🔍 尚未鑑定</span><br><span class="text-slate-400">鑑定後會揭露 1～3 條隨機能力；稀有、史詩或神話裝備還可能附帶技能。</span>';
     let desc = d.d || "";
     // 🔮 席琳套裝效果：寫在資訊欄（綠色標題＋淺綠加成說明），不冠在名稱前
     // ⚠️v3.1.68 套裝效果改由「席琳遺骸」承載：遺骸(d.remains)照常列加成；一般裝備上的舊詞綴補註「不再計入」提示（顯示保留·可由菈克希絲拆分）
@@ -884,6 +885,7 @@ function buildItemDescHTML(item) {
         else desc += `<br><span class="text-slate-400">安定值: ${d.safe || 0}</span>`;
     }
 
+    desc += mysticDescHTML(item);
     return desc;
 }
 
@@ -940,7 +942,9 @@ function openModal(item, isEq, slot) {
         if(d.type === 'scroll') {
             act += `<button class="col-span-2 w-full btn border-green-700 bg-emerald-800 hover:bg-emerald-700 text-green-100 py-3 text-lg font-bold" onclick="useItem('${item.uid}')">使用卷軸</button>`;
         }
-        if(d.type === 'wpn' || d.type === 'arm' || d.type === 'acc') {
+        if(item.identified === false) {
+            act += `<button class="col-span-2 w-full btn border-amber-500 bg-amber-900 hover:bg-amber-800 text-amber-100 py-3 text-lg font-bold" onclick="identifyEquipment('${item.uid}')">🔍 鑑定裝備</button>`;
+        } else if(d.type === 'wpn' || d.type === 'arm' || d.type === 'acc') {
             act += `<button class="col-span-2 w-full btn border-blue-700 bg-blue-900 hover:bg-blue-800 text-blue-200 py-3 text-lg font-bold" onclick="equipItem(${JSON.stringify(item).replace(/"/g, '&quot;')})">裝備</button>`;
         }
         
@@ -952,7 +956,7 @@ function openModal(item, isEq, slot) {
     }
 
     // 👇 修改：為武器、防具、飾品加入專屬的「強化」按鈕 (加入 !d.isArrow 防呆，箭矢不顯示強化按鈕)
-    if (((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance) {   // 🔧 已達淬鍊（強化上限）：隱藏強化按鈕；🏛️ 無法強化的裝備（古老系列）不顯示強化鈕
+    if (item.identified !== false && ((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance) {   // 🔧 已達淬鍊（強化上限）：隱藏強化按鈕；🏛️ 無法強化的裝備（古老系列）不顯示強化鈕
         act += `<button class="col-span-2 w-full btn border-purple-700 bg-purple-900 hover:bg-purple-800 text-purple-200 py-3 text-lg font-bold mt-2" onclick="showEnhanceOptions('${item.uid}', ${isEq})">強化</button>`;
     }
 

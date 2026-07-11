@@ -44,14 +44,20 @@ function gainItem(id, cnt=1, silent=false, forceNormal=false, affixOld=false) {
     //   既有裝備上的舊詞綴保留顯示（名稱前綴/資訊欄）但不再計入套裝件數（recomputeStats 只掃遺骸欄）。
     let seteff = false;
 
+    // 🔍 暗黑式鑑定：非商店/固定獎勵取得的裝備會先封存詞綴，鑑定前不揭露也不生效。
+    let _mysticEligible = !forceNormal && d && !d.isArrow && !isRelic(d)
+        && (d.type === 'wpn' || d.type === 'arm' || d.type === 'acc');
+    let identified = !_mysticEligible;
+    let mystic = _mysticEligible ? rollMysticEquipment(d) : null;
+
     let _tEn = 0;   // 🏛️ v3.0.83 傳統模式已取消：掉落自帶強化值停用（任何來源恆 +0·手動強化照常）
-    let _probe = { id: id, en: _tEn, bless: bless, anc: anc, attr: attr, seteff: seteff };
+    let _probe = { id: id, en: _tEn, bless: bless, anc: anc, attr: attr, seteff: seteff, identified: identified, mystic: mystic };
     let ex = player.inv.find(i => sameItemSig(i, _probe));   // 🔧 架構#3：統一簽章比對（itemSig 已含 en→+0 只併 +0、+3 只併 +3，永不誤併不同強化值）；🏛️ 傳統自帶強化：同名同強化值同詞綴自動疊加（移除原 en>0 不疊加限制）
     if(ex) ex.cnt += cnt;   // 不論是否鎖定都疊加；僅加數量、不更動既有堆疊的鎖定/廢品狀態
-    else player.inv.push({ id: id, uid: uid(), cnt: cnt, en: _tEn, bless: bless, anc: anc, attr: attr, seteff: seteff, lock: false, junk: !!(player.junkPrefs && player.junkPrefs[itemSig(_probe)]) && !(d && d.noJunk) });   // 🔧 廢品記憶改以完整簽章比對：詞綴物品也可自動標記，但僅限「完全相同詞綴」者；🎴 noJunk(收集冊)永不自動標記
+    else player.inv.push({ id: id, uid: uid(), cnt: cnt, en: _tEn, bless: bless, anc: anc, attr: attr, seteff: seteff, identified: identified, mystic: mystic, lock: false, junk: !!(player.junkPrefs && player.junkPrefs[itemSig(_probe)]) && !(d && d.noJunk) });   // 🔧 廢品記憶改以完整簽章比對：詞綴物品也可自動標記，但僅限「完全相同詞綴」者；🎴 noJunk(收集冊)永不自動標記
 
     // 紀錄這次產生的物品屬性
-    let itemInfo = { id: id, cnt: cnt, en: _tEn, bless: bless, anc: anc, attr: attr, seteff: seteff };
+    let itemInfo = { id: id, cnt: cnt, en: _tEn, bless: bless, anc: anc, attr: attr, seteff: seteff, identified: identified, mystic: mystic };
     
     if (!silent && d) {
         logSys(`獲得物品: <span class="font-bold">${getItemFullName(itemInfo)}</span>`);
@@ -166,8 +172,65 @@ function elementCounterMult(atkEle, defEle) {
     return 1;
 }
 
+// ===== 🔍 暗黑式裝備鑑定 =====
+const MYSTIC_RARITIES = {
+    magic:  { n:'魔法', cls:'c-mystic-magic', count:1, mult:1 },
+    rare:   { n:'稀有', cls:'c-mystic-rare', count:2, mult:1.5 },
+    epic:   { n:'史詩', cls:'c-mystic-epic', count:3, mult:2 },
+    mythic: { n:'神話', cls:'c-mystic-mythic', count:3, mult:3 }
+};
+const MYSTIC_AFFIXES = [
+    { k:'dmg', n:'額外傷害', base:[1,2] }, { k:'hit', n:'額外命中', base:[1,3] },
+    { k:'mdmg', n:'魔法傷害', base:[1,2] }, { k:'hp', n:'最大 HP', base:[10,25] },
+    { k:'mp', n:'最大 MP', base:[5,15] }, { k:'ac', n:'防禦（AC）', base:[1,2] },
+    { k:'mr', n:'魔防（MR）', base:[2,5] }, { k:'dr', n:'傷害減免', base:[1,2] },
+    { k:'crit', n:'爆擊率', base:[1,3] }
+];
+const MYSTIC_SKILLS = ['sk_heal1','sk_fireball','sk_haste_spell'];
+function _mysticRoll(tag) { return typeof lootRng === 'function' ? lootRng('identify_' + tag) : Math.random(); }
+function rollMysticEquipment(d) {
+    let r = _mysticRoll('rarity');
+    let rarity = r < 0.03 ? 'mythic' : r < 0.15 ? 'epic' : r < 0.45 ? 'rare' : 'magic';
+    let rd = MYSTIC_RARITIES[rarity], pool = MYSTIC_AFFIXES.slice(), affixes = [];
+    for (let i=0; i<rd.count && pool.length; i++) {
+        let idx = Math.floor(_mysticRoll('affix_' + i) * pool.length), a = pool.splice(idx, 1)[0];
+        let raw = a.base[0] + Math.floor(_mysticRoll('value_' + i) * (a.base[1] - a.base[0] + 1));
+        affixes.push({ k:a.k, v:Math.max(1, Math.round(raw * rd.mult)) });
+    }
+    let chance = rarity === 'mythic' ? 0.45 : rarity === 'epic' ? 0.15 : rarity === 'rare' ? 0.04 : 0;
+    let skill = _mysticRoll('skill_chance') < chance ? MYSTIC_SKILLS[Math.floor(_mysticRoll('skill_pick') * MYSTIC_SKILLS.length)] : null;
+    return { rarity:rarity, affixes:affixes, skill:skill };
+}
+function mysticAffixName(a) { let x = MYSTIC_AFFIXES.find(v => v.k === a.k); return x ? x.n : a.k; }
+function mysticDescHTML(item) {
+    if (!item || item.identified === false || !item.mystic) return '';
+    let rd = MYSTIC_RARITIES[item.mystic.rarity] || MYSTIC_RARITIES.magic;
+    let lines = (item.mystic.affixes || []).map(a => `・${mysticAffixName(a)} +${a.v}`);
+    if (item.mystic.skill && DB.skills[item.mystic.skill]) lines.push(`・裝備技能：${DB.skills[item.mystic.skill].n}`);
+    return `<br><span class="${rd.cls} font-bold">【${rd.n}鑑定能力】</span><br><span class="${rd.cls}">${lines.join('<br>')}</span>`;
+}
+function applyMysticItemStats(item, p, d) {
+    if (!item || item.identified === false || !item.mystic) return;
+    (item.mystic.affixes || []).forEach(a => { let v=Number(a.v)||0;
+        if(a.k==='dmg')d.extraDmg+=v; else if(a.k==='hit')d.extraHit+=v; else if(a.k==='mdmg')d.magicDmg+=v;
+        else if(a.k==='hp')p.mhp+=v; else if(a.k==='mp')p.mmp+=v; else if(a.k==='ac')d.ac-=v;
+        else if(a.k==='mr')d.mr+=v; else if(a.k==='dr')d.dr+=v;
+        else if(a.k==='crit'){d.meleeCrit+=v;d.rangedCrit+=v;d.magicCrit+=v;}
+    });
+    let sk=item.mystic.skill;
+    if(sk&&DB.skills[sk]){if(!player.grantedSkills.includes(sk))player.grantedSkills.push(sk);if(!player.skills.includes(sk))player.skills.push(sk);}
+}
+function identifyEquipment(uid) {
+    let item=player.inv.find(i=>i.uid===uid); if(!item||item.identified!==false)return;
+    item.identified=true; let rd=MYSTIC_RARITIES[item.mystic&&item.mystic.rarity]||MYSTIC_RARITIES.magic;
+    logSys(`<span class="${rd.cls} font-bold">🔍 鑑定完成：${getItemFullName(item)}</span>`);
+    renderTabs(true); updateUI(); saveGame(); openModal(item,false);
+}
+
 function getItemColor(item) {
     let d = DB.items[item.id];
+    if (item && item.identified === false) return 'c-unidentified';
+    if (item && item.mystic && MYSTIC_RARITIES[item.mystic.rarity]) return MYSTIC_RARITIES[item.mystic.rarity].cls;
     // 🏺 遺物：海藍色名稱（遺物永無詞綴/套裝，優先判定）
     if (d && d.relic) return 'c-relic';
     // 🏅 傳說武器：琥珀金，優先於套裝與所有詞綴（即使帶套裝效果，名稱仍為琥珀金）
@@ -187,6 +250,7 @@ function getItemColor(item) {
 //   單祝福→金光、單遠古→紫光（原樣）；屬性+遠古→紫光(加強)、屬性+祝福→金光(加強)，顯眼度比照雙詞綴；
 //   遠古+祝福→紫金交替(顯眼)；三詞綴→變色循環，顯眼度最高。
 function getGlowClass(item, d) {
+    if (item && item.identified === false) return '';   // 未鑑定時不以光效洩漏隱藏稀有度/既有詞綴
     // 🔮 席琳結晶：圖示帶與套裝文字同款的呼吸綠光
     if ((item && item.id === 'sherine_crystal') || (d && d.n === '席琳結晶')) return 'sherine-glow-icon';
     // 🔮 席琳套裝效果裝備：套裝光芒優先於傳說圖示光（名稱仍由 getItemColor 決定為琥珀金）
@@ -251,6 +315,7 @@ function applyAncStats(d, anc, slot) {   // slot: 'wpn' | 'arm' | 'acc'
 function getItemFullName(item) {
     let d = DB.items[item.id];
     if(!d) return "未知的物品";
+    if(item.identified===false) return `<span class="c-unidentified">未鑑定的 ${d.n}${item.cnt>1?` (${item.cnt})`:''}</span>`;
     let segs = '';
     let aff = getAttrAffix(item.attr);
     if (aff) {
@@ -702,6 +767,7 @@ function playerHasWindHelm() {
 
 function equipItem(item) {
     let d = DB.items[item.id];
+    if(item.identified===false){logSys('<span class="text-amber-300 font-bold">請先鑑定這件裝備，才能穿戴。</span>');openModal(player.inv.find(i=>i.uid===item.uid)||item,false);return;}
     let slot = d.type === 'wpn' ? 'wpn' : d.slot;
     if (d.isArrow) slot = 'arrow'; // 如果是箭矢，強制分配到 arrow 欄位
     // ⚔️ 迅猛雙斧雙持：已學迅猛雙斧且主手已是單手鈍器時，再裝單手鈍器 → 放副手 offwpn 欄
