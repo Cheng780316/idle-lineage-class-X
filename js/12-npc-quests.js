@@ -914,8 +914,7 @@ function trialQHTML(key, rr) {
     h += `<div class="text-xs text-slate-400 mb-2">完成獎勵（全數獲得）：${c.rewards.map(id => `<b class="text-sky-300">${DB.items[id].n}</b>`).join('＋')}</div>`;
     if (!ok) return h + `<div class="text-red-400 text-xs">尚未備齊。</div></div>`;
     h += `<div class="flex flex-wrap gap-2"><button class="btn bg-emerald-800 hover:bg-emerald-700 py-2 px-4 font-bold" onclick="trialQComplete('${key}','${rr}')">完成試煉（獲得全部獎勵）</button>`;
-    let elig = player.classicMode ? [] : c.rewards.filter(id => sherineSetEligible(DB.items[id]));
-    if (elig.length) h += `<button class="btn bg-green-900 hover:bg-green-800 border-green-600 py-2 px-4 font-bold" onclick="trialQComplete('${key}','${rr}',true)" title="可附帶套裝效果的裝備每件額外消耗 1 席琳結晶，必定附帶隨機席琳套裝效果"><span class="c-sherine">席琳完成</span>（耗 ${elig.length} 結晶）</button>`;
+    // 🚫 v3.2.16 用戶明令移除：試煉「席琳完成」選項（耗結晶必附套裝詞綴）——結晶用途回歸伊奧兌換/席琳製作等非試煉管道
     return h + `</div></div>`;
 }
 function trialQAccept(key, rr) {
@@ -926,20 +925,14 @@ function trialQAccept(key, rr) {
     logSys(`<span class="text-amber-300 font-bold">${c.npc}：試煉開始！</span>去收集 ${c.reqs.map(p => DB.items[p[0]].n + '×' + p[1]).join('、')}（擊殺指定怪物必定掉落）。`);
     saveGame(); _trialRerender(rr);
 }
-function trialQComplete(key, rr, sherine) {
+function trialQComplete(key, rr) {   // 🚫 v3.2.16 移除席琳完成：原第 3 參 sherine（耗結晶必附套裝詞綴）廢止
     let c = TRIAL_Q[key];
     if (!c || player.cls !== c.cls || trialQState(key) !== 1) return;
     if (!c.reqs.every(p => questCountId(p[0]) >= p[1])) { logSys('試煉道具尚未備齊。'); return; }
-    let elig = (sherine && !player.classicMode) ? c.rewards.filter(id => sherineSetEligible(DB.items[id])) : [];
-    if (sherine && questCountId('sherine_crystal') < elig.length) { logSys('<span class="text-red-400">席琳結晶不足。</span>'); return; }
     c.reqs.forEach(p => questConsumeId(p[0], p[1]));
     let _sv = _tradLootCtx; _tradLootCtx = true;   // 🏛️ 傳統模式：試煉獎勵裝備隨機自帶強化值
     try {
-        c.rewards.forEach(id => {
-            if (elig.includes(id)) { questConsumeId('sherine_crystal', 1); _forceSherineSet = true; }
-            gainItem(id, 1, false, false);
-            _forceSherineSet = false;
-        });
+        c.rewards.forEach(id => { gainItem(id, 1, false, false); });
     } finally { _tradLootCtx = _sv; }
     player.trialQ[key] = 2;
     logSys(`<span class="c-legend font-bold">${c.npc}：試煉通過！</span><span class="text-amber-200">你獲得了 ${c.rewards.map(id => DB.items[id].n).join('、')}。（此試煉已完成，無法再次接取）</span>`);
@@ -1147,14 +1140,12 @@ function build50TrialHTML(npcName) {
     // 🔥 v3.0.78：最終兌換改「一次性·全拿」（trialStage = 階段數+2 ＝已完成；魔族神殿維持開放）
     if (st >= nStages + 2) return h + `<span class="text-emerald-400">✅ 50 級試煉已全數完成（每個角色僅能完成一次）。魔族神殿永久對你開放。</span></div>`;
     let need = cfg.exMatCnt || 1, have = questCountId(cfg.exMat);
-    let elig = player.classicMode ? [] : cfg.rewards.filter(r => sherineSetEligible(DB.items[r.id]));
     h += `魔族神殿已對你開放。<br>最終試煉：交付 <b class="text-red-300">${cfg.exMatNm}</b> × ${need}（持有 ${Math.min(have, need)}/${need}·接取階段中擊殺指定怪物必定掉落·達需求即停）<br>一次性換取全部獎勵：${cfg.rewards.map(r => `<b class="text-sky-300">${r.nm}</b>`).join('＋')}`;
-    h += elig.length ? `<br><span class="text-slate-400 text-sm">🔮 <span class="c-sherine font-bold">席琳完成</span>：可附帶套裝效果的裝備每件額外消耗 1 個<b class="c-sherine">席琳結晶</b>（持有 ${questCountId('sherine_crystal')}），必定附帶隨機<span class="c-sherine">席琳套裝效果</span>。</span>` : ``;
     h += `</div>`;
     if (have < need) return h + `<div class="px-4 pb-4 text-red-400 text-sm">需要 ${need} 個 ${cfg.exMatNm} 才能完成試煉。</div>`;
     h += `<div class="p-4"><div class="flex flex-wrap gap-2">`;
     h += `<button class="btn bg-emerald-800 hover:bg-emerald-700 py-3 px-4 font-bold" onclick="trial50Complete()">完成試煉（獲得全部獎勵）</button>`;
-    if (elig.length) h += `<button class="btn bg-green-900 hover:bg-green-800 border-green-600 py-3 px-4 font-bold" onclick="trial50Complete(true)"><span class="c-sherine">席琳完成</span>（耗 ${elig.length} 結晶）</button>`;
+    // 🚫 v3.2.16 用戶明令移除：50 級試煉「席琳完成」選項與說明列
     return h + `</div></div>`;
 }
 function renderDigallatin(div) {
@@ -1192,23 +1183,17 @@ function trial50TurnIn() {
     purgeCompletedElfWhisper();   // 🔥 交付精靈的私語階段完成 → 自動清除剩餘的精靈的私語
     saveGame(); closeNpcInteraction();
 }
-function trial50Complete(sherine) {   // 🔥 v3.0.78 最終兌換一次性·全拿；🔮 sherine=true：可附套裝的裝備每件額外 1 結晶
+function trial50Complete() {   // 🔥 v3.0.78 最終兌換一次性·全拿；🚫 v3.2.16 移除席琳完成（原參數 sherine 廢止）
     let cfg = TRIAL_50_CFG[player.cls];
     if (!cfg) return;
     let nStages = cfg.stages.length, st = player.trialStage || 0;
     if (st !== nStages + 1) return;   // 只有「魔族神殿已開·尚未完成最終兌換」可完成
     let need = cfg.exMatCnt || 1;
     if (questCountId(cfg.exMat) < need) { logSys(`${cfg.exMatNm} 不足 ${need}。`); return; }
-    let elig = (sherine && !player.classicMode) ? cfg.rewards.filter(r => sherineSetEligible(DB.items[r.id])) : [];
-    if (sherine && questCountId('sherine_crystal') < elig.length) { logSys('<span class="text-red-400">席琳結晶不足。</span>'); return; }
     questConsumeId(cfg.exMat, need);
     let _sv = _tradLootCtx; _tradLootCtx = true;   // 🏛️ 傳統模式：獎勵裝備隨機自帶強化值
     try {
-        cfg.rewards.forEach(r => {
-            if (elig.includes(r)) { questConsumeId('sherine_crystal', 1); _forceSherineSet = true; }
-            gainItem(r.id, 1, false, false);
-            _forceSherineSet = false;
-        });
+        cfg.rewards.forEach(r => { gainItem(r.id, 1, false, false); });
     } finally { _tradLootCtx = _sv; }
     player.trialStage = nStages + 2;   // ✅ 全數完成（demonTempleOpen 維持 true）
     saveGame();

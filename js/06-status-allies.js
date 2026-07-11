@@ -368,12 +368,12 @@ function allyQiguAttack(ally, t, wpn) {
     if (t.curHp <= 0) { if (ri !== -1) killMob(ri); } else renderMobs();
     allyWeaponProcs(ally, t, { hit: true, dmg: dmg });   // 🔮 共鳴等（幻術士魔杖；非共鳴武器內部 no-op，主目標已死自動轉移）
 }
-function allyAttackOnce(ally) {
+function allyAttackOnce(ally, _arrowDelay) {   // 🏹 v3.2.14 _arrowDelay(選用·ms)：三重矢連發時逐箭錯開（未傳＝0 立即發射）
     if (!ally || !ally.d) return;
     let t = getTarget(); if (!t || t.curHp <= 0) return;
     ally._faceTgt = t;   // 🧭 v3.2.12 職業三方向：記錄本次攻擊目標（供 _class3Facing）
     if (typeof _allySpriteTrigger === 'function') _allySpriteTrigger(ally, 'attack');   // 🤝 v3.0.70 隊員戰場 sprite：攻擊動作
-    if (typeof playArrowFx === 'function') playArrowFx(ally, t);   // 🏹 v3.2.8 弓箭投射物（非弓武器內部 no-op）
+    if (typeof playArrowFx === 'function') playArrowFx(ally, t, _arrowDelay);   // 🏹 v3.2.8 弓箭投射物（非弓武器內部 no-op）
     let d = ally.d;
     // 🔮 幻術士傭兵 奇古獸攻擊（公式同玩家，用傭兵自身衍生值；裝奇古獸或魔劍精通）
     if (ally.cls === 'illusion') {
@@ -1332,7 +1332,7 @@ function allyTripleShot(ally) {
     try {
         for (let h = 0; h < 3; h++) {
             let t = getTarget(); if (!t || t.curHp <= 0) break;
-            allyAttackOnce(ally);
+            allyAttackOnce(ally, h * 90);   // 🏹 v3.2.14 三箭錯開 90ms（原三支同時發射疊成一支）
         }
     } finally { _allyInTriple = false; }
     allyRapidfire(ally);

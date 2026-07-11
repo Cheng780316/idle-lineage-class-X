@@ -568,6 +568,7 @@ function castSkillInner(skId) {
 
             for(let h = 0; h < hits; h++) {
                 if(t.curHp <= 0) break;
+                if (typeof playArrowFx === 'function') playArrowFx(player, t, h * 90);   // 🏹 v3.2.14 三重矢：每箭一支箭矢序列幀投射物·錯開 90ms 快速連發（取代原 CSS 風彈·非弓技能如衝擊之暈內部 no-op）
                 let res = getPhysicalDmg(dice, t, wpn, arrowData);
                 if(!res.hit) { hitsLog.push('Miss'); continue; }
                 landed++;
