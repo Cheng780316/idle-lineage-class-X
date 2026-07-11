@@ -1057,10 +1057,8 @@ function renderStatusEffects() {
             //   召喚物不存在（死亡解除 / 被新召喚取代 / 已消失）時就不顯示，避免殘留。
             if(k === 'sk_charm' || DB.skills[k].summon) {
                 // 🧙 v3.2.42 稽核修：v2 召喚（召喚術/造屍術/屬性精靈）狀態列顯示——讀 summonsV2 實體（原讀 player.summon 在 v2 恆 null→四個召喚技倒數永不顯示）
-                if(k !== 'sk_charm' && player._summonV2Sk === k && typeof summonV2List === 'function') {
-                    let _l = summonV2List().filter(s => s && !s._downed && (s.hp || 0) > 0);
-                    if(_l.length) buffs.push(`<span class="${getBuffColor(k, DB.skills[k])} font-bold">${_l[0].form}${_l.length > 1 ? ' ' + _l.length : ''}</span>`);
-                    continue;
+                if(k !== 'sk_charm' && player._summonV2Sk === k) {
+                    continue;   // 🔮 v3.2.60 召喚物已於戰場顯示（浮動血量框／隊伍列）→狀態欄不再重複顯示「召喚物名＋數量」
                 }
                 let _creature = (k === 'sk_charm') ? player.charmed : player.summon;
                 if(_creature && _creature.skId === k) {
