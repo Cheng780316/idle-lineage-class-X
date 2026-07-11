@@ -187,16 +187,16 @@ const MYSTIC_AFFIXES = [
     { k:'crit', n:'爆擊率', base:[1,3] }
 ];
 const MYSTIC_SKILL_POOLS = {
-    bow: ['sk_elf_triple','sk_elf_windshot','sk_elf_stormeye','sk_elf_stormshot','sk_elf_preciseshot'],
-    knight: ['sk_reduction_armor','sk_spike_armor','sk_shock_stun','sk_counter_barrier'],
-    mage: ['sk_heal1','sk_heal_mid','sk_fireball','sk_vampire','sk_thunder','sk_haste_spell','sk_magic_shield'],
-    dark: ['sk_dark_poison','sk_dark_burn','sk_dark_fang','sk_dark_crit','sk_dark_double','sk_dark_armorbreak'],
-    illusion: ['sk_illu_ogre','sk_illu_confuse','sk_illu_crush','sk_illu_mindbreak','sk_illu_endure','sk_illu_avatar'],
-    dragon: ['sk_dragon_armor','sk_dragon_flameslash','sk_dragon_guardbreak','sk_dragon_bloodlust','sk_dragon_slaughter','sk_dragon_deadlybody'],
-    warrior: ['sk_warrior_throwaxe','sk_warrior_roar','sk_warrior_endurance','sk_warrior_outlaw'],
-    royal: ['sk_royal_precise','sk_royal_burnweapon','sk_royal_bravewill','sk_royal_shield'],
-    elf: ['sk_elf_mr','sk_elf_purify','sk_elf_eleres','sk_elf_soul','sk_elf_mirror'],
-    common: ['sk_heal1','sk_shield','sk_ench_wpn','sk_haste_spell']
+    bow: ['sk_elf_triple','sk_elf_groundtrap','sk_elf_magicerase','sk_elf_seal'],
+    knight: ['sk_shock_stun'],
+    mage: ['sk_lightarrow','sk_icearrow','sk_firearrow','sk_hell_fang','sk_fireball','sk_vampire','sk_rock_prison','sk_thunder','sk_ice_spike','sk_blizzard','sk_meteor','sk_disintegrate'],
+    dark: ['sk_dark_crit','sk_dark_armorbreak'],
+    illusion: ['sk_illu_confuse','sk_illu_crush','sk_illu_mindbreak','sk_illu_skullbreak','sk_illu_fantasy','sk_illu_panic'],
+    dragon: ['sk_dragon_guardbreak','sk_dragon_lavaspit','sk_dragon_slaughter','sk_dragon_terror','sk_dragon_lavabolt','sk_dragon_deathlightning','sk_dragon_reaper'],
+    warrior: ['sk_warrior_roar'],
+    royal: ['sk_royal_callally'],
+    elf: ['sk_elf_release','sk_elf_groundtrap','sk_elf_magicerase','sk_elf_seal'],
+    common: ['sk_lightarrow','sk_icearrow','sk_firearrow','sk_hell_fang']
 };
 function mysticSkillPool(d, itemId) {
     if (d.type === 'wpn') {
@@ -223,7 +223,7 @@ function rollMysticEquipment(d, itemId) {
         affixes.push({ k:a.k, v:Math.max(1, Math.round(raw * rd.mult)) });
     }
     let chance = rarity === 'mythic' ? 0.45 : rarity === 'epic' ? 0.15 : rarity === 'rare' ? 0.04 : 0;
-    let skillPool = mysticSkillPool(d, itemId).filter(sk => DB.skills[sk]);
+    let skillPool = mysticSkillPool(d, itemId).filter(sk => DB.skills[sk] && DB.skills[sk].type === 'atk');
     let skill = skillPool.length && _mysticRoll('skill_chance') < chance ? skillPool[Math.floor(_mysticRoll('skill_pick') * skillPool.length)] : null;
     return { rarity:rarity, affixes:affixes, skill:skill };
 }
