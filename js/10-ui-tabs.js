@@ -696,7 +696,11 @@ function buildItemDescHTML(item) {
              + (desc ? `<br>${desc}` : '');
     }
     if(d.type === 'wpn') {
-        desc += `<br><span class="text-orange-300">小型傷害: ${d.dmgS} / 大型傷害: ${d.dmgL}</span>`;
+        let _wpnEn = enhanceWpnBonus(capEn(item.en, d));
+        let _wpnDmgText = _wpnEn.dmg > 0
+            ? `小型傷害: ${d.dmgS}<span class="text-cyan-300 font-bold">+${_wpnEn.dmg}</span>（${d.dmgS + _wpnEn.dmg}） / 大型傷害: ${d.dmgL}<span class="text-cyan-300 font-bold">+${_wpnEn.dmg}</span>（${d.dmgL + _wpnEn.dmg}）`
+            : `小型傷害: ${d.dmgS} / 大型傷害: ${d.dmgL}`;
+        desc += `<br><span class="text-orange-300">${_wpnDmgText}</span>`;
         
         // 🌟 依照你的規則：根據 ranged: true 決定前綴
         let isRanged = (d.ranged === true);
@@ -704,7 +708,10 @@ function buildItemDescHTML(item) {
         let dmgLabel = isRanged ? "遠距離傷害" : "近距離傷害";
 
         // 顯示命中與傷害
-        if(d.hit) desc += ` / ${hitLabel}: ${formatBonus(d.hit)}`;
+        if(d.hit || _wpnEn.hit) {
+            let _baseHit = Number(d.hit) || 0, _totalHit = _baseHit + _wpnEn.hit;
+            desc += ` / ${hitLabel}: ${formatBonus(_baseHit)}${_wpnEn.hit ? `<span class="text-cyan-300 font-bold">+${_wpnEn.hit}</span>（${formatBonus(_totalHit)}）` : ''}`;
+        }
         if(d.dmgBonus !== undefined) desc += ` / ${dmgLabel}: ${formatBonus(d.dmgBonus)}`; // 加上 !== undefined 避免 0 被漏掉
         
         if(d.mdmg) desc += ` / 魔法傷害: ${formatBonus(d.mdmg)}`;
@@ -739,7 +746,12 @@ function buildItemDescHTML(item) {
     }
     if(d.type === 'arm' || d.type === 'acc') {
         // 順便修復防禦為 0 (例如 T恤) 時不顯示的問題
-        if(d.ac !== undefined) desc += `<br><span class="text-blue-300">防禦(AC): ${d.ac >= 0 ? '-' + d.ac : '+' + (-d.ac)}</span>`;   // 🩹 v3.1.76 負值 ac（曼波帽子 -1＝防禦變弱·確認為刻意設計）：原字串前綴寫死「-」會顯示成「--1」→ 負值改顯示 +N
+        if(d.ac !== undefined) {
+            let _baseAc = Number(d.ac) || 0;
+            let _armEnAc = (d.type === 'arm' && !d.armguard) ? enhanceArmAc(capEn(item.en, d)) : 0;
+            let _acText = n => n >= 0 ? '-' + n : '+' + (-n);
+            desc += `<br><span class="text-blue-300">防禦(AC): ${_acText(_baseAc)}${_armEnAc ? `<span class="text-cyan-300 font-bold">-${_armEnAc}</span>（${_acText(_baseAc + _armEnAc)}）` : ''}</span>`;
+        }   // 🩹 負值 ac（曼波帽子 -1＝防禦變弱）仍顯示為 +N
         let isRanged = (d.ranged === true);
         let hitLabel = isRanged ? "遠距離命中" : "近距離命中";
         let dmgLabel = isRanged ? "遠距離傷害" : "近距離傷害";
