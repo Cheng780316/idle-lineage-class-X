@@ -1,7 +1,7 @@
 // ============================================================
 // js/22-pets.js — 🐾 夥伴系統 v2（v3.2.17 依「夥伴更新.md」全面取代舊項圈系統）
 //   ・寵物＝獨立實體（等級/經驗/HP/MP/技能），非道具；捕捉入「寵物保管」（同模式全角色共通、上限 20＝PET_STORAGE_MAX·v3.2.43 用戶拍板維持 20）
-//   ・出戰上限 4 隻＋魅力門檻（6/12/15/20）；經驗＝玩家實得複製一份均分給出戰寵物；升級需求＝玩家表 1/4
+//   ・出戰上限 4 隻＋魅力門檻（6/12/15/20）；經驗＝玩家實得複製一份均分給出戰寵物；升級需求＝玩家表 1/10
 //   ・死亡 5 秒後復活卷軸自動復活；返生術可立即復活；回到安全區（非野外）免費復活
 //   ・戰鬥：無敵人在狩獵區八方向閒晃；有敵人自動攻擊最近的敵人（受擊權重 物理4/特殊3/魔法2）
 //   ・進化（包武·Lv30+·僅一般型態·v3.2.63）：一般＋進化果實→對應高等；一般＋勝利果實→黃金龍（兩果實都有→可選）；高等/黃金龍皆最終型態；進化後 Lv1、HP/MP=進化前 50%
@@ -125,7 +125,7 @@ function petDerive(p) {
         stunTicks: Math.round((def.stun || 0.58) * 10)
     };
 }
-function petExpReq(lv) { return Math.max(1, Math.floor(getExpReq(lv) / 4)); }   // 升級需求＝玩家的 1/4
+function petExpReq(lv) { return Math.max(1, Math.floor(getExpReq(lv) / 10)); }   // 升級需求＝玩家的 1/10（v3.2.71 用戶調整·原 1/4）
 function petCharmCombatBonus() {
     // 🐾 v3.2.24 每一隻獨立計算：移除 /sqrt(出戰隻數) 稀釋——每隻寵物都拿完整魅力加成（隻數多寡不影響個體）
     let cha = Math.max(0, (player && player.d && player.d.cha) || 0);
@@ -135,6 +135,14 @@ function petCharmCombatBonus() {
 }
 function petMasteryMagicBonus() {
     return (typeof hasMastery === 'function' && hasMastery('k_royal_pet')) ? Math.max(0, (player.d && player.d.cha) || 0) : 0;
+}
+// 🎬 v3.2.73 寵物/召喚物 sprite 動作動畫單一設定點：背景補跑(state.ff)期間不設 _animAct→切分頁回來不會全隊寵/召同步爆播（比照 v3.2.72 _mobAnimTrigger 對怪物的處理）。
+//   死亡不需另播——渲染層 _petAnimApply 對 _downed 者以 _animAct.t||0 推算→無 _animAct 時直接 hold 死亡末幀（顯示倒地）。共用於 js/22（寵物）與 js/23（召喚物·同欄位協定）。
+function _petAnimAct(o, k, faceUid) {
+    if (!o) return;
+    if (typeof state !== 'undefined' && state.ff) return;   // 補跑中：純視覺·不設動畫（傷害/狀態邏輯不經此·照跑）
+    o._animAct = { k: k, t: Date.now() };
+    if (faceUid !== undefined) o._faceMobUid = faceUid;
 }
 
 // ---------- 三、寵物保管（同模式共通·localStorage 共用桶·_lz+SIG1）----------
@@ -532,7 +540,7 @@ function petGearUnequip(uidv, key) {
     try { renderSquadPanel(); } catch (e) {}
 }
 
-// ---------- 六、經驗（玩家應得份額複製一份·出戰寵物均分·需求=玩家1/4；玩家滿等仍可養寵）----------
+// ---------- 六、經驗（玩家應得份額複製一份·出戰寵物均分·需求=玩家1/10；玩家滿等仍可養寵）----------
 function petsGainExp(playerGain) {
     if (!(playerGain > 0)) return;
     let outs = petsOutList().filter(p => !p._downed);
@@ -623,7 +631,7 @@ function petsTick() {
 function _petDown(p, cause) {
     if (!p || p._downed) return;
     p.hp = 0; p._downed = true; p._reviveCd = 50;   // 5 秒（50 tick）後復活卷軸自動復活
-    p._animAct = { k: 'death', t: Date.now() };
+    _petAnimAct(p, 'death');   // 🎬 v3.2.73 補跑中不設→回前景靠 _downed hold 死亡末幀（不補播倒下動畫）
     logCombat(`<span class="text-red-400 font-bold">寵物 ${p.form} 倒下了！</span>${cause ? `（${cause}）` : '（5 秒後可用復活卷軸自動復活，或立即施放返生術）'}`, 'enemy-attack', 'enemy');
     petMarkDirty();
     try { renderSquadPanel(); } catch (e) {}
@@ -679,11 +687,11 @@ function petAttackOnce(p, d, target, forceCrit, addDmg, skName) {
             if (skName && typeof _relicPetSkillMult === 'function') dmg = Math.max(1, Math.floor(dmg * _relicPetSkillMult()));
             markBossPhysicalHit(target);
             target.curHp -= dmg; target.justHit = 'none'; mobWake(target);
-            p._animAct = { k: 'attack', t: Date.now() }; p._faceMobUid = target.uid;
+            _petAnimAct(p, 'attack', target.uid);
             logCombat(`寵物 [${p.form}] ${skName ? `<span class="text-pink-300 font-bold">${skName}</span> ` : ''}攻擊 <span class="${getMobColor(target.lv)}">${target.n}</span>，造成 ${dmg}${heavy ? '（重擊）' : ''} 點傷害！`, 'player-special');
             _petAfterDamage(target);
         } else {
-            p._animAct = { k: 'attack', t: Date.now() }; p._faceMobUid = target.uid;
+            _petAnimAct(p, 'attack', target.uid);
             logCombat(`寵物 [${p.form}] 的攻擊未命中。`, 'miss');
         }
     } catch (e) {}
@@ -707,7 +715,7 @@ function petCastSkill(p, d, target) {
     _combatSrc = 'pet';
     let _snap = (sk.kind !== 'extra' && typeof _dpsSnap === 'function') ? _dpsSnap() : null;
     try {
-        p._animAct = { k: 'skill', t: Date.now() }; p._faceMobUid = target.uid;
+        _petAnimAct(p, 'skill', target.uid);
         if (sk.kind === 'extra') {   // 額外一次一般攻擊（熊貓爆擊=必定重擊；勾爪=+add）
             petAttackOnce(p, d, target, !!sk.crit, sk.add || 0, sk.n);
         } else if (sk.kind === 'debuff') {
@@ -770,7 +778,7 @@ function enemyAttackPet(mob, p) {
     dmg = Math.floor(Math.max(1, dmg) * (typeof teamDmgReduceMult === 'function' ? teamDmgReduceMult() : 1));
     dmg = Math.max(1, Math.floor(dmg * riftDamageMult()));
     p.hp -= dmg;
-    p._animAct = { k: 'hurt', t: Date.now() };
+    _petAnimAct(p, 'hurt');
     if (!p._stunCycle) { p._atkCd = (p._atkCd || 0) + d.stunTicks; p._stunCycle = true; }   // 硬直：延後下次攻擊
     logCombat(`<span class="${getMobColor(mob.lv)}">${mob.n}</span> 攻擊寵物 <span class="text-sky-300 font-bold">${p.form}</span>，造成 ${dmg} 點傷害。`, 'enemy-attack', 'enemy');
     if (p.hp <= 0) {
@@ -806,7 +814,7 @@ function applyMobMagicToPet(mob, sk, p) {
     if (st.freeze > 0 && sk.ext_freeze) { dmg += sk.ext_freeze; if (sk.extUnfreeze) st.freeze = 0; }
     dmg = Math.max(1, Math.floor(Math.max(1, dmg * shMul) * (typeof teamDmgReduceMult === 'function' ? teamDmgReduceMult() : 1)));
     dmg = Math.max(1, Math.floor(dmg * riftDamageMult()));
-    p.hp -= dmg; p._animAct = { k: 'hurt', t: Date.now() };
+    p.hp -= dmg; _petAnimAct(p, 'hurt');
     if (!p._stunCycle) { p._atkCd = (p._atkCd || 0) + d.stunTicks; p._stunCycle = true; }
     logCombat(`<span class="${getMobColor(mob.lv)}">${mob.n}</span> 施放${sk.skn || '魔法'}，對 ${nm} 造成 ${dmg} 點魔法傷害。`, 'enemy');
     if (sk.vamp || sk.vampFull) { let heal = sk.vampFull ? dmg : roll(sk.vamp[0], sk.vamp[1]); mob.curHp = Math.min(mob.hp, mob.curHp + heal); }

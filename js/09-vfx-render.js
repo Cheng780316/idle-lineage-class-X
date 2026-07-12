@@ -1365,6 +1365,7 @@ function _mobAnimProbe(name) {
 // 🎬 觸發單次動作（js/04 攻擊/技能掛點呼叫）：鎖定動作（登場/技能）播放中→忽略新觸發（強制放完）
 function _mobAnimTrigger(m, k) {
     if (!m) return;
+    if (typeof state !== 'undefined' && state.ff) return;   // 🎬 v3.2.72 背景補跑期間不觸發怪物動作動畫/技能特效登記→切分頁回來不會全場怪物同步爆播攻擊/技能（比照 v3.2.65 _vfxMute 對特效的處理·此為 sprite 幀動畫路徑）
     let cur = m._animAct;
     if (cur && cur.lock) {   // 鎖定動作播放中？（以快取序列長度判斷是否還沒播完）
         let a = _mobAnimCache[m.n];
