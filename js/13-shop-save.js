@@ -1278,6 +1278,19 @@ function loadGame() {
         if (player.eq.arrow === undefined) player.eq.arrow = null; // 相容舊存檔
         // 相容舊存檔：手套曾被錯存於 eq.glove（單數），搬移到正確的 gloves 欄位
         if (player.eq.glove) { if (!player.eq.gloves) player.eq.gloves = player.eq.glove; delete player.eq.glove; }
+        // 🏺 v3.2.79 相容舊存檔：聖伯納的急救酒桶／貴重狐毛圍巾曾誤用 slot:'neck'（非法欄位）→ 裝備後落入幽靈槽 eq.neck、界面不顯示而「消失」。
+        //   定義已改回 'amulet'；此處把卡在幽靈槽的既有裝備搬回項鍊欄（項鍊欄已占用則退回背包），玩家＋傭兵皆處理。
+        {
+            let _fixNeck = (owner) => {
+                if (!owner || !owner.eq || !owner.eq.neck) return;
+                let _it = owner.eq.neck;
+                if (!owner.eq.amulet) owner.eq.amulet = _it;
+                else (Array.isArray(owner.inv) ? owner.inv : player.inv).push(_it);   // 項鍊欄已有裝備→退回背包（傭兵無自身背包則退玩家背包，與卸下傭兵裝備一致）
+                delete owner.eq.neck;
+            };
+            _fixNeck(player);
+            (player.allies || []).forEach(_fixNeck);
+        }
 
         // ⚠️ v2.6.47 一次性經驗刻度遷移（修「更新後經驗條看似歸零」）：v2.6.40 取消打怪經驗遞減、改把「高等升級需求」放大 ×2~×1024，
         //    但既有存檔的 per-level 經驗未同步放大 → 經驗條%＝exp/getExpReq(lv) 從舊制比例暴跌（Lv90 半滿→0.05%）看似歸零（數值其實還在）。

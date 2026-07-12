@@ -1,6 +1,6 @@
 /** 遊戲核心資料庫 */
 // 🏷️ 遊戲版本號（顯示於登入頁面下方·單一真相來源）：更新版本時只改這一行，登入頁面自動同步。
-const GAME_VERSION = 'v3.2.77';
+const GAME_VERSION = 'v3.2.79';
 // ===== 💾 存檔壓縮（LZString compressToUTF16/decompressFromUTF16·MIT, Pieroxy）：localStorage 內部以 UTF-16 壓縮，省 ~89%，繞過 5MB 上限 =====
 //  ⚠️ 只壓 localStorage（存檔位/倉庫/共用桶/_bak）；匯出檔維持明文 JSON（可攜·importSave 用 JSON.parse 驗證）。_lzGet 相容舊明文存檔（無 'LZ1:' 前綴→原樣回傳）。
 var LZString = (function () {
@@ -765,8 +765,8 @@ const DB = {
         "relic_panda_eyes":      { n: "熊貓的黑眼圈",     type: "arm", slot: "helm",   relic: true, noEnhance: true, ac: 4, dr: 3, mr: 8, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】戴上便睡意朦朧的黑眼圈頭飾，以慵懶化解攻勢。" },
         "relic_pup_fang":        { n: "幼犬的稚嫩犬齒",   type: "acc", slot: "ear",    relic: true, noEnhance: true, ac: 1, meleeDmg: 1, rangedDmg: 1, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】高麗幼犬換牙時掉落的小小犬齒，蘊含初生之銳。" },
         "relic_raccoon_leaf":    { n: "浣熊的變身葉",     type: "arm", slot: "helm",   relic: true, noEnhance: true, ac: 2, polyAtkSpdPct: 20, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】浣熊變身戲法用的神奇樹葉，頂在頭上就能幻化萬千。" },
-        "relic_stbernard_barrel":{ n: "聖伯納的急救酒桶", type: "acc", slot: "neck",   relic: true, noEnhance: true, ac: 0, lowHpPotionX2: true, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】聖伯納犬掛在頸間的救難小酒桶，危急時刻滴滴救命。" },
-        "relic_fox_scarf":       { n: "貴重狐毛圍巾",     type: "acc", slot: "neck",   relic: true, noEnhance: true, ac: 0, mr: 10, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】以整條狐尾織成的華貴圍巾，軟毛間流轉抗魔的靈氣。" },
+        "relic_stbernard_barrel":{ n: "聖伯納的急救酒桶", type: "acc", slot: "amulet", relic: true, noEnhance: true, ac: 0, lowHpPotionX2: true, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】聖伯納犬掛在頸間的救難小酒桶，危急時刻滴滴救命。" },
+        "relic_fox_scarf":       { n: "貴重狐毛圍巾",     type: "acc", slot: "amulet", relic: true, noEnhance: true, ac: 0, mr: 10, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】以整條狐尾織成的華貴圍巾，軟毛間流轉抗魔的靈氣。" },
         "relic_rabbit_foot":     { n: "幸運暴走兔腳",     type: "acc", slot: "ear",    relic: true, noEnhance: true, ac: 0, relicDropX2: true, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】傳說中招來厄運之外一切好運的兔腳護符。" },
         "relic_beagle_nose":     { n: "小獵犬的追蹤鼻",   type: "acc", slot: "ear",    relic: true, noEnhance: true, ac: 0, trackBoost: true, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】小獵犬引以為傲的靈敏鼻子做成的護符，氣味無所遁形。" },
         "relic_collie_fur":      { n: "柯利的柔毛",       type: "arm", slot: "shin",   relic: true, noEnhance: true, ac: 1, mr: 5, dr: 1, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】柯利牧羊犬蓬鬆柔毛織成的護脛，溫暖而堅韌。" },
