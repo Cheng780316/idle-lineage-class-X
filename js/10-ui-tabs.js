@@ -675,8 +675,26 @@ const WEAPON_TAGS = {
     relic_executor_axe:['單手鈍器'], relic_healer_wand:['單手鈍器'], relic_minotaur_flail:['單手鈍器'],
     relic_executor_skewer:['矛'], relic_weathered_obelisk:['雙手鈍器'], relic_shadow_stinger:['匕首'], relic_soulreaper_dual:['雙刀'],
     // 🏺 遺物 第十四批（v3.3.0）：兇殘惡鬼的毒牙/殘暴骸骨的破片=單手劍(反擊)、傳說海賊的迷幻雙刀=雙刀(雙擊)、熔岩灼燒的雙拳=單手鈍器(鈍擊＋自動貫穿)；屍毒之針(isBow)/不定形的變幻劍(chainsword) 靠旗標自判免 tag
-    relic_ghoul_fang:['單手劍'], relic_sparto_shard:['單手劍'], relic_pirate_dual:['雙刀'], relic_lava_fists:['單手鈍器']
+    relic_ghoul_fang:['單手劍'], relic_sparto_shard:['單手劍'], relic_pirate_dual:['雙刀'], relic_lava_fists:['單手鈍器'],
+    // ✨ 神話武器：明確指定武器種類，讓反擊／切割／雙擊／粉碎及攻速分類實際生效
+    god_royal_flash:['單手劍'], god_knight_judgment:['雙手劍'], god_dark_dantes:['雙刀'], god_warrior_fear:['單手鈍器']
 };
+// ✨ 神話武器種類特性：沿用遊戲既有同類武器機制
+DB.items.god_knight_judgment.eff = 'cleave';          // 雙手劍：切割
+DB.items.god_elf_obsession.rapidfire = 100;           // 弓：連射必定發動
+DB.items.wpn_gaia_rage.rapidfire = 100;               // 大地女神的激怒：連射必定發動
+DB.items.god_dark_dantes.comboRate = 50;              // 雙刀：雙擊 50%
+DB.items.god_warrior_fear.eff = 'crush';              // 單手斧：粉碎／鈍擊
+DB.items.god_royal_flash.d += ' 武器特性：單手劍反擊。';
+DB.items.god_knight_judgment.d += ' 武器特性：雙手劍切割。';
+DB.items.god_elf_obsession.d += ' 武器特性：弓箭連射（100%）。';
+DB.items.wpn_gaia_rage.d += ' 武器特性：弓箭連射（100%）。';
+Object.keys(DB.items).forEach(function(id) {
+    let d = DB.items[id];
+    if (d && d.mentalResonance && !(d.d || '').includes('精神共鳴')) d.d = (d.d || '') + ' 武器特性：精神共鳴（20%追加50%傷害並恢復最大MP 1%，同目標冷卻1秒）。';
+});
+DB.items.god_dark_dantes.d += ' 武器特性：雙刀雙擊（50%）。';
+DB.items.god_warrior_fear.d += ' 武器特性：單手斧粉碎與鈍擊。';
 function getWeaponTags(id){ return WEAPON_TAGS[id] || []; }
 // ⚔️ 雙擊機率 comboRate：未明定者依武器標籤套預設（鋼爪 33% / 雙刀 25%）；個別武器可在 def 寫 comboRate 覆寫（底比斯歐西里斯雙刀30 / 死亡之指20 / 恨之鋼爪50 / 破壞雙刀·破壞鋼爪30）。日後新增 combo 武器自動取得預設機率。
 Object.keys(DB.items).forEach(function(id){ let d = DB.items[id]; if (d && d.eff === 'combo' && d.comboRate == null) { let tg = getWeaponTags(id); d.comboRate = tg.includes('鋼爪') ? 33 : (tg.includes('雙刀') ? 25 : 0); } });
@@ -715,7 +733,12 @@ function buildItemDescHTML(item) {
              + (desc ? `<br>${desc}` : '');
     }
     if(d.type === 'wpn') {
-        desc += `<br><span class="text-orange-300">小型傷害: ${d.dmgS} / 大型傷害: ${d.dmgL}</span>`;
+        let _wpnEn = ((Number(item.en) || 0) > 0 && (!d.noEnhance || d.godWeapon)) ? capWpnEn(item.en) : 0;
+        let _wpnEnBonus = enhanceWpnBonus(_wpnEn);
+        let _wpnDmgTotal = d.qigu ? (_wpnEn * (d.qiguDmgPerEn || 0)) : (_wpnEnBonus.dmg + _wpnEn * (d.enDmgExtra || 0));
+        let _wpnHitTotal = _wpnEnBonus.hit + Math.floor(_wpnEn / 2) * (d.enHitEvery2 || 0);
+        let _wpnDmgSuffix = _wpnDmgTotal > 0 ? `+${_wpnDmgTotal}` : '';
+        desc += `<br><span class="text-orange-300">小型傷害: ${d.dmgS}${_wpnDmgSuffix} / 大型傷害: ${d.dmgL}${_wpnDmgSuffix}</span>`;
         
         // 🌟 依照你的規則：根據 ranged: true 決定前綴
         let isRanged = (d.ranged === true);
@@ -723,10 +746,20 @@ function buildItemDescHTML(item) {
         let dmgLabel = isRanged ? "遠距離傷害" : "近距離傷害";
 
         // 顯示命中與傷害
-        if(d.hit) desc += ` / ${hitLabel}: ${formatBonus(d.hit)}`;
-        if(d.dmgBonus !== undefined) desc += ` / ${dmgLabel}: ${formatBonus(d.dmgBonus)}`; // 加上 !== undefined 避免 0 被漏掉
+        if(d.hit || _wpnHitTotal) desc += ` / ${hitLabel}: ${formatBonus(d.hit || 0)}${_wpnHitTotal > 0 ? `+${_wpnHitTotal}` : ''}`;
+        if(d.dmgBonus !== undefined) desc += ` / ${dmgLabel}: ${formatBonus(d.dmgBonus)}`; // 強化傷害已接在小型／大型傷害後方，避免重複顯示
         
         if(d.mdmg) desc += ` / 魔法傷害: ${formatBonus(d.mdmg)}`;
+        if (_wpnEn > 0 && (d.enMeleeCrit || d.enRangedCrit || d.enMagicCrit || d.enMagicCritFrom7 || d.enMagicDmg || d.enMagicDmgEvery2 || d.enMagicHit || d.enMagicHitEvery2)) {
+            let _grow = [];
+            if (d.enMeleeCrit) _grow.push(`近距離爆擊 +${_wpnEn * d.enMeleeCrit}%`);
+            if (d.enRangedCrit) _grow.push(`遠距離爆擊 +${_wpnEn * d.enRangedCrit}%`);
+            if (d.enMagicCrit) _grow.push(`魔法爆擊 +${_wpnEn * d.enMagicCrit}%`);
+            if (d.enMagicCritFrom7) _grow.push(`魔法爆擊 +${Math.min(d.enMagicCritMax || 99, Math.max(0, _wpnEn - 6) * d.enMagicCritFrom7)}%`);
+            if (d.enMagicDmg || d.enMagicDmgEvery2) _grow.push(`魔法傷害 +${_wpnEn * (d.enMagicDmg || 0) + Math.floor(_wpnEn / 2) * (d.enMagicDmgEvery2 || 0)}`);
+            if (d.enMagicHit || d.enMagicHitEvery2) _grow.push(`魔法命中 +${_wpnEn * (d.enMagicHit || 0) + Math.floor(_wpnEn / 2) * (d.enMagicHitEvery2 || 0)}`);
+            if (_grow.length) desc += `<br><span class="text-amber-300">強化額外能力：${_grow.join('、')}</span>`;
+        }
         // ⚔️ 攻擊速度依「職業性別×武器種類」查表顯示（以目前角色為準；戰士雙持另依雙斧速度）
         if (typeof atkSpdApm === 'function' && typeof player !== 'undefined' && player && player.cls && atkSpdFamily(item.id)) {   // 箭矢等非揮擊武器不顯示
             let _apm = atkSpdApm(player, item.id);
@@ -758,7 +791,11 @@ function buildItemDescHTML(item) {
     }
     if(d.type === 'arm' || d.type === 'acc') {
         // 順便修復防禦為 0 (例如 T恤) 時不顯示的問題
-        if(d.ac !== undefined) desc += `<br><span class="text-blue-300">防禦(AC): ${d.ac >= 0 ? '-' + d.ac : '+' + (-d.ac)}</span>`;   // 🩹 v3.1.76 負值 ac（曼波帽子 -1＝防禦變弱·確認為刻意設計）：原字串前綴寫死「-」會顯示成「--1」→ 負值改顯示 +N
+        if(d.ac !== undefined) {
+            let _en = ((Number(item.en) || 0) > 0 && !d.noEnhance) ? capEn(item.en, d) : 0;
+            let _acEn = (d.type === 'arm' && !d.armguard) ? enhanceArmAc(_en) : (d.type === 'acc' && d.slot === 'ring' ? Math.min(_en, 5) : 0);
+            desc += `<br><span class="text-blue-300">防禦(AC): ${d.ac >= 0 ? '-' + d.ac : '+' + (-d.ac)}${_acEn ? '-' + _acEn : ''}</span>`;
+        }   // 經典天堂格式：基礎防禦後直接接強化增加值，例如 -7-10
         let isRanged = (d.ranged === true);
         let hitLabel = isRanged ? "遠距離命中" : "近距離命中";
         let dmgLabel = isRanged ? "遠距離傷害" : "近距離傷害";
@@ -773,6 +810,19 @@ function buildItemDescHTML(item) {
         if(d.rangedHit) desc += ` / 遠距離命中: ${formatBonus(d.rangedHit)}`;
         if(d.meleeDmg)  desc += ` / 近距離傷害: ${formatBonus(d.meleeDmg)}`;
         if(d.rangedDmg) desc += ` / 遠距離傷害: ${formatBonus(d.rangedDmg)}`;
+        // 防具／飾品強化的實際能力：分欄列出本件因強化額外增加的素質。
+        if ((Number(item.en) || 0) > 0 && !d.noEnhance && !d.armguard) {
+            let _en = capEn(item.en, d), _bonus = [];
+            if (d.type === 'acc') {
+                if (d.slot === 'amulet') _bonus.push(`魔防(MR) +${Math.min(_en, 5) * 3}`);
+                else if (d.slot === 'ear') _bonus.push(`魔防(MR) +${Math.min(_en, 5) * 2}`);
+                else if (d.slot === 'belt') _bonus.push(`負重上限 +${Math.min(_en, 5) * 20}`);
+            }
+            if (d.mrPerEn) _bonus.push(`魔防(MR) +${_en * d.mrPerEn}`);
+            if (d.mdmgEnFrom4) _bonus.push(`魔法傷害 +${Math.min(6, Math.max(0, _en - 3))}`);
+            if (d.mdmgEnFrom7Max3) _bonus.push(`魔法傷害 +${Math.min(3, Math.max(0, _en - 6))}`);
+            if (_bonus.length) desc += `<br><span class="text-amber-300 font-bold">強化 +${_en} 額外素質：${_bonus.join('、')}</span>`;
+        }
         // 🦴 寵物武器（之牙）：依強化等級(+N，上限+5)動態顯示該寵物加成（每強化+1 → 傷害+1、命中+1）
         if(d.petDmg || d.petHit) {
             let en = capEn(item.en, d);
@@ -821,6 +871,7 @@ function buildItemDescHTML(item) {
         if (d.redSpecter)           _eff.push('紅惡靈逆襲');   // 👹 隱藏的魔族武器：攻擊4%(+每強化1%)→4D10水魔傷+吸10%HP
         if (d.blueSpecter)          _eff.push('藍惡靈奪魔');   // 👹 隱藏的魔族武器：攻擊4%(+每強化1%)→回3D6 MP
         if (d.rapidfire)            _eff.push('連射');
+        if (d.mentalResonance)      _eff.push('精神共鳴');
         if (d.block)                _eff.push('格檔');
         if (d.immStone)             _eff.push('免疫石化');
         if (d.immPoison)            _eff.push('免疫中毒');

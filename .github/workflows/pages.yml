@@ -1,0 +1,50 @@
+name: 部署線上網頁版
+
+on:
+  push:
+    branches: [online-web]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取得遊戲檔案
+        uses: actions/checkout@v4
+
+      - name: 建立純網頁版本
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp index.html _site/
+          cp -R js css assets public _site/
+          touch _site/.nojekyll
+
+      - name: 設定 GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上傳網頁成品
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: 發佈 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

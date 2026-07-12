@@ -131,7 +131,7 @@ function petExpReq(lv) { return Math.max(1, Math.floor(getExpReq(lv) / 10)); }  
 function petCharmCombatBonus() {
     // 🐾 v3.2.24 每一隻獨立計算：移除 /sqrt(出戰隻數) 稀釋——每隻寵物都拿完整魅力加成（隻數多寡不影響個體）
     let cha = Math.max(0, (player && player.d && player.d.cha) || 0);
-    let coef = (typeof hasMastery === 'function' && hasMastery('k_royal_pet')) ? 0.12 : 0.10;
+    let coef = (typeof hasMastery === 'function' && hasMastery('k_royal_pet')) ? 0.15 : 0.10;
     let v = Math.floor(cha * coef);
     return { dmg: v, hit: v };
 }

@@ -357,15 +357,15 @@ function useItem(u, silent = false) {
             if (!silent) logSys(`無法使用 ${d.n}，職業不符。`);
             return;
         }
-        if (item.id.includes('potion_heal') || item.id === 'potion_strong' || item.id === 'potion_ult') {
-            if (player.cds.pot > 0) return;
+        if (d.type === 'pot' && d.val != null) {
+            if (!d.noPotionDelay && player.cds.pot > 0) return;
             let h = Math.floor(potionHealBase(d) * (1 + (getConPotionPct(player.d.con) + dollFieldVal('potionBonus') + (player._miscPotionBonus || 0)) / 100));   // 🍶 藥水基準改隨機區間 valMin~valMax（紅10~20/橙30~50/白60~80）；🪆 魔法娃娃 potionBonus%（吸血鬼）；🧰 道具收集冊 材料/其他全收集：藥水恢復%
-            if (hasMastery('k_survive')) h = Math.floor(h * 1.25);   // 🏅 生存精通：治癒藥水恢復 +25%
+            if (hasMastery('k_survive')) h = Math.floor(h * 1.35);   // 🏅 生存精通：治癒藥水恢復 +35%
             if (hasMastery('k_tough') && player.hp < player.mhp * 0.4) h = Math.floor(h * 1.5);   // ⚔️ 堅韌精通：HP<40% 時藥水治癒量 +50%
-            if (hasMastery('k_dragonblood')) h = Math.floor(h * 1.15);   // 🐉 龍血精通：治癒藥水恢復 +15%
+            if (hasMastery('k_dragonblood')) h = Math.floor(h * 1.25);   // 🐉 龍血精通：治癒藥水恢復 +25%
             if (player.hp < player.mhp * 0.2) { try { for (let _k in player.eq) { let _e = player.eq[_k]; if (_e && DB.items[_e.id] && DB.items[_e.id].lowHpPotionX2) { h = h * 2; break; } } } catch (e) {} }   // 🏺 v3.2.17 聖伯納的急救酒桶：HP<20% 時治癒藥水恢復量 ×2
             player.hp = Math.min(player.mhp, player.hp + h);
-            player.cds.pot = 1;
+            if (!d.noPotionDelay) player.cds.pot = 1;
             if(!silent) logSys(`飲用 ${d.n}，恢復 ${h} HP。`);
         } else if (item.id === 'new_item_141') {
             // 安特的水果：只能手動使用，恢復 44~107 HP（自動使用會帶 silent=true，直接略過不消耗）
@@ -697,6 +697,11 @@ function equipItem(item) {
     // 🔧 唯一標記：身上最多只能裝備 1 個同一件唯一物品
     if (d.unique && Object.values(player.eq).some(e => e && e !== item && e.id === item.id)) {
         logSys(`<span class="text-amber-300">「${d.n}」帶有「唯一」標記，身上最多只能裝備 1 個。</span>`);
+        return;
+    }
+    // ✨ 神級武器唯一限制：主手／副手合計只能裝備一把神級武器。
+    if (d.godWeapon && Object.values(player.eq).some(e => e && e !== item && DB.items[e.id] && DB.items[e.id].godWeapon)) {
+        logSys('<span class="text-violet-300 font-bold">每名角色同時只能裝備一把神級武器。</span>');
         return;
     }
 

@@ -122,10 +122,10 @@ function _sumDerive(mob) {
     const mean = (squadDps / designCount) * (m.aspd / 10);
     const flat = Math.round(mean * 0.55);
     const dice = Math.max(1, Math.round((mean - flat) * 2));
-    const mastery = (player.mastery === 'm_summon');   // 🧙 召喚精通沿用：傷害×1.2、命中+5
+    const mastery = (player.mastery === 'm_summon');   // 🧙 召喚精通：傷害×1.35、命中額外強化
     return {
         flat, dice, aspd: m.aspd,
-        dmgMult: (mastery ? 1.2 : 1) * (1 + Math.min(12, Math.max(0, (player.d && player.d.magicDmg) || 0)) / 80),
+        dmgMult: (mastery ? 1.35 : 1) * (1 + Math.min(12, Math.max(0, (player.d && player.d.magicDmg) || 0)) / 80),
         hit: _sumScaledHit(m.lv, tierIdx, mastery),
         ac: 10 - Math.floor(m.lv / 4),   // 被打時的防禦（越低越難被命中）
         dr: Math.floor(m.lv / 10)
@@ -157,10 +157,10 @@ function _zmbDerive(s) {
     const mean = dps * (ZOMBIE_ASPD / 10);
     const flat = Math.round(mean * 0.55);
     const dice = Math.max(1, Math.round((mean - flat) * 2));
-    const mastery = (player.mastery === 'm_summon');   // 🧙 召喚精通沿用：造屍術隨從傷害×1.2、命中+5
+    const mastery = (player.mastery === 'm_summon');   // 🧙 召喚精通：造屍術隨從傷害×1.35
     return {
         flat, dice, aspd: ZOMBIE_ASPD,
-        dmgMult: (mastery ? 1.2 : 1) * (1 + Math.min(12, Math.max(0, (player.d && player.d.magicDmg) || 0)) / 80),
+        dmgMult: (mastery ? 1.35 : 1) * (1 + Math.min(12, Math.max(0, (player.d && player.d.magicDmg) || 0)) / 80),
         hit: _sumScaledHit(s.lv, tierIdx, mastery),
         ac: 10 - Math.floor(s.lv / 4),
         dr: Math.floor(s.lv / 10)

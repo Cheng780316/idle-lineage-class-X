@@ -197,7 +197,7 @@ function recomputeStats() {
         let c = Math.max(1, Math.ceil(baseMp * (1 - d.mpReduce / 100)));
         if (p._setApprentice5 && p.mp < p.mmp * 0.3) c = Math.max(1, Math.ceil(c / 2));   // 🔮 學徒 5/5：MP 低於最大值 30% 時，所有技能耗魔減半
         if (d.fullHpMpHalf) { let _hpNow = (p.curHp != null) ? p.curHp : p.hp; if (_hpNow >= (p.mhp || 1)) c = Math.max(1, Math.ceil(c / 2)); }   // 🏺 v3.1.80 巫師的黑暗魔導書：滿血時技能消耗 MP 減半（玩家 p.hp／傭兵 p.curHp·recompute 共用）
-        if (p.mastery === 'i_mana') c *= 2;   // 🔮 魔力精通：所有技能MP消耗加倍（與 MP 上限加倍配套）
+        if (p.mastery === 'i_mana') c = Math.ceil(c * 1.75);   // 🔮 魔力精通：MP上限×2、技能消耗×1.75，保留淨續航收益
         return c;
     };
 
@@ -232,6 +232,11 @@ function recomputeStats() {
         // 🔧 武器「強化」固定加成：近距離與遠距離 傷害＋命中 同時各加（每強化+1→四者各+1）。⚠️ 與「最終傷害倍率」wpnEnFinalMult 各自獨立疊加（依使用者指定·+20 武器明顯變強）
         d.meleeDmg += _enW.dmg; d.rangedDmg += _enW.dmg;
         d.meleeHit += _enW.hit; d.rangedHit += _enW.hit;
+        let _enCustom = capWpnEn(p.eq.wpn.en);
+        let _customDmg = _enCustom * (w.enDmgExtra || 0);
+        let _customHit = Math.floor(_enCustom / 2) * (w.enHitEvery2 || 0);
+        if (isRanged) { d.rangedDmg += _customDmg; d.rangedHit += _customHit; }
+        else { d.meleeDmg += _customDmg; d.meleeHit += _customHit; }
         d.aspd = atkSpdBaseItv(p);   // ⚔️ 攻速改由「職業性別×武器種類」查表（ATK_APM·js/01）·武器 def 的 spd 欄位停用（玩家＋傭兵 buildAlly 共用本函式）
         if(w.mdmg) d.magicDmg += w.mdmg;
         if(w.mpR) d.mpR += w.mpR;
@@ -242,8 +247,20 @@ function recomputeStats() {
         if(w.dr) d.dr += w.dr;   // 🏺 武器固定傷害減免（遺物 有彈性的肋骨 +2；防具/飾品 dr 走另一迴圈·武器需此處）
         if(w.extraDmg) d.extraDmg += w.extraDmg;   // 🏺 武器固定傷害（遺物 鼠人的烤肉叉/水靈的琴弦 固定傷害+N；防具/飾品 extraDmg 走另一迴圈·武器需此處）
         if(w.mcrit) d.meleeCrit += w.mcrit;   // 🏺 武器近距離爆擊率加成（遺物 蟹人的巨鉗 +5%）
+        if(w.meleeCrit) d.meleeCrit += w.meleeCrit;   // 武器資料使用完整欄名的近距離爆擊率
         if(w.mcritDmg) d.meleeCritDmg += w.mcritDmg;   // 🏺 武器近距離爆擊傷害% 加成（遺物 歐姆裝甲兵的超重鎚 +10%）
         if(w.rcrit) d.rangedCrit += w.rcrit;   // 🏺 武器遠距離爆擊率% 加成（遺物 神射手的重弦弓 +3%）
+        if(w.rangedCrit) d.rangedCrit += w.rangedCrit;   // 武器資料使用完整欄名的遠距離爆擊率
+        if(w.magicCrit) d.magicCrit += w.magicCrit;   // 奇古獸／魔杖的魔法爆擊率
+        if(w.magicHit) d.magicHit += w.magicHit;   // 武器固定魔法命中
+        if(w.enMeleeCrit) d.meleeCrit += _enCustom * w.enMeleeCrit;
+        if(w.enRangedCrit) d.rangedCrit += _enCustom * w.enRangedCrit;
+        if(w.enMagicCrit) d.magicCrit += _enCustom * w.enMagicCrit;
+        if(w.enMagicCritFrom7) d.magicCrit += Math.min(w.enMagicCritMax || 99, Math.max(0, _enCustom - 6) * w.enMagicCritFrom7);
+        if(w.enMagicDmg) d.magicDmg += _enCustom * w.enMagicDmg;
+        if(w.enMagicDmgEvery2) d.magicDmg += Math.floor(_enCustom / 2) * w.enMagicDmgEvery2;
+        if(w.enMagicHit) d.magicHit += _enCustom * w.enMagicHit;
+        if(w.enMagicHitEvery2) d.magicHit += Math.floor(_enCustom / 2) * w.enMagicHitEvery2;
         if(w.atkSpdPct) d.atkSpdPct += w.atkSpdPct;   // 🏺 武器攻速%（遺物 阿魯巴的加速棍棒 +20／牛頭怪的殘暴巨斧 +25；防具/飾品 atkSpdPct 走另一迴圈·武器需此處·v3.1.33 稽核修）
         if(w.mr) d.mr += w.mr;   // 🐍 武器 MR（提卡爾庫庫爾坎之矛/蛇神的倒勾獠牙 MR+5；防具/飾品 mr 走另一迴圈·武器需此處·v3.1.76 稽核高#2）
         if(w.fullHpMpHalf) d.fullHpMpHalf = true;   // 🏺 v3.1.80 巫師的黑暗魔導書：滿血時技能消耗 MP 減半（getMpCost 讀取）
@@ -461,8 +478,8 @@ d.mr += (baseMr + bonusMr);
     // 🧰 道具收集冊：各類「全收集」加成（藥水/卷軸→負重、技能書→MP恢復、材料/其他→藥水恢復%；weight→d._miscWeightBonus 供負重段、potion→p._miscPotionBonus 供 js/08）
     if (typeof miscCollectionBonus === 'function') miscCollectionBonus(p, d);
 
-    // 🏅 生存精通：MR+15（藥水恢復 +25% 於 useItem 套用）
-    if (p.mastery === 'k_survive') d.mr += 15;
+    // 🏅 生存精通：MR+25（藥水恢復 +35% 於 useItem 套用）
+    if (p.mastery === 'k_survive') d.mr += 25;
     if (player.skills.includes('sk_warrior_crush')) d.meleeDmg += 2 + Math.max(0, p.lv - 44);   // ⚔️ 粉碎：近距離傷害+2；玩家等級45起每升一級+1
     
     let spdMult = 1.0;
@@ -471,7 +488,7 @@ d.mr += (baseMr + bonusMr);
     if(p.buffs.brave > 0 || (_mercPots && ['knight','dragon','warrior','royal'].includes(p.cls))) spdMult *= 0.67;   // 勇敢藥水；可用職業傭兵常駐 +33%
     if(p.buffs.elfcookie > 0 || (_mercPots && p.cls === 'elf')) spdMult *= 0.85; // 精靈餅乾；妖精傭兵常駐 +15%
     if(p.buffs.sk_dark_walkhaste > 0) spdMult *= 0.85; // 🔧 行走加速：攻速+15%（與加速術等相乘疊加）
-    { let _clvW = p.eq.wpn ? DB.items[p.eq.wpn.id] : null; let _clvOn = !p.classicMode && ((p.statuses && p.statuses.cleave > 0) || (p.mastery === 'k_cleave' && _clvW && _clvW.eff === 'cleave')); if(_clvOn) spdMult *= (p.mastery === 'k_cleave' ? 0.50 : 0.80); }   // 切割：攻速+20%（🏅 切割精通：+50%・持切割武器常駐），與其他加速相乘疊加；🎮 經典模式停用
+    { let _clvW = p.eq.wpn ? DB.items[p.eq.wpn.id] : null; let _clvOn = !p.classicMode && ((p.statuses && p.statuses.cleave > 0) || (p.mastery === 'k_cleave' && _clvW && _clvW.eff === 'cleave')); if(_clvOn) spdMult *= (p.mastery === 'k_cleave' ? (1/1.3) : 0.80); }   // 切割：攻速+20%（🏅 切割精通：+30%・持切割武器常駐）
     { let _swMelee = p.eq.wpn ? DB.items[p.eq.wpn.id] : null; if(p.mastery === 'e_sword' && _swMelee && !_swMelee.w2h && !_swMelee.isBow && !_swMelee.ranged) spdMult *= (1/1.5); }   // 🏅 劍術精通：持單手近戰武器攻速+50%（與加速/勇敢/餅乾/變身相乘疊加）
     { let _aw = p.eq.wpn ? getWeaponTags(p.eq.wpn.id) : []; let _ow = p.eq.offwpn ? getWeaponTags(p.eq.offwpn.id) : []; if(p.mastery === 'k_giantaxe' && (_aw.includes('雙手鈍器') || _ow.includes('雙手鈍器'))) spdMult *= (1/1.3); else if(p.mastery === 'k_dualaxe' && _aw.includes('單手鈍器') && p.eq.offwpn && _ow.includes('單手鈍器')) spdMult *= (1/1.3); }   // ⚔️ 巨斧精通(主手或副手任一持雙手鈍器·符合「持雙手鈍器+30%」描述·含混裝)／雙斧精通(主副手皆單手鈍器)：攻速+30%
     { let _rw = p.eq.wpn ? getWeaponTags(p.eq.wpn.id) : []; if(p.mastery === 'k_royal_sword' && (_rw.includes('單手劍') || _rw.includes('雙手劍'))) spdMult *= (1/1.5); }   // 👑 劍術精通：裝單手劍／雙手劍攻速+50%

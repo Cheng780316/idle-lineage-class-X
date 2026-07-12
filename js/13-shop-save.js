@@ -199,18 +199,18 @@ let _currentShopNpc = ''; // 用來記住目前是哪位商人
 
 // 根據 NPC ID 取得該商人販售的所有物品
 const SHOP_LISTS = {
-    npc_boni: ['potion_heal','potion_strong','potion_ult','potion_blue','potion_haste','scroll_poly','scroll_magicbarrier','scroll_teleport','scroll_revive','wpn_5','wpn_22','candle'],   // 🏴‍☠️ 波尼（海賊島村莊 雜貨商人）·🚫 v3.2.17 肉已移除
+    npc_boni: ['potion_heal','potion_strong','potion_ult','potion_ancient_heal','potion_ancient_strong','potion_ancient_ult','potion_blue','potion_haste','scroll_poly','scroll_magicbarrier','scroll_teleport','scroll_revive','wpn_5','wpn_22','candle'],   // 🏴‍☠️ 波尼（海賊島村莊 雜貨商人）·🚫 v3.2.17 肉已移除
     npc_linda: ['bk_elf_mr','bk_elf_mind','bk_elf_worldtree','bk_elf_purify','bk_elf_firewpn','bk_elf_windshot','bk_elf_earthguard','bk_elf_eleres','bk_elf_singleres'],
     npc_bayes: ['bk_fireball','bk_vampire','bk_rock_prison','bk_thunder','bk_ice_spike','bk_bless_wpn'],
     npc_gilen: ['bk_heal1','bk_sunlight','bk_shield','bk_lightarrow','bk_teleport','bk_icearrow','bk_windblade','bk_holy_wpn','bk_antidote','bk_cold_shiver','bk_poison_curse','bk_ench_wpn','bk_reveal','bk_load_up','bk_firearrow','bk_hell_fang','bk_heal_mid','bk_shield2','bk_energy_sense','bk_chill','bk_aurora','bk_dark_blind','bk_undead_bane'],
     npc_vangil: ['arm_103','arm_105','arm_108','arm_42','arm_43','hlm_mr','arm_68','arm_66','arm_67','amr_robe','arm_65','arm_63','arm_69','arm_60','arm_61','arm_62','amr_plate'],
     npc_evert: ['new_item_189','new_item_188','new_item_187'],
     npc_wino: ['wpn_shortsword','wpn_9','wpn_scimitar','wpn_37','wpn_invader','wpn_longsword','wpn_damascus','wpn_silversword','wpn_2hsword','wpn_katana','wpn_10','wpn_13','wpn_1','wpn_battleaxe','wpn_19','wpn_38','wpn_20','wpn_silveraxe','wpn_witchwand','wpn_18','wpn_giantaxe','wpn_28','wpn_14','wpn_6','wpn_3','wpn_17','wpn_15','wpn_7','wpn_21','wpn_16','wpn_halberd','wpn_12'],
-    npc_skvati: ['potion_heal','potion_strong','potion_ult','potion_blue','potion_haste','scroll_poly','scroll_magicbarrier','scroll_teleport','scroll_revive','wpn_5','wpn_22','candle','wpn_claw_bronze','wpn_claw_steel','wpn_claw_shadow','wpn_claw_damascus','wpn_dual_bronze','wpn_dual_steel','wpn_dual_shadow','wpn_dual_damascus'],
+    npc_skvati: ['potion_heal','potion_strong','potion_ult','potion_ancient_heal','potion_ancient_strong','potion_ancient_ult','potion_blue','potion_haste','scroll_poly','scroll_magicbarrier','scroll_teleport','scroll_revive','wpn_5','wpn_22','candle','wpn_claw_bronze','wpn_claw_steel','wpn_claw_shadow','wpn_claw_damascus','wpn_dual_bronze','wpn_dual_steel','wpn_dual_shadow','wpn_dual_damascus'],
     npc_saedia: ['bk_dark_str','bk_dark_mrup','bk_dark_stealth','bk_dark_poison','bk_dark_refine','bk_dark_dex','bk_dark_poisonres','bk_dark_burn','bk_dark_walkhaste'],
     npc_sphere: ['mem_confuse','mem_mirror','mem_crush','mem_ogre','mem_focus','mem_skullbreak','mem_lich','mem_endure'],   // 🔮 史菲爾只販賣這 8 種記憶水晶；其餘水晶改由掉落/製作/兌換取得（日光術改由吉蘭購得）
     npc_sempal: ['bk_dragon_guardbreak','bk_dragon_slaughter','bk_dragon_flameslash','bk_dragon_terror'],   // 🐉 森帕爾：4 種龍騎士書板（消滅者鎖鏈劍改為潘朵拉/普洛凱爾試煉取得）
-    default: ['potion_heal','potion_strong','potion_ult','potion_blue','potion_haste','potion_brave','new_item_140','new_item_139','scroll_poly','scroll_magicbarrier','scroll_teleport','scroll_revive','wpn_5','wpn_22','candle']   // 🚫 v3.2.17 哨子/肉已隨舊項圈系統移除
+    default: ['potion_heal','potion_strong','potion_ult','potion_ancient_heal','potion_ancient_strong','potion_ancient_ult','potion_blue','potion_haste','potion_brave','new_item_140','new_item_139','scroll_poly','scroll_magicbarrier','scroll_teleport','scroll_revive','wpn_5','wpn_22','candle']   // 🚫 v3.2.17 哨子/肉已隨舊項圈系統移除
 };
 // 🔧 商店販售清單（單一來源）：getShopItemsForNpc 與潘朵拉權重覆寫共用此表
 function getShopItemsForNpc(npcId) {
@@ -1118,6 +1118,7 @@ function saveGame() {
         setPoly: document.getElementById('set-poly').checked,
         setAutoBuyPoly: document.getElementById('set-auto-buy-poly').checked,
         setMagicbarrier: document.getElementById('set-magicbarrier').checked,
+        setAutoBuyMagicbarrier: document.getElementById('set-auto-buy-magicbarrier').checked,
         setTeleport: document.getElementById('set-teleport').checked,
         setAutoBuyTeleport: document.getElementById('set-auto-buy-teleport').checked,
         setAutoBuyArrow: document.getElementById('set-auto-buy-arrow').checked,
@@ -1444,6 +1445,7 @@ function loadGame() {
             if (c.setPoly !== undefined) document.getElementById('set-poly').checked = c.setPoly;
             if (c.setAutoBuyPoly !== undefined) document.getElementById('set-auto-buy-poly').checked = c.setAutoBuyPoly;
             if (c.setMagicbarrier !== undefined) document.getElementById('set-magicbarrier').checked = c.setMagicbarrier;
+            if (c.setAutoBuyMagicbarrier !== undefined) document.getElementById('set-auto-buy-magicbarrier').checked = c.setAutoBuyMagicbarrier;
             if (c.setTeleport !== undefined) document.getElementById('set-teleport').checked = c.setTeleport;
             if (c.setAutoBuyTeleport !== undefined) document.getElementById('set-auto-buy-teleport').checked = c.setAutoBuyTeleport;
             if (c.setAutoBuyArrow !== undefined) document.getElementById('set-auto-buy-arrow').checked = c.setAutoBuyArrow;

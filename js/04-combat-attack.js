@@ -7,7 +7,10 @@ function playerAttack() {
     // 🔮 幻術士 奇古獸攻擊：裝備奇古獸(必中魔法)或魔劍精通(任意非弓武器套用奇古獸公式) → 走奇古獸路徑，繞過物理命中/迴避
     if (player.cls === 'illusion') {
         let _qw = player.eq.wpn ? DB.items[player.eq.wpn.id] : null;
-        if (_qw && !_qw.isBow && (_qw.qigu || (player.mastery === 'i_magicsword' && !isWandWeapon(_qw)))) { qiguPlayerAttack(target, _qw); return; }   // 🔮 魔劍精通：排除魔杖（魔杖不轉奇古獸必中路徑）
+        if (_qw && !_qw.isBow && (_qw.qigu || (player.mastery === 'i_magicsword' && !isWandWeapon(_qw)))) {
+            if (_qw.qigu && typeof playQiguAttackSprite === 'function') playQiguAttackSprite(player);
+            qiguPlayerAttack(target, _qw); return;
+        }   // 🔮 魔劍精通：排除魔杖（魔杖不轉奇古獸必中路徑）
     }
 
     let _sureHit = !!player._darkEvadeSure;   // 🔧 迴避精通：下一次一般攻擊必中（🔮 麗人5/5 已改為「未命中堆疊命中」，不再走必中）
@@ -134,10 +137,10 @@ function playerAttack() {
         if (wpn && wpn.vampPct && result.dmg > 0) player.hp = Math.min(player.mhp, player.hp + Math.floor(result.dmg * wpn.vampPct));   // 🐉 嗜血者鎖鏈劍：吸取一般攻擊傷害的 % 為 HP
         if (wpn && wpn.procHealFlat && result.dmg > 0 && Math.random() * 100 < wpn.procHealFlat.rate) { player.hp = Math.min(player.mhp, player.hp + wpn.procHealFlat.hp); logCombat(`<span class="text-emerald-300 font-bold">【${wpn.n}】</span>恢復了 ${wpn.procHealFlat.hp} 點 HP。`, 'heal'); }   // 🏺 v3.1.80 處刑人的護身斧：一般攻擊命中 3% 機率恢復 10 HP
         if (wpn && wpn.procBurn && target.curHp > 0 && (!wpn.procBurn.rate || Math.random() * 100 < wpn.procBurn.rate)) target._burnDot = { left: (wpn.procBurn.dur || 6) * 10, dmg: wpn.procBurn.dmg || 10, tick: (wpn.procBurn.tick || 1) * 10 };   // 🏺 熔岩灼燒的雙拳：命中附加灼燒 DoT（每秒 dmg 火傷、持續 dur 秒·刷新）
-        // 🔧 黑暗妖精：附加劇毒（命中 50%／劇毒精通 100% 使目標中毒：每秒該次攻擊 60%／劇毒精通 200% 傷害，持續 5 秒，最多 1 層，取較高傷害並刷新持續時間）
+        // 🔧 黑暗妖精：附加劇毒（命中 50%／劇毒精通 100%；每秒該次攻擊 60%／80%，持續 5 秒）
         if (player.buffs && player.buffs.sk_dark_poison > 0 && target.curHp > 0 && Math.random() < (hasMastery('d_poison') ? 1 : 0.5)) {
             if (!target.st) target.st = newMobStatus();
-            let _pPct = hasMastery('d_poison') ? 2.0 : 0.6;   // 🔧 劇毒精通：每秒 200%；否則 60%
+            let _pPct = hasMastery('d_poison') ? 0.8 : 0.6;   // 劇毒精通每秒 80%，避免五秒總傷害過度放大
             let _pUnit = Math.max(1, Math.floor(result.dmg * _pPct * ((wpn && wpn.poisonMult) || 1)));   // 🏺 暗黑蠍的雙鉗：poisonMult 放大觸發的附加劇毒傷害（×1.2）
             // 🔧 新規則：未中毒、或新傷害「高於」現有時才上毒（取代傷害並刷新5秒）；新傷害未更高則完全不更新，須等舊毒5秒跑完、敵人脫離中毒後才能再上毒
             if ((target.st.poison || 0) <= 0 || _pUnit > (target.st.poisonUnit || 0)) {
@@ -587,8 +590,9 @@ function allyDollDamageReduced(ally, dmg) {
 // 單體：對 t 計算並套用一次附魔施放傷害（不負責 render；回傳是否擊殺）。aoe 由 procWeaponSpell 統一在外層迴圈處理。
 function _procWeaponSpellHit(t, sp, en) {
     if (!t || t.curHp <= 0) return false;
-    let base = roll(sp.dice[0], sp.dice[1]) + (sp.flat || 0);   // 🔧 基礎傷害（含 sp.flat 固定加值·如電光衝擊/水之矛/火焰之陣的 +5/+6；強化改吃 +11 最終倍率·原 ×(1+強化/20) 移除）
-    let core = base * (1 + 3 * (player.d.magicDmg || 0) / 16);   // 受魔法傷害影響（同一般魔法的魔攻係數）；🧊⚡ v3.2.1 用戶：酷寒之矛/雷雨之劍原有的 noMagicDmg 例外已移除→全部 spellProc 一律吃魔法傷害加成
+    let _godTier = !!(player.eq.wpn && DB.items[player.eq.wpn.id] && DB.items[player.eq.wpn.id].godWeapon);
+    let base = roll(sp.dice[0], sp.dice[1] + (_godTier ? 2 : 0)) + (sp.flat || 0);   // 神話武器 PVE 基礎魔法提高一階：骰面+2（D18→D20、D20→D22）
+    let core = base * (sp.ignoreMagicPower ? 1 : (1 + 3 * (player.d.magicDmg || 0) / 16));   // 神話武器 PVE「憤怒」多數依官方規則不受持有者 INT／SP 影響
     let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
     let mrFactor = mrMult(effMr);
     let _cm = elementCounterMult(sp.ele, t.e);   // ⚔️ 屬性剋制倍率 ×1.4(剋)/×0.6(被剋)/×1
@@ -765,7 +769,7 @@ function enemyPhysicalAttack(mob, idx, stunChance = 0, atkDmg = null, atkDb = nu
     let _asleep = !!(player.statuses && player.statuses.sleep > 0);
     // 🔧 暗隱術：100% 迴避一次物理攻擊（迴避後失效並進入 5 秒冷卻）；否則依 ER 有效迴避率判定
     let _stealthDodge = !!(player.buffs && player.buffs.sk_dark_stealth > 0);
-    let _titanEr = (player.skills.includes('sk_warrior_titan_bullet') && player.hp < player.mhp * titanThreshold()) ? 50 : 0;   // ⚔️ 泰坦：子彈：HP<40%(反彈精通 80%) 時 ER+50（即時判定，不入 recomputeStats）
+    let _titanEr = (player.skills.includes('sk_warrior_titan_bullet') && player.hp < player.mhp * titanThreshold()) ? 50 : 0;   // ⚔️ 泰坦：子彈：基礎40%，反彈精通60%
     if (!_asleep && (_stealthDodge || roll(1, 100) <= effResistPct(player.d.er + _titanEr))) {
         logCombat(`${player.name || '你'} 成功迴避攻擊。`, 'evade');
         if (hasMastery('d_evade')) { let _s = player._darkEvadeStack || 0; player._darkEvadeStack = 0; if (player.d) player.d.er -= _s; player._darkEvadeSure = true; player._darkEvadeCrit = true; }   // 🔧 迴避精通：清空累積ER，下次一般攻擊必中且必爆
@@ -925,7 +929,7 @@ function enemyPhysicalAttack(mob, idx, stunChance = 0, atkDmg = null, atkDb = nu
             logCombat(`<span class="font-bold" style="color:#fbbf24;text-shadow:0 0 6px #d97706;">【致命身軀】</span>反射相同傷害，對 <span class="${getMobColor(mob.lv)}">${mob.n}</span> 造成 ${_rf} 點傷害。`, 'magic');
             if(mob.curHp <= 0) { killMob(idx); if(player.hp <= 0) killPlayer(); return; }
         }
-        if(player.skills.includes('sk_warrior_titan_rock') && player.hp < player.mhp * titanThreshold() && mob && mob.curHp > 0 && totalDmg > 0) {   // ⚔️ 泰坦：岩石：HP<40%(反彈精通 80%) 受一般攻擊反射相同傷害
+        if(player.skills.includes('sk_warrior_titan_rock') && player.hp < player.mhp * titanThreshold() && mob && mob.curHp > 0 && totalDmg > 0) {   // ⚔️ 泰坦：岩石：基礎40%，反彈精通60%
             let _tr = Math.max(1, Math.floor(totalDmg * fragileMult(mob)));
             mob.curHp -= _tr; mob.justHit = 'magic'; mobWake(mob);
             logCombat(`<span class="font-bold" style="color:#d6d3d1;text-shadow:0 0 6px #78716c;">【泰坦：岩石】</span>反射相同傷害，對 <span class="${getMobColor(mob.lv)}">${mob.n}</span> 造成 ${_tr} 點傷害。`, 'magic');
@@ -1058,7 +1062,7 @@ function enemyAttackAlly(mob, ally) {
     let d = ally.d || {};
     // 迴避（基礎 ER；🆕 v2.6.13 #5b 補：泰坦子彈殘血ER+50／迴避精通累積ER＋迴避後必中必爆／暗影3迴避回2%HP。比照玩家 enemyPhysicalAttack）
     {
-        let _titanEr = (ally.skills && ally.skills.includes('sk_warrior_titan_bullet') && (ally.curHp || 0) < (ally.mhp || 1) * ((ally.cls === 'warrior' && allyHasMastery(ally, 'k_rebound')) ? 0.8 : 0.4)) ? 50 : 0;   // ⚔️ 泰坦：子彈
+        let _titanEr = (ally.skills && ally.skills.includes('sk_warrior_titan_bullet') && (ally.curHp || 0) < (ally.mhp || 1) * ((ally.cls === 'warrior' && allyHasMastery(ally, 'k_rebound')) ? 0.6 : 0.4)) ? 50 : 0;   // ⚔️ 泰坦：子彈
         let _evStack = allyHasMastery(ally, 'd_evade') ? (ally._darkEvadeStack || 0) : 0;   // 🖤 迴避精通：累積 ER（直接加進判定·不動 ally.d 避免重算失同步）
         let _stealthDodge = !!(ally.buffs && ally.buffs.sk_dark_stealth > 0);   // 🖤 v2.7.92 暗隱術（傭兵）：100% 迴避一次物理攻擊（迴避後失效並進入 5 秒冷卻·鏡像玩家 enemyPhysicalAttack）
         if (_stealthDodge || roll(1, 100) <= effResistPct((d.er || 0) + _titanEr + _evStack)) {
@@ -1676,7 +1680,7 @@ function applyMobMagic(mob, sk) {
             logCombat(`<span class="font-bold" style="color:#f472b6;text-shadow:0 0 6px #ec4899;">【疼痛的歡愉】</span>痛楚化為反擊，對 <span class="${getMobColor(mob.lv)}">${mob.n}</span> 造成 ${_rf} 點傷害。`, 'magic');
             if(mob.curHp <= 0) { let _ri = mapState.mobs.findIndex(m => m && m.uid === mob.uid); if(_ri !== -1) killMob(_ri); }
         }
-        if(player.skills.includes('sk_warrior_titan_magic') && player.hp < player.mhp * titanThreshold() && dmg > 0 && mob.curHp > 0) {   // ⚔️ 泰坦：魔法：HP<40%(反彈精通 80%) 受技能攻擊反射相同傷害
+        if(player.skills.includes('sk_warrior_titan_magic') && player.hp < player.mhp * titanThreshold() && dmg > 0 && mob.curHp > 0) {   // ⚔️ 泰坦：魔法：基礎40%，反彈精通60%
             let _tm = Math.max(1, Math.floor(dmg * fragileMult(mob)));
             mob.curHp -= _tm; mob.justHit = 'magic'; mobWake(mob);
             logCombat(`<span class="font-bold" style="color:#d6d3d1;text-shadow:0 0 6px #78716c;">【泰坦：魔法】</span>反射相同傷害，對 <span class="${getMobColor(mob.lv)}">${mob.n}</span> 造成 ${_tm} 點傷害。`, 'magic');

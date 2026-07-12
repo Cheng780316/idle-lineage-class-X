@@ -451,6 +451,7 @@ function castSkillInner(skId) {
             if (!wpn || wpn.isBow || wpn.ranged) return false;   // 需近距離武器
             player.mp -= cost; player.cds.atkSk = getAutoCastInterval();
             if (sk.hpCost) player.hp = Math.max(1, player.hp - effHpCost(sk));
+            if (typeof playTtmiSkillFx === 'function') playTtmiSkillFx('屠宰者', t);
             let layers = t.weakExpose || 0, bonus = layers > 0 ? 10 * layers : 0;
             let consume = layers > 0 && !hasMastery('k_weakness');   // 🏅 弱點精通：屠宰者不消耗弱點曝光
             let times = sk.hits || 3, total = 0, log = [], applied = false;
@@ -575,6 +576,7 @@ function castSkillInner(skId) {
             }
 
             let hits = sk.hits || 1;
+            if (skId === 'sk_elf_triple' && typeof playTripleRingFx === 'function') playTripleRingFx(player);
             // 🗼 騎士范德之劍：施展 衝擊之暈 時，本次技能近距離命中 +1（getPhysicalDmg 讀取，迴圈結束後重置）
             player._skillHitBonus = (skId === 'sk_shock_stun' && wpn && wpn.vanderStunHit && !wpn.isBow) ? 1 : 0;
             let totalDmg = 0, landed = 0, hitsLog = [], killed = false, delayDone = false;
@@ -596,8 +598,14 @@ function castSkillInner(skId) {
                 let mark = (res.heavy && res.crit) ? '會心' : (res.crit ? '爆' : (res.heavy ? '重' : ''));
                 hitsLog.push(res.dmg + (mark ? '(' + mark + ')' : ''));
                 mobWake(t);
-                if(sk.stun && (sk.stunChance == null || Math.random() < sk.stunChance)) applyMobStatus(t, { kind:'stun', pbase:sk.stun, dur:6, hitOff: (wpn && wpn.stunHitBonus && !wpn.isBow) ? Math.round(wpn.stunHitBonus / 5) : 0 }, sk.n);   // ⚔️ 衝擊之暈：命中時 stunChance(10%) 機率暈眩；🏛️ 真．冥皇執行劍：暈眩命中率 +20%（hitOff +4）
-                if(sk.status) applyMobStatus(t, sk.status, sk.n);
+                if(sk.stun && (sk.stunChance == null || Math.random() < sk.stunChance)) {
+                    let _stunLanded = applyMobStatus(t, { kind:'stun', pbase:sk.stun, dur:6, hitOff: (wpn && wpn.stunHitBonus && !wpn.isBow) ? Math.round(wpn.stunHitBonus / 5) : 0 }, sk.n);
+                    if (_stunLanded && sk.n === '衝擊之暈' && typeof playShockStunHitFx === 'function') playShockStunHitFx(t);
+                }   // ⚔️ 衝擊之暈：命中時 stunChance(10%) 機率暈眩；🏛️ 真．冥皇執行劍：暈眩命中率 +20%（hitOff +4）
+                if(sk.status) {
+                    let _statusLanded = applyMobStatus(t, sk.status, sk.n);
+                    if (_statusLanded && sk.n === '破壞盔甲' && typeof playArmorBreakRedFx === 'function') playArmorBreakRedFx(t);
+                }
                 if(t.curHp > 0 && sk.instakill && tryInstakill(t, sk.instakill, sk.n, mapState.targetIdx)) { killed = true; break; }
             }
             player._skillHitBonus = 0;   // 🗼 重置：范德之劍命中加成僅作用於本次技能
@@ -645,6 +653,7 @@ function castSkillInner(skId) {
                 }
 
                 let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
+                if (player.cls === 'elf' && hasMastery('e_magic') && sk.ele && sk.ele !== 'none' && sk.ele === player.elfEle) effMr *= 0.7;
                 let mrFactor = mrMult(effMr);
 
                 let dmgArray = sk.multiDmg || (sk.dmgDice ? [[sk.dmgDice[0], sk.dmgDice[1]]] : []);
@@ -704,7 +713,10 @@ function castSkillInner(skId) {
                 if(t.st && t.st.mrhalf > 0) t.st.mrhalf = 0; // 受一次魔法傷害後解除魔抗減半
                 if(sk.lifesteal) { let h = Math.min(totalDmg, player.mhp - player.hp); if(h > 0){ player.hp += h; logCombat(`你吸取了 ${h} 點生命。`, 'heal'); } }
                 if(sk.freeze) applyMobStatus(t, { kind:'freeze', pbase:sk.freeze, dur:6 }, sk.n);
-                if(sk.status) applyMobStatus(t, sk.status, sk.n);
+                if(sk.status) {
+                    let _statusLanded = applyMobStatus(t, sk.status, sk.n);
+                    if (_statusLanded && sk.n === '破壞盔甲' && typeof playArmorBreakRedFx === 'function') playArmorBreakRedFx(t);
+                }
                 if(t.curHp > 0 && sk.instakill) tryInstakill(t, sk.instakill, sk.n, mapState.mobs.findIndex(m => m && m.uid === t.uid));
             });
             
@@ -798,8 +810,20 @@ function autoActions() {
     
     let potId = document.getElementById('set-pot').value;
     let potThr = parseInt(document.getElementById('set-hp-pot').value) || 0;
+
+    // 所有自動購買都在庫存剩 1 時提前補貨，避免消耗完才臨時購買。
+    let potCount = player.inv.filter(i => i.id === potId).reduce((n, i) => n + (i.cnt || 1), 0);
+    if (document.getElementById('set-auto-buy-pot').checked && potCount <= 1) {
+        let needed = 100 - potCount;
+        let unitPrice = shopPrice(DB.items[potId].p);
+        if (needed > 0 && player.gold >= needed * unitPrice) {
+            player.gold -= needed * unitPrice;
+            gainItem(potId, needed, true, true);
+            logSys(`庫存剩 ${potCount} 瓶，自動消耗 ${needed * unitPrice} 金幣補充 ${needed} 瓶${DB.items[potId].n}。`);
+        }
+    }
     
-    if (hpPct <= potThr && player.cds.pot <= 0) {
+    if (hpPct <= potThr && (DB.items[potId].noPotionDelay || player.cds.pot <= 0)) {
         let item = player.inv.find(i => i.id === potId);
         if (item) useItem(item.uid, true);
         else if (document.getElementById('set-auto-buy-pot').checked) {
@@ -825,9 +849,21 @@ function autoActions() {
         { id: 'set-cautious', pot: 'new_item_140', b: 'cautious', req: 'mage,illusion', buyId: 'set-auto-buy-cautious' },
         { id: 'set-elfcookie', pot: 'new_item_139', b: 'elfcookie', req: 'elf', buyId: 'set-auto-buy-elfcookie' },
         { id: 'set-poly', pot: 'scroll_poly', b: 'poly', buyId: 'set-auto-buy-poly' },
-        { id: 'set-magicbarrier', pot: 'scroll_magicbarrier', b: 'sk_magic_shield' }
+        { id: 'set-magicbarrier', pot: 'scroll_magicbarrier', b: 'sk_magic_shield', buyId: 'set-auto-buy-magicbarrier', buyQty: 5 }
     ];
     buffs.forEach(cfg => {
+        let buyChk = cfg.buyId ? document.getElementById(cfg.buyId) : null;
+        let useChk = document.getElementById(cfg.id);
+        let count = player.inv.filter(i => i.id === cfg.pot).reduce((n, i) => n + (i.cnt || 1), 0);
+        if (useChk && useChk.checked && buyChk && buyChk.checked && count <= 1) {
+            let qty = cfg.buyQty || 1;
+            let total = shopPrice(DB.items[cfg.pot].p) * qty;
+            if (player.gold >= total) {
+                player.gold -= total;
+                gainItem(cfg.pot, qty, true, true);
+                logSys(`庫存剩 ${count}，自動購買 ${qty} 個${DB.items[cfg.pot].n}。`);
+            }
+        }
         if (cfg.b === 'haste' && player._equipHaste) return;   // 裝備常駐加速（伊娃之盾）：不重複喝加速藥水
         if (document.getElementById(cfg.id).checked && (player.buffs[cfg.b] || 0) <= 0) {
             if(cfg.req && !cfg.req.split(',').includes(player.cls)) return;   // 🎮 支援逗號多職業（勇敢藥水 knight,dragon）
@@ -848,6 +884,16 @@ function autoActions() {
     // 瞬間移動卷軸：戰鬥中出現 BOSS 時自動使用（自動使用必定為未裝備傳送控制戒指的傳送術效果）
     {
         let tChk = document.getElementById('set-teleport');
+        let tBuyChk = document.getElementById('set-auto-buy-teleport');
+        let tCount = player.inv.filter(i => i.id === 'scroll_teleport').reduce((n, i) => n + (i.cnt || 1), 0);
+        if (tChk && tChk.checked && tBuyChk && tBuyChk.checked && tCount <= 1) {
+            let tPrice = shopPrice(DB.items.scroll_teleport.p);
+            if (player.gold >= tPrice) {
+                player.gold -= tPrice;
+                gainItem('scroll_teleport', 1, true, true);
+                logSys(`瞬間移動卷軸剩 ${tCount} 張，自動購買 1 張。`);
+            }
+        }
         if (tChk && tChk.checked && mapState.mobs.some(m => m && m.boss && !m.noAutoTeleport) && !isSiegeArea(mapState.current) && !PURE_BOSS_MAPS.includes(mapState.current) && !state.prideClimb && !state.oblivion && !state.riftRun && (state._manualTpUntil == null || (state.ticks || 0) >= state._manualTpUntil)) {   // 🕒 手動瞬移後 5 秒內不自動瞬移/自動購買；攻城區與純BOSS房(安塔瑞斯/法利昂/巴拉卡斯)：BOSS為目標，不自動瞬移；🔧 卡瑞(noAutoTeleport)不觸發自動瞬移；🗼 傲慢之塔攀登中不自動瞬移；🌀 時空裂痕不自動瞬移逃離頭目
             let item = player.inv.find(i => i.id === 'scroll_teleport');
             if (!item) {
