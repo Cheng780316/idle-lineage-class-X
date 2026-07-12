@@ -958,6 +958,17 @@ function openModal(item, isEq, slot) {
     }
 
     // 👇 修改：為武器、防具、飾品加入專屬的「強化」按鈕 (加入 !d.isArrow 防呆，箭矢不顯示強化按鈕)
+    // 直接從武器／裝備視窗使用附魔與強化保護卷軸（背包與已穿戴皆可）。
+    if (item.identified !== false && !d.isArrow && !isRelic(d) && (d.type === 'wpn' || d.type === 'arm' || d.type === 'acc')) {
+        let enchantCount = player.inv.filter(i => i.id === 'scroll_mystic_enchant').reduce((n, i) => n + (i.cnt || 1), 0);
+        if (enchantCount > 0) act += `<button class="col-span-2 w-full btn border-fuchsia-600 bg-fuchsia-950 hover:bg-fuchsia-900 text-fuchsia-200 py-3 text-lg font-bold" onclick="useMysticScrollOnEquipment('${item.uid}')">✨ 使用附魔卷軸（持有 ${enchantCount}）</button>`;
+        let en = Number(item.en) || 0;
+        let canProtect = (d.type === 'wpn' && en >= 10) || (d.type === 'arm' && en >= 8);
+        let protectCount = player.inv.filter(i => i.id === 'scroll_enhance_protect').reduce((n, i) => n + (i.cnt || 1), 0);
+        if (canProtect && item.enhanceProtect) act += `<button class="col-span-2 w-full btn border-cyan-800 bg-slate-800 text-cyan-300 py-3 text-lg font-bold cursor-not-allowed" disabled>🛡️ 已有 1 次強化保護</button>`;
+        else if (canProtect && protectCount > 0) act += `<button class="col-span-2 w-full btn border-cyan-600 bg-cyan-950 hover:bg-cyan-900 text-cyan-200 py-3 text-lg font-bold" onclick="useProtectScrollOnEquipment('${item.uid}')">🛡️ 使用強化保護卷軸（持有 ${protectCount}）</button>`;
+    }
+
     if (item.identified !== false && ((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance) {   // 🔧 已達淬鍊（強化上限）：隱藏強化按鈕；🏛️ 無法強化的裝備（古老系列）不顯示強化鈕
         act += `<button class="col-span-2 w-full btn border-purple-700 bg-purple-900 hover:bg-purple-800 text-purple-200 py-3 text-lg font-bold mt-2" onclick="showEnhanceOptions('${item.uid}', ${isEq})">強化</button>`;
     }
