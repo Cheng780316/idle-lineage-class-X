@@ -769,14 +769,14 @@ function applySherineBuff(idx) {
     // 攻城區與血盟敵人除外，其餘怪物強化＋報酬翻倍
     if (sherineWorldActive() && !isSiegeArea(mapState.current) && _m.race !== '血盟') {
         let _mad = sherineMadActive();   // 🔮 瘋狂的席琳世界：更高倍率（值＝[一般/瘋狂]）
-        _m.hp = Math.floor(_m.hp * (_mad ? (_m.boss ? 6 : 5) : 3)); _m.curHp = _m.hp;   // HP：一般席琳×3；瘋狂一般怪×5、頭目×6
+        _m.hp = Math.floor(_m.hp * (_mad ? 5 : 3)); _m.curHp = _m.hp;   // HP×[3/5]；瘋狂頭目與一般怪相同
         _m.ac = (_m.ac || 0) - (_m.boss ? 20 : 10);                    // 🔮 席琳 AC：頭目 −20、一般怪 −10（2026-07 用戶改：原 ×1.5/1.75 把近戰命中壓到 ~10%·改固定值·瘋狂與一般同值）
-        _m.mr = Math.floor((_m.mr || 0) * (_mad ? (_m.boss ? 3 : 2) : 1.5)); // MR：一般席琳×1.5；瘋狂一般怪×2、頭目×3
+        _m.mr = Math.floor((_m.mr || 0) * (_mad ? 3 : 1.5));            // MR×[1.5/3]；瘋狂頭目與一般怪相同
         _m.exp = Math.floor((_m.exp || 0) * (_mad ? 10 : 5));           // 經驗×[5/10]
         _m.goldMin = Math.floor((_m.goldMin || 0) * (_mad ? 10 : 5));   // 金錢×[5/10]
         _m.goldMax = Math.floor((_m.goldMax || 0) * (_mad ? 10 : 5));
         _m.hit = Math.floor((_m.hit || 0) * (_mad ? 2 : 1.5));          // 命中×[1.5/2]
-        _m.dr = (_m.dr || 0) + Math.floor((_m.lv || 1) / (_mad && !_m.boss ? 6 : 3)); // 瘋狂一般怪降為等級/6；頭目與一般席琳維持等級/3
+        _m.dr = (_m.dr || 0) + Math.floor((_m.lv || 1) / 3);            // 額外減傷：等級/3（一般／瘋狂、頭目／一般怪皆相同）
         _m._sherine = true;   // 一般攻擊傷害×[2/3]、技能最終傷害×[2/3]、掉落×[3/5]、掉落附帶席琳詞綴／套裝效果
         if (_mad) _m._sherineMad = true;   // 🔮 瘋狂旗標：供傷害/掉落/結晶/套裝效果倍率分流
     }
