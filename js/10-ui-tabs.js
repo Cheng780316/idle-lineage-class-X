@@ -683,6 +683,9 @@ const WEAPON_TAGS = {
 DB.items.god_knight_judgment.eff = 'cleave';          // 雙手劍：切割
 DB.items.god_elf_obsession.rapidfire = 100;           // 弓：連射必定發動
 DB.items.wpn_gaia_rage.rapidfire = 100;               // 大地女神的激怒：連射必定發動
+// 🏛️ 暫時測試：可羅蘭斯製作的 9 把武器安定值提高為 +15（底層資料保留安定 6，方便之後恢復）。
+['wpn_emperor_blade','wpn_windblade_dagger','wpn_redshadow_dual','wpn_beastking_claw','wpn_holycrystal_wand','wpn_gaia_rage','wpn_hyperion_despair','wpn_cronos_fear','wpn_titan_rage']
+    .forEach(function(id) { if (DB.items[id]) DB.items[id].safe = 15; });
 DB.items.god_dark_dantes.comboRate = 50;              // 雙刀：雙擊 50%
 DB.items.god_warrior_fear.eff = 'crush';              // 單手斧：粉碎／鈍擊
 DB.items.god_royal_flash.d += ' 武器特性：單手劍反擊。';
