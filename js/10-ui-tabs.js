@@ -1155,8 +1155,11 @@ function showEnhanceOptions(uid, isEq) {
     let d = DB.items[item.id];
     
     let scrollNorm, scrollBless, scrollCurse;
-    let scrollProtect = player.inv.find(i => i.id === 'scroll_equip_protect');
-    let scrollProtectBless = player.inv.find(i => i.id === 'scroll_equip_protect_b');
+    let _heldProtect = player.inv.find(i => i.id === 'scroll_equip_protect');
+    let _heldProtectBless = player.inv.find(i => i.id === 'scroll_equip_protect_b');
+    let _protectEligible = canUseEquipProtectScroll(d, item.en);
+    let scrollProtect = _protectEligible ? _heldProtect : null;
+    let scrollProtectBless = _protectEligible ? _heldProtectBless : null;
     let scrollNormId = ''; // 🌟 紀錄該裝備對應的一般卷軸 ID
     let scrollCurseId = ''; // 詛咒卷軸 ID（武器/盔甲）
 
@@ -1180,7 +1183,8 @@ function showEnhanceOptions(uid, isEq) {
     // 飾品特殊處理：若有卷軸直接點爆，不用選
     if (d.type === 'acc' && !scrollProtect && !scrollProtectBless) {
         if (!scrollNorm) {
-            logSys(`<span class="text-red-400 font-bold">強化卷軸不足。</span>`);
+            if (_heldProtect || _heldProtectBless) logSys('<span class="text-red-400 font-bold">裝備保護卷軸不能用於飾品。</span>');
+            else logSys(`<span class="text-red-400 font-bold">強化卷軸不足。</span>`);
             return;
         }
         activeScroll = scrollNorm;
@@ -1190,7 +1194,8 @@ function showEnhanceOptions(uid, isEq) {
     
     // 武器/防具：如果一般／祝福／詛咒卷軸全都沒有，直接跳錯
     if (!scrollNorm && !scrollBless && !scrollCurse && !scrollProtect && !scrollProtectBless) {
-        logSys(`<span class="text-red-400 font-bold">強化卷軸不足。</span>`);
+        if (_heldProtect || _heldProtectBless) logSys('<span class="text-red-400 font-bold">裝備保護卷軸僅能用於 +11 以上武器或 +9 以上防具。</span>');
+        else logSys(`<span class="text-red-400 font-bold">強化卷軸不足。</span>`);
         return;
     }
     

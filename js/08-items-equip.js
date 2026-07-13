@@ -844,6 +844,10 @@ function buyItem(id, qty) {
 }
 
 let activeScroll = null;
+function canUseEquipProtectScroll(d, en) {
+    en = Number(en) || 0;
+    return !!d && ((d.type === 'wpn' && en >= 11) || (d.type === 'arm' && en >= 9));
+}
 function openEnhanceModal(scroll) {
     activeScroll = scroll;
     let targets = Object.values(player.eq).filter(e => e && DB.items[e.id].type === scroll.target && !isMaxEnhanced(e) && !DB.items[e.id].noEnhance);   // 🔧 已達強化上限者不列入；🏛️ 無法強化的裝備（古老系列）不列入
@@ -889,6 +893,12 @@ function doEnhance(targetUid, isEq = true) {
     }
     let scroll = activeScroll;
     activeScroll = null;
+    let _scrollDef = DB.items[scroll.id] || {};
+    if (_scrollDef.protectScroll && !canUseEquipProtectScroll(d, target.en)) {
+        logSys('<span class="text-red-400 font-bold">裝備保護卷軸僅能用於 +11 以上武器或 +9 以上防具。</span>');
+        closeModal();
+        return;
+    }
     consume(scroll); // 消耗卷軸
     
     // 👇 核心邏輯：如果強化的是「背包」裡的裝備，且數量 > 1，則拆分出一件來衝，保護其餘裝備不被波及
@@ -915,7 +925,6 @@ function doEnhance(targetUid, isEq = true) {
 
     // 🛡️ 裝備保護卷軸：任何未成功結果都不會摧毀裝備。
     // 普通版失敗強化值-1；祝福版失敗強化值不變。
-    let _scrollDef = DB.items[scroll.id] || {};
     if (_scrollDef.protectScroll && !success) {
         destroy = false;
         nochange = true;
