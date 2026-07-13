@@ -302,14 +302,14 @@ function _playGodWeaponDecor(style, ax, ay, targetRect, layer) {
 // 神話武器正式動態素材：24 幀 × 65ms＝1.56 秒透明 Animated WebP。
 // 只替換畫面，武器傷害／發動率仍走原戰鬥公式。
 const GOD_WEAPON_ANIM_FX = {
-    '殷海薩的憤怒':     { src:'assets/effects/god-weapons/ainshasad.webp?v=20260713-24f',         h:1.82, anchorY:0.69, duration:1560 },
-    '格蘭肯的憤怒':     { src:'assets/effects/god-weapons/grankain_judgment.webp?v=20260713-24f', h:1.74, anchorY:0.66, duration:1560 },
-    '沙哈的憤怒':       { src:'assets/effects/god-weapons/sayha.webp?v=20260713-24f',             h:1.78, anchorY:0.67, duration:1560 },
-    '伊娃的憤怒':       { src:'assets/effects/god-weapons/eva.webp?v=20260713-24f',               h:1.76, anchorY:0.68, duration:1560 },
-    '丹特斯的憤怒':     { src:'assets/effects/god-weapons/dantes.webp?v=20260713-24f',            h:1.72, anchorY:0.56, duration:1560 },
-    '泰亞的憤怒':       { src:'assets/effects/god-weapons/theia.webp?v=20260713-24f',             h:1.78, anchorY:0.68, duration:1560 },
-    '奧拉奇亞的憤怒':   { src:'assets/effects/god-weapons/aurakia.webp?v=20260713-24f',           h:1.94, anchorY:0.72, duration:1560 },
-    '格蘭肯的恐怖之怒': { src:'assets/effects/god-weapons/grankain_fear.webp?v=20260713-24f',     h:1.84, anchorY:0.63, duration:1560 }
+    '殷海薩的憤怒':     { src:'assets/effects/god-weapons/ainshasad.webp?v=20260713-24f',         h:1.60, anchorY:0.69, duration:1560 },
+    '格蘭肯的憤怒':     { src:'assets/effects/god-weapons/grankain_judgment.webp?v=20260713-24f', h:1.53, anchorY:0.66, duration:1560 },
+    '沙哈的憤怒':       { src:'assets/effects/god-weapons/sayha.webp?v=20260713-24f-sayha-pos2',  h:1.40, anchorY:0.50, duration:1560 },
+    '伊娃的憤怒':       { src:'assets/effects/god-weapons/eva.webp?v=20260713-24f',               h:1.55, anchorY:0.68, duration:1560 },
+    '丹特斯的憤怒':     { src:'assets/effects/god-weapons/dantes.webp?v=20260713-24f',            h:1.51, anchorY:0.56, duration:1560 },
+    '泰亞的憤怒':       { src:'assets/effects/god-weapons/theia.webp?v=20260713-24f',             h:1.57, anchorY:0.68, duration:1560 },
+    '奧拉奇亞的憤怒':   { src:'assets/effects/god-weapons/aurakia.webp?v=20260713-24f',           h:1.71, anchorY:0.72, duration:1560 },
+    '格蘭肯的恐怖之怒': { src:'assets/effects/god-weapons/grankain_fear.webp?v=20260713-24f',     h:1.62, anchorY:0.63, duration:1560 }
 };
 // 可羅蘭斯傳說武器「+6 以上」正式動態素材：16 幀 × 80ms＝1.28 秒。
 const LEGEND_WEAPON_ANIM_FX = {
@@ -343,6 +343,18 @@ function playGodWeaponAnimatedFx(skn, mob) {
         el.style.left = (cx - w / 2) + 'px'; el.style.top = (cy - h * cfg.anchorY) + 'px';
         el.style.mixBlendMode = 'screen'; el.style.zIndex = '12';
         layer.appendChild(el); _godWeaponAnimActive[key] = true;
+        // 神話／傳說武器特效一律由怪物上方落下，在命中位置收束；
+        // 避免素材內的擴張幀看起來像由地面往上飄。
+        try {
+            let fallPx = Math.max(14, r.height * 0.34);
+            el.animate([
+                { transform: 'translate3d(0,' + (-fallPx) + 'px,0) scale(.96)', opacity: 0, offset: 0 },
+                { transform: 'translate3d(0,' + (-fallPx * 0.16) + 'px,0) scale(1)', opacity: 1, offset: 0.18 },
+                { transform: 'translate3d(0,0,0) scale(1)', opacity: 1, offset: 0.27 },
+                { transform: 'translate3d(0,0,0) scale(1)', opacity: 1, offset: 0.88 },
+                { transform: 'translate3d(0,0,0) scale(1)', opacity: 0, offset: 1 }
+            ], { duration: cfg.duration, easing: 'linear', fill: 'forwards' });
+        } catch (_) {}
         setTimeout(() => { try { el.remove(); } catch (_) {} delete _godWeaponAnimActive[key]; }, cfg.duration);
     } catch (e) {}
 }
