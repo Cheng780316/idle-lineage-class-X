@@ -592,6 +592,7 @@ function allyDollDamageReduced(ally, dmg) {
 function weaponSpellPowerMult(stats, sp) {
     stats = stats || {};
     if (sp && sp.meleeScale) return 1 + (stats.str || 0) / 40 + (stats.meleeDmg || 0) / 30;
+    if (sp && sp.rangedScale) return 1 + (stats.dex || 0) / 40 + (stats.rangedDmg || 0) / 30;
     return (sp && sp.ignoreMagicPower) ? 1 : (1 + 3 * (stats.magicDmg || 0) / 16);
 }
 function weaponSpellEffectiveMr(t, sp) {
