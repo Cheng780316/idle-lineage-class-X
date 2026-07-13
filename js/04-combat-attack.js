@@ -593,9 +593,11 @@ function allyDollDamageReduced(ally, dmg) {
 // meleeScale 公式刻意採較平緩曲線，避免近戰傷害本身已含 STR 後再次過度放大。
 function weaponSpellPowerMult(stats, sp) {
     stats = stats || {};
-    if (sp && sp.meleeScale) return 1 + (stats.str || 0) / 40 + (stats.meleeDmg || 0) / 30;
-    if (sp && sp.rangedScale) return 1 + (stats.dex || 0) / 40 + (stats.rangedDmg || 0) / 30;
-    return (sp && sp.ignoreMagicPower) ? 1 : (1 + 3 * (stats.magicDmg || 0) / 16);
+    let mult;
+    if (sp && sp.meleeScale) mult = 1 + (stats.str || 0) / 40 + (stats.meleeDmg || 0) / 30;
+    else if (sp && sp.rangedScale) mult = 1 + (stats.dex || 0) / 40 + (stats.rangedDmg || 0) / 30;
+    else mult = (sp && sp.ignoreMagicPower) ? 1 : (1 + 3 * (stats.magicDmg || 0) / 16);
+    return mult * ((sp && sp.powerMult) || 1) * (1 + (stats.weaponMagicDmgPct || 0) / 100);
 }
 function weaponSpellEffectiveMr(t, sp) {
     let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;

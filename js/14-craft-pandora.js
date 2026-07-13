@@ -527,38 +527,48 @@ function doGodWeaponCraft(idx) {
     updateUI(); renderTabs(true); saveGame();
     renderUniversalCraft(document.getElementById('interaction-content'), 'npc_halphas_smith');
 }
+function godEnhanceRule(en) {
+    if (en < 3) return { rate: 35, cost: 1 };
+    if (en < 6) return { rate: 25, cost: 2 };
+    if (en < 9) return { rate: 15, cost: 3 };
+    if (en < 10) return { rate: 10, cost: 5 };
+    if (en < 11) return { rate: 8, cost: 8 };
+    if (en < 12) return { rate: 6, cost: 12 };
+    if (en < 13) return { rate: 5, cost: 18 };
+    if (en < 14) return { rate: 4, cost: 25 };
+    if (en < 15) return { rate: 3, cost: 35 };
+    return { rate: 0, cost: 0 };
+}
 function godEnhanceRate(en) {
-    if (en < 3) return 30;
-    if (en < 6) return 15;
-    if (en < 9) return 7;
-    if (en < 10) return 3;
-    return 0;
+    return godEnhanceRule(en).rate;
 }
 function buildGodWeaponEnhanceHTML() {
     let list = (player.inv || []).filter(function (i) { return GOD_WEAPON_IDS.includes(i.id); });
     let hearts = invCountId('heart_halphas');
-    let html = `<div class="text-violet-300 font-bold text-base mt-5 mb-2 px-1 border-t border-violet-800 pt-4">🐉 神級武器強化</div>
-        <div class="text-xs text-slate-400 mb-3">每次消耗 哈爾巴斯之心×1；最高+10。失敗只消耗心臟，武器不降階、不消失。持有：<span class="text-violet-300 font-bold">${hearts}</span></div>`;
-    if (!list.length) return html + '<div class="text-slate-500 p-3 bg-slate-900 rounded">背包中沒有可強化的神級武器（已裝備者請先卸下）。</div>';
+    let html = `<div class="text-violet-300 font-bold text-base mt-5 mb-2 px-1 border-t border-violet-800 pt-4">🐉 神話武器強化</div>
+        <div class="text-xs text-slate-400 mb-3">最高+15；強化階級越高，消耗的哈爾巴斯之心越多。失敗只消耗心臟，武器不降階、不消失。持有：<span class="text-violet-300 font-bold">${hearts}</span></div>`;
+    if (!list.length) return html + '<div class="text-slate-500 p-3 bg-slate-900 rounded">背包中沒有可強化的神話武器（已裝備者請先卸下）。</div>';
     list.forEach(function (i) {
-        let d = DB.items[i.id], en = Math.max(0, i.en || 0), rate = godEnhanceRate(en), maxed = en >= 10;
+        let d = DB.items[i.id], en = Math.max(0, i.en || 0), rule = godEnhanceRule(en), maxed = en >= 15;
+        let canEnhance = !maxed && hearts >= rule.cost;
         html += `<div class="list-item bg-slate-800 rounded mb-2 border border-violet-900 p-3 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3"><img src="${getIconUrl(d)}" class="w-11 h-11 object-contain"><div><div class="c-legend font-bold">${en > 0 ? '+' + en + ' ' : ''}${d.n}</div><div class="text-xs text-slate-400">${maxed ? '已達最高強化' : '成功率 ' + rate + '%'}</div></div></div>
-            <button class="btn ${(!maxed && hearts > 0) ? 'bg-violet-800 hover:bg-violet-700 border-violet-500' : 'bg-slate-700 opacity-60'} px-4 py-2 font-bold" ${(!maxed && hearts > 0) ? '' : 'disabled'} onclick="enhanceGodWeapon('${i.uid}')">${maxed ? '已滿' : '強化'}</button>
+            <div class="flex items-center gap-3"><img src="${getIconUrl(d)}" class="w-11 h-11 object-contain"><div><div class="c-legend font-bold">${en > 0 ? '+' + en + ' ' : ''}${d.n}</div><div class="text-xs text-slate-400">${maxed ? '已達最高強化' : '成功率 ' + rule.rate + '%・需要心臟 ×' + rule.cost}</div></div></div>
+            <button class="btn ${canEnhance ? 'bg-violet-800 hover:bg-violet-700 border-violet-500' : 'bg-slate-700 opacity-60'} px-4 py-2 font-bold" ${canEnhance ? '' : 'disabled'} onclick="enhanceGodWeapon('${i.uid}')">${maxed ? '已滿' : '強化'}</button>
         </div>`;
     });
     return html;
 }
 function enhanceGodWeapon(uid) {
     let item = (player.inv || []).find(function (i) { return i.uid === uid && GOD_WEAPON_IDS.includes(i.id); });
-    if (!item) { logSys('<span class="text-red-400">找不到神級武器，請重新開啟介面。</span>'); return; }
+    if (!item) { logSys('<span class="text-red-400">找不到神話武器，請重新開啟介面。</span>'); return; }
     let en = Math.max(0, item.en || 0);
-    if (en >= 10) { logSys('<span class="text-amber-300">此神級武器已達 +10。</span>'); return; }
-    if (invCountId('heart_halphas') < 1) { logSys('<span class="text-red-400">需要 哈爾巴斯之心 ×1。</span>'); return; }
-    consumeMaterialById('heart_halphas', 1);
-    let rate = godEnhanceRate(en), ok = Math.random() * 100 < rate;
+    if (en >= 15) { logSys('<span class="text-amber-300">此神話武器已達 +15。</span>'); return; }
+    let rule = godEnhanceRule(en);
+    if (invCountId('heart_halphas') < rule.cost) { logSys(`<span class="text-red-400">需要 哈爾巴斯之心 ×${rule.cost}。</span>`); return; }
+    consumeMaterialById('heart_halphas', rule.cost);
+    let ok = Math.random() * 100 < rule.rate;
     if (ok) { item.en = en + 1; logSys(`<span class="text-violet-300 font-bold">神武強化成功！</span> ${DB.items[item.id].n} 提升至 +${item.en}。`); }
-    else logSys(`<span class="text-slate-300 font-bold">神武強化失敗。</span> 哈爾巴斯之心已消耗，${DB.items[item.id].n} 維持 +${en}。`);
+    else logSys(`<span class="text-slate-300 font-bold">神武強化失敗。</span> 哈爾巴斯之心 ×${rule.cost} 已消耗，${DB.items[item.id].n} 維持 +${en}。`);
     updateUI(); renderTabs(); saveGame();
     renderUniversalCraft(document.getElementById('interaction-content'), 'npc_halphas_smith');
 }

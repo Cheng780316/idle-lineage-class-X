@@ -248,10 +248,10 @@ function renderEquipBook() {
         let imgUrl = (typeof getIconUrl === 'function') ? getIconUrl(d) : (d.img || '');
         let silh = got ? '' : ' card-silhouette';
         let nameHtml = got
-            ? `<div class="text-xs font-bold ${d.legend ? 'text-amber-300' : 'text-white'} truncate" title="${d.n}">${d.n}</div>`
+            ? `<div class="text-xs font-bold ${d.godWeapon ? 'text-violet-300' : (d.legend ? 'text-amber-300' : 'text-white')} truncate" title="${d.n}">${d.n}</div>`
             : `<div class="text-xs font-bold text-slate-500">？？？</div>`;
         return `<div class="relative bg-slate-800/70 border ${got ? 'border-slate-600' : 'border-slate-700/60'} rounded-lg p-2 flex flex-col items-center gap-1 w-[112px]${got ? ' tip-host cursor-help' : ''}"${got ? ` data-tip-id="${id}"` : ''}>
-            ${got && d.legend ? '<span class="absolute top-1 right-1 text-[9px] px-1 rounded text-amber-300 bg-black/50 font-bold">傳說</span>' : ''}
+            ${got && d.godWeapon ? '<span class="absolute top-1 right-1 text-[9px] px-1 rounded text-violet-300 border border-violet-500/70 bg-black/60 font-bold">神話</span>' : (got && d.legend ? '<span class="absolute top-1 right-1 text-[9px] px-1 rounded text-amber-300 border border-amber-600/60 bg-black/50 font-bold">傳說</span>' : '')}
             <img src="${imgUrl}" alt="${d.n}" class="w-14 h-14 object-contain${silh}" onerror="this.onerror=null;this.src='https://placehold.co/56x56/1e293b/334155?text=%3F';">
             <div class="text-center w-full">${nameHtml}</div>
         </div>`;

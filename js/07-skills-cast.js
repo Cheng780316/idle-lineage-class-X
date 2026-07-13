@@ -614,7 +614,7 @@ function castSkillInner(skId) {
                 hitsLog.push(res.dmg + (mark ? '(' + mark + ')' : ''));
                 mobWake(t);
                 if(sk.stun && (sk.stunChance == null || Math.random() < sk.stunChance)) {
-                    let _stunLanded = applyMobStatus(t, { kind:'stun', pbase:sk.stun, dur:6, hitOff: (wpn && wpn.stunHitBonus && !wpn.isBow) ? Math.round(wpn.stunHitBonus / 5) : 0 }, sk.n);
+                    let _stunLanded = applyMobStatus(t, { kind:'stun', pbase:sk.stun, dur:6, hitOff: ((wpn && wpn.stunHitBonus && !wpn.isBow) ? Math.round(wpn.stunHitBonus / 5) : 0) + ((typeof weaponSpecialHitBonus === 'function' && !wpn.isBow) ? weaponSpecialHitBonus(player.eq && player.eq.wpn, wpn) : 0) }, sk.n);
                     if (_stunLanded && sk.n === '衝擊之暈' && typeof playShockStunHitFx === 'function') playShockStunHitFx(t);
                 }   // ⚔️ 衝擊之暈：命中時 stunChance(10%) 機率暈眩；🏛️ 真．冥皇執行劍：暈眩命中率 +20%（hitOff +4）
                 if(sk.status) {

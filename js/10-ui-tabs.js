@@ -677,15 +677,19 @@ const WEAPON_TAGS = {
     // 🏺 遺物 第十四批（v3.3.0）：兇殘惡鬼的毒牙/殘暴骸骨的破片=單手劍(反擊)、傳說海賊的迷幻雙刀=雙刀(雙擊)、熔岩灼燒的雙拳=單手鈍器(鈍擊＋自動貫穿)；屍毒之針(isBow)/不定形的變幻劍(chainsword) 靠旗標自判免 tag
     relic_ghoul_fang:['單手劍'], relic_sparto_shard:['單手劍'], relic_pirate_dual:['雙刀'], relic_lava_fists:['單手鈍器'],
     // ✨ 神話武器：明確指定武器種類，讓反擊／切割／雙擊／粉碎及攻速分類實際生效
+    wpn_titan_rage:['單手鈍器'],
     god_royal_flash:['單手劍'], god_knight_judgment:['雙手劍'], god_dark_dantes:['雙刀'], god_warrior_fear:['單手鈍器']
 };
 // ✨ 神話武器種類特性：沿用遊戲既有同類武器機制
 DB.items.god_knight_judgment.eff = 'cleave';          // 雙手劍：切割
 DB.items.god_elf_obsession.rapidfire = 100;           // 弓：連射必定發動
 DB.items.wpn_gaia_rage.rapidfire = 100;               // 大地女神的激怒：連射必定發動
-// 神話武器只能由席琳神殿赫爾以哈爾巴斯之心專用強化，最高 +10；一般強化介面仍保持禁用。
+// 神話武器只能由席琳神殿赫爾以哈爾巴斯之心專用強化，最高 +15；一般強化介面仍保持禁用。
 ['god_royal_flash','god_knight_judgment','god_elf_obsession','god_mage_eva','god_dark_dantes','god_illusion_theia','god_dragon_aurakia','god_warrior_fear']
-    .forEach(function(id) { if (DB.items[id]) DB.items[id].maxEn = 10; });
+    .forEach(function(id) { if (DB.items[id]) DB.items[id].maxEn = 15; });
+['wpn_emperor_blade','wpn_windblade_dagger','wpn_redshadow_dual','wpn_beastking_claw','wpn_holycrystal_wand','wpn_gaia_rage','wpn_hyperion_despair','wpn_cronos_fear','wpn_titan_rage']
+    .forEach(function(id) { if (DB.items[id]) DB.items[id].legend = true; });
+if (DB.items.wpn_titan_rage) { DB.items.wpn_titan_rage.animFam = 'blunt'; DB.items.wpn_titan_rage._spdFam = '單手鈍器'; }
 DB.items.god_dark_dantes.comboRate = 50;              // 雙刀：雙擊 50%
 DB.items.god_warrior_fear.eff = 'crush';              // 單手斧：粉碎／鈍擊
 DB.items.god_royal_flash.d += ' 武器特性：單手劍反擊。';
@@ -762,7 +766,7 @@ function buildItemDescHTML(item) {
         if(d.dmgBonus !== undefined) desc += ` / ${dmgLabel}: ${formatBonus(d.dmgBonus)}`; // 強化傷害已接在小型／大型傷害後方，避免重複顯示
         
         if(d.mdmg) desc += ` / 魔法傷害: ${formatBonus(d.mdmg)}`;
-        if (_wpnEn > 0 && (d.enMeleeCrit || d.enRangedCrit || d.enMagicCrit || d.enMagicCritFrom7 || d.enMagicDmg || d.enMagicDmgEvery2 || d.enMagicHit || d.enMagicHitEvery2 || d.skillHitPerEn || d.skillHitPerEnFrom7 || d.procRatePerEn)) {
+        if (_wpnEn > 0 && (d.enMeleeCrit || d.enRangedCrit || d.enMagicCrit || d.enMagicCritFrom7 || d.enMagicDmg || d.enMagicDmgEvery2 || d.enMagicHit || d.enMagicHitEvery2 || d.enMagicDamagePct || d.enSpecialHit || d.enSpecialHitEvery2 || d.enWeaponImmuneIgnore || d.skillHitPerEn || d.skillHitPerEnFrom7 || d.procRatePerEn)) {
             let _grow = [];
             if (d.enMeleeCrit) _grow.push(`近距離爆擊 +${_wpnEn * d.enMeleeCrit}%`);
             if (d.enRangedCrit) _grow.push(`遠距離爆擊 +${_wpnEn * d.enRangedCrit}%`);
@@ -770,6 +774,9 @@ function buildItemDescHTML(item) {
             if (d.enMagicCritFrom7) _grow.push(`魔法爆擊 +${Math.min(d.enMagicCritMax || 99, Math.max(0, _wpnEn - 6) * d.enMagicCritFrom7)}%`);
             if (d.enMagicDmg || d.enMagicDmgEvery2) _grow.push(`魔法傷害 +${_wpnEn * (d.enMagicDmg || 0) + Math.floor(_wpnEn / 2) * (d.enMagicDmgEvery2 || 0)}`);
             if (d.enMagicHit || d.enMagicHitEvery2) _grow.push(`魔法命中 +${_wpnEn * (d.enMagicHit || 0) + Math.floor(_wpnEn / 2) * (d.enMagicHitEvery2 || 0)}`);
+            if (d.enMagicDamagePct) _grow.push(`魔法傷害 +${_wpnEn * d.enMagicDamagePct}%`);
+            if (d.enSpecialHit || d.enSpecialHitEvery2) _grow.push(`${d.specialHitLabel || '職業命中'} +${_wpnEn * (d.enSpecialHit || 0) + Math.floor(_wpnEn / 2) * (d.enSpecialHitEvery2 || 0)}`);
+            if (d.enWeaponImmuneIgnore) _grow.push(`武器傷害免疫忽略 +${_wpnEn * d.enWeaponImmuneIgnore}%`);
             if (d.skillHitPerEn) _grow.push(`破壞命中 +${_wpnEn * d.skillHitPerEn}`);
             if (d.skillHitPerEnFrom7) _grow.push(`秘技命中 +${Math.min(d.skillHitPerEnMax || 99, Math.max(0, _wpnEn - 6) * d.skillHitPerEnFrom7)}`);
             if (d.procRatePerEn && (d.spellProc || d.procSkill || d.meleeHitSpell)) _grow.push(`武器魔法發動率 ${Math.max(0, Math.min(100, (d.procRateBase || 1) + _wpnEn * d.procRatePerEn))}%`);
@@ -1043,7 +1050,7 @@ function buildItemDescHTML(item) {
 
     // 🔧 安定值 / 無法強化（武器/防具/飾品）
     if (d.type === 'wpn' || d.type === 'arm' || d.type === 'acc') {
-        if (d.godWeapon) desc += `<br><span class="text-violet-300 font-bold">神武強化上限: +${d.maxEn || 10}（席琳神殿・赫爾）</span>`;
+        if (d.godWeapon) desc += `<br><span class="text-violet-300 font-bold">神話強化上限: +${d.maxEn || 15}（席琳神殿・赫爾）</span>`;
         else if (d.noEnhance) desc += `<br><span class="text-rose-300 font-bold">無法強化</span>`;
         else desc += `<br><span class="text-slate-400">安定值: ${d.safe || 0}</span>`;
     }
@@ -1074,8 +1081,10 @@ function openModal(item, isEq, slot) {
     let glowClass = getGlowClass(item, d);
     let iconHtml = `<img src="${imgUrl}" onerror="this.style.display='none';" class="w-8 h-8 mr-2 object-contain pointer-events-none ${glowClass}">`;
     
-    let _legendTag = (d && d.legend) ? ` <span class="c-legend text-sm font-bold border border-amber-600/70 rounded px-1.5 py-0.5">傳說</span>` : '';   // 🏅 傳說武器：名字右方標註
-    document.getElementById('modal-item-name').innerHTML = `<div class="flex items-center">${iconHtml}<span>${getItemFullName(item)}${_legendTag}</span></div> ${lockBtnHTML}`;
+    let _qualityTag = (d && d.godWeapon)
+        ? ` <span class="c-legend text-sm font-bold border border-violet-500/80 rounded px-1.5 py-0.5">神話</span>`
+        : ((d && d.legend) ? ` <span class="c-legend text-sm font-bold border border-amber-600/70 rounded px-1.5 py-0.5">傳說</span>` : '');
+    document.getElementById('modal-item-name').innerHTML = `<div class="flex items-center">${iconHtml}<span>${getItemFullName(item)}${_qualityTag}</span></div> ${lockBtnHTML}`;
     document.getElementById('modal-item-name').className = `text-2xl font-bold mb-3 border-b border-slate-600 pb-3 flex justify-between items-center ${getItemColor(item)}`;
     
     let desc = buildItemDescHTML(item);

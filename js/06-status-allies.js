@@ -34,7 +34,12 @@ function applyMobStatus(m, st, skillName) {
     let _statusHitOff = st.hitOff || 0;
     if (skillName === '破壞盔甲' && player && player.eq && player.eq.wpn) {
         let _statusWpn = DB.items[player.eq.wpn.id];
-        if (_statusWpn) _statusHitOff += (_statusWpn.spiritHit || 0) + (player.eq.wpn.en || 0) * (_statusWpn.skillHitPerEn || 0);
+        if (_statusWpn) {
+            let _statusEn = Math.max(0, player.eq.wpn.en || 0);
+            _statusHitOff += (_statusWpn.spiritHit || 0)
+                + _statusEn * (_statusWpn.skillHitPerEn || 0)
+                + Math.floor(_statusEn / 2) * (_statusWpn.skillHitEvery2 || 0);
+        }
     }
     // 異常狀態魔法命中（玩家對怪物）：見 abnormalMagicHit；st.hitOff＝命中加值（🏛️ 真．冥皇執行劍 衝擊之暈 +4≈命中率+20%）
     // ⚡ st.force：跳過魔抗命中判定，由呼叫端自行擲固定機率（雷神之鎚電光衝擊／伊娃的責罵水之矛的 5% 固定附加）；BOSS 免疫仍上方先擋
@@ -66,6 +71,11 @@ function applyMobStatus(m, st, skillName) {
         }
     }
     return true;
+}
+function weaponSpecialHitBonus(item, def) {
+    if (!item || !def) return 0;
+    let en = Math.max(0, item.en || 0);
+    return en * (def.enSpecialHit || 0) + Math.floor(en / 2) * (def.enSpecialHitEvery2 || 0);
 }
 function mobHasTag(m, tag) {
     if(tag === 'undead') return !!m.un;
@@ -819,7 +829,7 @@ function allyCastPhysicalSkill(ally, sk) {
             let mark = (res.heavy && res.crit) ? '會心' : (res.crit ? '爆' : (res.heavy ? '重' : ''));
             logHits.push(res.dmg + (mark ? '(' + mark + ')' : ''));
             if (sk.stun && (sk.stunChance == null || Math.random() < sk.stunChance)) {
-                let _stunLanded = applyMobStatus(t, { kind: 'stun', pbase: sk.stun, dur: 6, hitOff: (wpn && wpn.stunHitBonus) ? Math.round(wpn.stunHitBonus / 5) : 0 }, sk.n);
+                let _stunLanded = applyMobStatus(t, { kind: 'stun', pbase: sk.stun, dur: 6, hitOff: ((wpn && wpn.stunHitBonus) ? Math.round(wpn.stunHitBonus / 5) : 0) + weaponSpecialHitBonus(ally.eq && ally.eq.wpn, wpn) }, sk.n);
                 if (_stunLanded && sk.n === '衝擊之暈' && typeof playShockStunHitFx === 'function') playShockStunHitFx(t);
             }   // 🏛️ 傭兵持真．冥皇執行劍：衝擊之暈暈眩命中率 +20%；🛡️ v2.6.69 審計#3：補鏡像 stunChance(10%) 前置骰（原漏→傭兵每擊必判暈＝玩家10倍）
             if (sk.status) applyMobStatus(t, sk.status, sk.n);

@@ -265,6 +265,8 @@ function recomputeStats() {
         if(w.enMagicDmgEvery2) d.magicDmg += Math.floor(_enCustom / 2) * w.enMagicDmgEvery2;
         if(w.enMagicHit) d.magicHit += _enCustom * w.enMagicHit;
         if(w.enMagicHitEvery2) d.magicHit += Math.floor(_enCustom / 2) * w.enMagicHitEvery2;
+        if(w.enMagicDamagePct) d.weaponMagicDmgPct = (d.weaponMagicDmgPct || 0) + _enCustom * w.enMagicDamagePct;
+        if(w.enWeaponImmuneIgnore) d.weaponImmuneIgnore = (d.weaponImmuneIgnore || 0) + _enCustom * w.enWeaponImmuneIgnore;
         if(w.atkSpdPct) d.atkSpdPct += w.atkSpdPct;   // 🏺 武器攻速%（遺物 阿魯巴的加速棍棒 +20／牛頭怪的殘暴巨斧 +25；防具/飾品 atkSpdPct 走另一迴圈·武器需此處·v3.1.33 稽核修）
         if(w.mr) d.mr += w.mr;   // 🐍 武器 MR（提卡爾庫庫爾坎之矛/蛇神的倒勾獠牙 MR+5；防具/飾品 mr 走另一迴圈·武器需此處·v3.1.76 稽核高#2）
         if(w.fullHpMpHalf) d.fullHpMpHalf = true;   // 🏺 v3.1.80 巫師的黑暗魔導書：滿血時技能消耗 MP 減半（getMpCost 讀取）

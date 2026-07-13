@@ -256,7 +256,7 @@ function renderShopItems() {
     
     ids.forEach(id => {
         let d = DB.items[id];
-        let testEn = _currentShopNpc === 'npc_weapon_tester' ? (d.godWeapon ? 10 : 15) : null;
+        let testEn = _currentShopNpc === 'npc_weapon_tester' ? 15 : null;
         let testOffer = testEn !== null;
         let el = document.createElement('div');
         el.className = 'list-item bg-slate-800 rounded mb-2 border border-slate-700 p-3 hover:bg-slate-750 transition-colors';
@@ -307,7 +307,7 @@ function buyTestWeapon(id) {
     let d = DB.items[id];
     if (!d) return;
     if (player.gold < 1) { logSys('金幣不足。'); return; }
-    let en = d.godWeapon ? 10 : 15;
+    let en = 15;
     player.gold -= 1;
     let inst = { id, uid: uid(), cnt: 1, en, bless: true, anc: false, attr: false, seteff: false, lock: false, junk: false };
     player.inv.push(inst);
