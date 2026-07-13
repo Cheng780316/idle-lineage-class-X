@@ -69,15 +69,34 @@ const SPELL_FX = {
                   filter:'hue-rotate(150deg) saturate(1.25) brightness(2)', followups:[{ skn:'泰坦星爆', delay:55 }] },
     '泰坦星爆': { dir:'會心一擊', prefix:'2952-0', n:16, fps:21, blend:'screen', h:0.82, ax:0.50, ay:0.55,
                   filter:'hue-rotate(168deg) saturate(1.25) brightness(1.8)' },
-    // 神話武器 PVE「憤怒」：沿用現有天堂動態素材，依各神祇屬性顯示全場打擊特效
-    '殷海薩的憤怒': { dir:'究極光裂術', prefix:'1815-0', layers:['1816-0', '1817-0'], n:21, fps:16, blend:'screen', h:1.9, ax:0.50, ay:0.85 },
-    '格蘭肯的憤怒': { dir:'地裂術', prefix:'129-1', n:10, fps:14, w:0.85, ax:0.50, ay:0.82, targetVc:0.92 },
-    '沙哈的憤怒': { dir:'風刃', prefix:'1799-0', n:5, fps:14, blend:'screen', h:1, ax:0.50, ay:0.55 },
-    '伊娃的憤怒': { dir:'冰雪暴', prefix:'757-0', n:23, fps:16, blend:'screen', h:1.35, ax:0.50, ay:0.55 },
-    '丹特斯的憤怒': { dir:'黑闇之影', prefix:'2175-0', n:8, fps:14, blend:'screen', h:1, ax:0.50, ay:0.55 },
-    '泰亞的憤怒': { dir:'流星雨', prefix:'762-0', n:20, fps:16, blend:'screen', h:1.9, ax:0.50, ay:0.88 },
-    '奧拉奇亞的憤怒': { dir:'火風暴', prefix:'1819-0', n:14, fps:14, blend:'screen', h:1.3, ax:0.50, ay:0.55 },
-    '格蘭肯的恐怖之怒': { dir:'震裂術', prefix:'1812-0', n:16, fps:14, blend:'screen', h:1.25, ax:0.50, ay:0.6 },
+    // 神話武器 PVE「憤怒」：依官方 PowerBook 的實際構圖重製。
+    // 原版不只是單一舊法術，而是光柱／魔法陣／斬線／衝擊環的複合動畫；godStyle 會再疊加程序式光效。
+    '殷海薩的憤怒': { dir:'雷霆風暴', prefix:'3924-0', n:13, fps:17, blend:'screen', h:1.55, ax:0.50, ay:0.72,
+                      filter:'saturate(1.45) brightness(1.28)', godStyle:'ain' },
+    '格蘭肯的憤怒': { dir:'火牢', prefix:'168-0', n:11, fps:17, blend:'screen', h:1.32, ax:0.50, ay:0.72,
+                      filter:'saturate(1.6) brightness(1.22)', godStyle:'grankain', followups:[{ skn:'格蘭肯爆心', delay:90 }] },
+    '格蘭肯爆心': { dir:'會心一擊', prefix:'2952-0', n:16, fps:22, blend:'screen', h:0.82, ax:0.50, ay:0.55,
+                    filter:'saturate(2) brightness(1.65)' },
+    '沙哈的憤怒': { dir:'雷霆風暴', prefix:'3924-0', n:13, fps:18, blend:'screen', h:1.38, ax:0.50, ay:0.72,
+                    filter:'hue-rotate(48deg) saturate(1.45) brightness(1.38)', godStyle:'sayha' },
+    '伊娃的憤怒': { dir:'火牢', prefix:'168-0', n:11, fps:17, blend:'screen', h:1.30, ax:0.50, ay:0.72,
+                    filter:'hue-rotate(350deg) saturate(1.35) brightness(1.35)', godStyle:'eva', followups:[{ skn:'伊娃聖火', delay:70 }] },
+    '伊娃聖火': { dir:'會心一擊', prefix:'2952-0', n:16, fps:21, blend:'screen', h:0.75, ax:0.50, ay:0.55,
+                  filter:'hue-rotate(345deg) saturate(1.6) brightness(1.7)' },
+    '丹特斯的憤怒': { dir:'會心一擊', prefix:'2952-0', n:16, fps:22, blend:'screen', h:0.68, ax:0.50, ay:0.55,
+                      filter:'saturate(1.8) brightness(1.55)', godStyle:'dantes', followups:[{ skn:'丹特斯暗影', delay:70 }] },
+    '丹特斯暗影': { dir:'黑闇之影', prefix:'2175-0', n:8, fps:18, blend:'screen', h:1.05, ax:0.50, ay:0.55,
+                    filter:'hue-rotate(275deg) saturate(1.7) brightness(1.25)', opacity:0.82 },
+    '泰亞的憤怒': { dir:'能量激發', prefix:'5825-0', n:16, fps:19, blend:'screen', h:1.28, ax:0.50, ay:0.60,
+                    filter:'hue-rotate(338deg) saturate(2.2) brightness(1.22)', godStyle:'theia' },
+    '奧拉奇亞的憤怒': { dir:'雷霆風暴', prefix:'3924-0', n:13, fps:18, blend:'screen', h:1.62, ax:0.50, ay:0.72,
+                        filter:'hue-rotate(180deg) saturate(2.4) brightness(1.55)', godStyle:'aurakia', followups:[{ skn:'奧拉奇亞爆發', delay:55 }] },
+    '奧拉奇亞爆發': { dir:'會心一擊', prefix:'2952-0', n:16, fps:23, blend:'screen', h:1.02, ax:0.50, ay:0.55,
+                      filter:'saturate(2.2) brightness(1.9)' },
+    '格蘭肯的恐怖之怒': { dir:'雷霆風暴', prefix:'3924-0', n:13, fps:17, blend:'screen', h:1.48, ax:0.50, ay:0.72,
+                          filter:'hue-rotate(8deg) saturate(1.65) brightness(1.25)', godStyle:'fear', followups:[{ skn:'恐怖雷霧', delay:70 }] },
+    '恐怖雷霧': { dir:'冰雪暴', prefix:'757-0', n:23, fps:19, blend:'screen', h:1.10, ax:0.50, ay:0.55,
+                  filter:'hue-rotate(8deg) saturate(1.5) brightness(1.25)', opacity:0.78 },
     '光箭': { dir:'光箭', dirPrefix:'167-', dirs:4, n:4, fps:12, blend:'screen', proj:true, nw:32, nh:40, ax:0.50, ay:0.50 },
     '冰矛圍籬': { dir:'冰矛圍籬', dirPrefix:'756-', dirs:8, n:4, fps:12, blend:'screen', proj:true, nw:49, nh:44, ax:0.50, ay:0.50 },
     '冰箭': { dir:'冰箭', dirPrefix:'1797-', dirs:8, n:4, fps:12, blend:'screen', proj:true, nw:15, nh:21, ax:0.50, ay:0.50 },
@@ -151,6 +170,127 @@ function _preloadDeathFx(name, n) {
     for (let i = 0; i < n; i++) { let im = new Image(); im.src = 'assets/anim/' + encodeURIComponent(name) + '/death_effect_' + i + '.png'; arr.push(im); }
     _deathFxCache[name] = arr;
     return arr;
+}
+// 神話武器官方構圖補層：用輕量 DOM 光柱／魔法陣／斬線補足舊天堂 sprite 不具備的複合畫面。
+// 所有元素只負責視覺，生命週期不到 1 秒且會自行移除，不參與傷害判定。
+function _playGodWeaponDecor(style, ax, ay, targetRect, layer) {
+    try {
+        if (!style || !layer || layer.childElementCount > 190) return;
+        let s = Math.max(88, Math.min(156, (targetRect && targetRect.height ? targetRect.height : 112) * 1.18));
+        let add = (w, h, x, y, css, frames, timing) => {
+            let el = document.createElement('div');
+            el.className = 'vfx-god-weapon-decor';
+            el.style.position = 'fixed'; el.style.pointerEvents = 'none';
+            el.style.width = w + 'px'; el.style.height = h + 'px';
+            el.style.left = x + 'px'; el.style.top = y + 'px';
+            el.style.zIndex = '11'; el.style.mixBlendMode = 'screen';
+            Object.assign(el.style, css || {}); layer.appendChild(el);
+            let a = el.animate(frames, Object.assign({ duration: 720, easing:'cubic-bezier(.18,.72,.24,1)', fill:'forwards' }, timing || {}));
+            a.onfinish = () => el.remove(); setTimeout(() => { if (el.parentNode) el.remove(); }, ((timing && timing.duration) || 720) + ((timing && timing.delay) || 0) + 180);
+            return el;
+        };
+        let ring = (color, yOff, scale, delay, thick) => {
+            let w = s * 1.12 * (scale || 1), h = s * 0.34 * (scale || 1);
+            return add(w, h, ax-w/2, ay-h/2+(yOff||0), {
+                border:(thick||2)+'px solid '+color, borderRadius:'50%',
+                boxShadow:'0 0 8px '+color+', inset 0 0 10px '+color
+            }, [
+                { transform:'scale(.22) rotate(-10deg)', opacity:0 },
+                { transform:'scale(1) rotate(4deg)', opacity:1, offset:.42 },
+                { transform:'scale(1.28) rotate(15deg)', opacity:0 }
+            ], { duration:760, delay:delay||0 });
+        };
+        let burst = (inner, outer, scale, delay) => {
+            let z=s*(scale||1);
+            return add(z,z,ax-z/2,ay-z/2,{
+                borderRadius:'50%', background:'radial-gradient(circle, '+inner+' 0%, '+outer+' 18%, rgba(255,255,255,.12) 38%, transparent 68%)',
+                filter:'blur(.4px) drop-shadow(0 0 8px '+outer+')'
+            }, [
+                { transform:'scale(.08)', opacity:0 },
+                { transform:'scale(.52)', opacity:1, offset:.28 },
+                { transform:'scale(1.32)', opacity:0 }
+            ], { duration:620, delay:delay||0 });
+        };
+        let pillar = (xOff, color, height, delay, width) => {
+            let h=s*(height||1), w=width||5;
+            return add(w,h,ax+xOff*s-w/2,ay-h,{
+                transformOrigin:'50% 100%', borderRadius:'50%',
+                background:'linear-gradient(to bottom, transparent 0%, rgba(255,255,255,.96) 28%, '+color+' 70%, transparent 100%)',
+                boxShadow:'0 0 7px '+color+', 0 0 16px '+color
+            }, [
+                { transform:'scaleY(.06)', opacity:0 },
+                { transform:'scaleY(1)', opacity:1, offset:.35 },
+                { transform:'scaleY(.65)', opacity:0 }
+            ], { duration:650, delay:delay||0 });
+        };
+        let ray = (angle, color, length, delay, width) => {
+            let w=s*(length||.8), h=width||4;
+            return add(w,h,ax,ay-h/2,{
+                transformOrigin:'0 50%', borderRadius:'50%',
+                background:'linear-gradient(to right, rgba(255,255,255,.98), '+color+' 42%, transparent 100%)',
+                boxShadow:'0 0 7px '+color
+            }, [
+                { transform:'rotate('+angle+'deg) scaleX(.05)', opacity:0 },
+                { transform:'rotate('+angle+'deg) scaleX(1)', opacity:1, offset:.32 },
+                { transform:'rotate('+angle+'deg) scaleX(.72)', opacity:0 }
+            ], { duration:520, delay:delay||0 });
+        };
+        let slash = (angle, color, yOff, delay) => {
+            let w=s*1.28, h=5;
+            return add(w,h,ax-w/2,ay+(yOff||0)-h/2,{
+                transformOrigin:'50% 50%', borderRadius:'50%',
+                background:'linear-gradient(to right, transparent, '+color+' 18%, white 50%, '+color+' 82%, transparent)',
+                boxShadow:'0 0 8px '+color+', 0 0 15px '+color
+            }, [
+                { transform:'rotate('+angle+'deg) scaleX(.05)', opacity:0 },
+                { transform:'rotate('+angle+'deg) scaleX(1)', opacity:1, offset:.38 },
+                { transform:'rotate('+angle+'deg) scaleX(1.14)', opacity:0 }
+            ], { duration:480, delay:delay||0 });
+        };
+        let arc = (color, xOff, flip, delay) => {
+            let z=s*.82;
+            return add(z,z*.72,ax+xOff*s-z/2,ay-z*.48,{
+                border:'4px solid transparent', borderTopColor:color, borderRadius:'50%',
+                filter:'drop-shadow(0 0 7px '+color+')', transformOrigin:'50% 70%'
+            }, [
+                { transform:'scale(.2) rotate('+(flip?-65:65)+'deg)', opacity:0 },
+                { transform:'scale(1) rotate('+(flip?-22:22)+'deg)', opacity:1, offset:.42 },
+                { transform:'scale(1.18) rotate('+(flip?-5:5)+'deg)', opacity:0 }
+            ], { duration:720, delay:delay||0 });
+        };
+
+        if (style === 'ain') {
+            burst('#ffffff','#5ee7ff',1.18,20); ring('#7ddfff',8,1.05,35,2);
+            [-.28,0,.28].forEach((x,i)=>pillar(x, i===1?'#ffffff':'#43bfff', i===1?1.28:.92, i*35, i===1?7:4));
+            [0,45,135,180].forEach((a,i)=>ray(a,'#7ddfff',.68,55+i*18,3));
+        } else if (style === 'grankain') {
+            burst('#fff7d1','#ff7a18',1.24,25); ring('#ffb02e',12,1.12,20,3);
+            for(let i=0;i<10;i++) ray(i*36,'#ff7a18',.78,25+(i%3)*18,4);
+            pillar(0,'#ffd36a',1.18,15,7);
+        } else if (style === 'sayha') {
+            ring('#e9ddff',14,1.18,25,2); burst('#ffffff','#8b5cff',.92,45);
+            [-.42,-.21,0,.21,.42].forEach((x,i)=>pillar(x,i===2?'#ffffff':'#a98cff',i===2?1.34:(i%2?1.05:.88),i*24,i===2?6:4));
+        } else if (style === 'eva') {
+            ring('#ffd05a',16,1.05,18,3); ring('#ff784c',18,.72,70,2);
+            [-.30,0,.30].forEach((x,i)=>pillar(x,i===1?'#fff1a3':'#ff7048',i===1?1.30:.94,i*34,i===1?7:4));
+            [35,145,215,325].forEach((a,i)=>ray(a,'#ffbf5a',.55,70+i*12,3));
+        } else if (style === 'dantes') {
+            ring('#ffd45c',8,1.02,10,3); burst('#ffffff','#ffb21f',.72,35);
+            slash(-18,'#ff334f',-12,10); slash(8,'#38bdf8',8,55); slash(-58,'#fbbf24',0,90);
+            pillar(-.36,'#38bdf8',.82,35,4); pillar(.36,'#ff334f',1.02,65,5);
+        } else if (style === 'theia') {
+            burst('#fff4c2','#ff4b16',1.30,15); ring('#ff8a25',18,1.34,20,4); ring('#ffcf54',16,.84,70,2);
+            arc('#a30b18',-.32,false,35); arc('#ff3b24',.32,true,55); pillar(0,'#ffcf6b',.92,40,6);
+        } else if (style === 'aurakia') {
+            burst('#ffffff','#ff6a00',1.52,5); ring('#ffb23e',16,1.18,30,3);
+            for(let i=0;i<12;i++) ray(i*30,'#ff7a18',.92,10+(i%4)*15,i%3===0?5:3);
+            pillar(0,'#ffffff',1.42,0,9);
+        } else if (style === 'fear') {
+            burst('#ffffff','#3b82f6',1.02,25); ring('#7dd3fc',18,1.16,15,3); ring('#a78bfa',-s*.54,.86,45,2);
+            [-.34,-.12,.14,.36].forEach((x,i)=>pillar(x,i%2?'#a78bfa':'#38bdf8',.88+(i%2)*.26,i*28,4));
+            arc('#60a5fa',0,false,65); arc('#8b5cf6',0,true,90);
+        }
+    } catch (e) {}
 }
 // ⚡ 在目標怪身上疊播一輪法術特效。skn=技能顯示名（須在 SPELL_FX 註冊·未註冊者靜默略過）。
 //    v2.7.16：立即渲染（不再等 first.load）＋ _spellFxActive[技能名|uid] 去重（修「一次顯示兩個／忽多忽少」）。
@@ -259,6 +399,7 @@ function playSpellFx(skn, mob) {
         let extraLayers = [];
         if (cfg.layers) for (let lp of cfg.layers) { let lf = _preloadFxFrames(cfg.dir, lp, cfg.n); extraLayers.push({ el: mkImg(lf[0].src, null, cfg.blend), frames: lf }); }
         _spellFxActive[fxKey] = true;
+        if (cfg.godStyle) _playGodWeaponDecor(cfg.godStyle, ax, ay, r, layer);
         // 複合武器魔法可在主動畫命中後接續另一個既有天堂特效（例如暗影爆發、地面裂痕）。
         if (cfg.followups) cfg.followups.forEach(f => setTimeout(() => {
             try { playSpellFx(f.skn, mob); } catch (e) {}
