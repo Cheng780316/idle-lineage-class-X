@@ -460,12 +460,12 @@ function renderUniversalCraft(div, npcId) {
     if (npcId === 'npc_flame_shadow') div.innerHTML += buildDemonKingCraftHTML();   // 👑 炎魔之影：在通用配方下方附加惡魔王武器客製製作區
     if (npcId === 'npc_lumiel') div.innerHTML += buildLumielCraftHTML();   // ⚔️ 琉米埃爾：在通用配方下方附加神聖執行團裝備客製製作區
     if (npcId === 'npc_mystic_mage') div.innerHTML += buildMysticWandCraftHTML();   // 🔷🔶 神秘的魔法師：鋼鐵瑪那魔杖客製製作區（該 NPC 無通用配方）
-    if (npcId === 'npc_halphas_smith') div.innerHTML += buildGodWeaponCraftHTML() + buildGodWeaponEnhanceHTML();
+    if (npcId === 'npc_halphas_smith') div.innerHTML += buildGodWeaponCraftHTML();   // 🧪 測試期間改用武器強化卷軸，暫時隱藏哈爾巴斯之心專用強化
 }
 
-// ===== 🐉 赫爾：八職業神話武器製作＋哈爾巴斯之心專用強化 =====
+// ===== 🐉 赫爾：八職業神話武器製作（測試期間免哈爾巴斯之心） =====
 const GOD_WEAPON_IDS = ['god_royal_flash','god_knight_judgment','god_elf_obsession','god_mage_eva','god_dark_dantes','god_illusion_theia','god_dragon_aurakia','god_warrior_fear'];
-const GOD_WEAPON_CRAFT_MATS = [{ id: 'heart_halphas', cnt: 50 }, { id: 'gold', cnt: 1000000000 }];
+const GOD_WEAPON_CRAFT_MATS = [{ id: 'gold', cnt: 1000000000 }];
 const GOD_WEAPON_CRAFT_RECIPES = [
     { result: 'god_royal_flash', src: 'wpn_windblade_dagger', srcName: '風刃短劍' },
     { result: 'god_knight_judgment', src: 'wpn_emperor_blade', srcName: '真．冥皇執行劍' },
@@ -490,10 +490,10 @@ function findGodWeaponCraftSource(r) {
     return null;
 }
 function buildGodWeaponCraftHTML() {
-    let hearts = invCountId('heart_halphas'), gold = invCountId('gold');
-    let matsOk = hearts >= 50 && gold >= 1000000000;
+    let gold = invCountId('gold');
+    let matsOk = gold >= 1000000000;
     let html = `<div class="text-amber-300 font-bold text-base mt-5 mb-2 px-1 border-t border-amber-800 pt-4">⚒️ 神話武器製作</div>
-        <div class="text-xs text-slate-400 mb-3">每把需要指定的祝福的 +15 武器、哈爾巴斯之心×50、金幣10億；基底武器可放在背包或共用倉庫，鎖定及已裝備的武器不會被消耗。製作完成的神話武器必定為祝福的。</div>`;
+        <div class="text-xs text-slate-400 mb-3">測試期間每把只需要指定的祝福的 +15 武器與金幣10億，暫時免除哈爾巴斯之心×50；基底武器可放在背包或共用倉庫，鎖定及已裝備的武器不會被消耗。製作完成的神話武器必定為祝福的。</div>`;
     GOD_WEAPON_CRAFT_RECIPES.forEach((r, idx) => {
         let d = DB.items[r.result], src = findGodWeaponCraftSource(r), canMake = matsOk && !!src;
         let srcNames = godWeaponCraftSources(r).map(s => s.n).join(' 或 ');
@@ -512,10 +512,8 @@ function doGodWeaponCraft(idx) {
     if (!r) return;
     let src = findGodWeaponCraftSource(r), lack = [], srcNames = godWeaponCraftSources(r).map(s => s.n).join(' 或 ');
     if (!src) lack.push(`祝福的 +15 ${srcNames} ×1`);
-    if (invCountId('heart_halphas') < 50) lack.push(`哈爾巴斯之心 ${50 - invCountId('heart_halphas')}`);
     if (invCountId('gold') < 1000000000) lack.push(`金幣 ${1000000000 - invCountId('gold')}`);
     if (lack.length) { logSys(`<span class="text-red-400 font-bold">材料不足，無法製作神話武器。</span><span class="text-red-300">（尚缺：${lack.join('、')}）</span>`); return; }
-    consumeMaterialById('heart_halphas', 50);
     consumeMaterialById('gold', 1000000000);
     if (src._whSource) whRemoveStackByUid(src.uid, 1);
     else if ((src.cnt || 1) > 1) src.cnt -= 1;
