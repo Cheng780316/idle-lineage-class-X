@@ -683,13 +683,9 @@ const WEAPON_TAGS = {
 DB.items.god_knight_judgment.eff = 'cleave';          // 雙手劍：切割
 DB.items.god_elf_obsession.rapidfire = 100;           // 弓：連射必定發動
 DB.items.wpn_gaia_rage.rapidfire = 100;               // 大地女神的激怒：連射必定發動
-// 🧪 神話武器測試模式：暫時開放一般／祝福武器強化卷軸，安定值 +10、最高 +15。
-// 正式設定仍保留於底層資料（noEnhance:true / safe:0），之後可集中由此處恢復。
+// 神話武器只能由席琳神殿赫爾以哈爾巴斯之心專用強化，最高 +10；一般強化介面仍保持禁用。
 ['god_royal_flash','god_knight_judgment','god_elf_obsession','god_mage_eva','god_dark_dantes','god_illusion_theia','god_dragon_aurakia','god_warrior_fear']
-    .forEach(function(id) { if (DB.items[id]) { DB.items[id].noEnhance = false; DB.items[id].safe = 10; DB.items[id].maxEn = 15; } });
-// 🏛️ 暫時測試：可羅蘭斯製作的 9 把武器安定值提高為 +15（底層資料保留安定 6，方便之後恢復）。
-['wpn_emperor_blade','wpn_windblade_dagger','wpn_redshadow_dual','wpn_beastking_claw','wpn_holycrystal_wand','wpn_gaia_rage','wpn_hyperion_despair','wpn_cronos_fear','wpn_titan_rage']
-    .forEach(function(id) { if (DB.items[id]) DB.items[id].safe = 15; });
+    .forEach(function(id) { if (DB.items[id]) DB.items[id].maxEn = 10; });
 DB.items.god_dark_dantes.comboRate = 50;              // 雙刀：雙擊 50%
 DB.items.god_warrior_fear.eff = 'crush';              // 單手斧：粉碎／鈍擊
 DB.items.god_royal_flash.d += ' 武器特性：單手劍反擊。';
@@ -1045,7 +1041,7 @@ function buildItemDescHTML(item) {
 
     // 🔧 安定值 / 無法強化（武器/防具/飾品）
     if (d.type === 'wpn' || d.type === 'arm' || d.type === 'acc') {
-        if (d.godWeapon) desc += `<br><span class="text-violet-300 font-bold">測試強化：安定值 +${d.safe || 0}／上限 +${d.maxEn || 15}（可使用武器強化卷軸）</span>`;
+        if (d.godWeapon) desc += `<br><span class="text-violet-300 font-bold">神武強化上限: +${d.maxEn || 10}（席琳神殿・赫爾）</span>`;
         else if (d.noEnhance) desc += `<br><span class="text-rose-300 font-bold">無法強化</span>`;
         else desc += `<br><span class="text-slate-400">安定值: ${d.safe || 0}</span>`;
     }

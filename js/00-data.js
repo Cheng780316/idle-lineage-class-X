@@ -2247,6 +2247,7 @@ const DB = {
             n: "銀騎士村",
             npcs: [
                 { id: "npc_glin", n: "格林", title: "雜貨商人", type: "shop", d: "櫃檯後堆滿了行囊與雜物，格林笑著招呼上門的冒險者，販賣各種日常消耗品。" },
+                { id: "npc_weapon_tester", n: "武器測試員", title: "測試武器商人", type: "shop", d: "提供測試用的祝福高強化武器，每把售價 1 金幣。可羅蘭斯武器為 +15，神話武器為 +10。" },
                 { id: "npc_wh_silver", n: "高特", title: "倉庫", type: "warehouse", d: "高特看守著厚重的鐵庫房，替旅人妥善存放物品與金幣，四個存檔角色共用。" },
                 { id: "npc_moli", n: "茉莉", title: "製作", type: "craft", d: "茉莉指間的針線從不停歇，能為冒險者製作皮革裝備。" },
 				{ id: "npc_finn", n: "芬", title: "製作", type: "craft", d: "芬在工坊裡敲打不停，提供物品製作服務。" },

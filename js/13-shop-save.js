@@ -199,6 +199,7 @@ let _currentShopNpc = ''; // 用來記住目前是哪位商人
 
 // 根據 NPC ID 取得該商人販售的所有物品
 const SHOP_LISTS = {
+    npc_weapon_tester: ['wpn_emperor_blade','wpn_windblade_dagger','wpn_redshadow_dual','wpn_beastking_claw','wpn_holycrystal_wand','wpn_gaia_rage','wpn_hyperion_despair','wpn_cronos_fear','wpn_titan_rage','god_royal_flash','god_knight_judgment','god_elf_obsession','god_mage_eva','god_dark_dantes','god_illusion_theia','god_dragon_aurakia','god_warrior_fear'],
     npc_boni: ['potion_heal','potion_strong','potion_ult','potion_ancient_heal','potion_ancient_strong','potion_ancient_ult','potion_blue','potion_haste','scroll_poly','scroll_magicbarrier','scroll_teleport','scroll_revive','wpn_5','wpn_22','candle'],   // 🏴‍☠️ 波尼（海賊島村莊 雜貨商人）·🚫 v3.2.17 肉已移除
     npc_linda: ['bk_elf_mr','bk_elf_mind','bk_elf_worldtree','bk_elf_purify','bk_elf_firewpn','bk_elf_windshot','bk_elf_earthguard','bk_elf_eleres','bk_elf_singleres'],
     npc_bayes: ['bk_fireball','bk_vampire','bk_rock_prison','bk_thunder','bk_ice_spike','bk_bless_wpn'],
@@ -253,6 +254,8 @@ function renderShopItems() {
     
     ids.forEach(id => {
         let d = DB.items[id];
+        let testEn = _currentShopNpc === 'npc_weapon_tester' ? (d.godWeapon ? 10 : 15) : null;
+        let testOffer = testEn !== null;
         let el = document.createElement('div');
         el.className = 'list-item bg-slate-800 rounded mb-2 border border-slate-700 p-3 hover:bg-slate-750 transition-colors';
         el.style.cssText = 'display:flex !important; justify-content:space-between !important; align-items:center !important; width:100% !important; box-sizing:border-box !important;';
@@ -263,8 +266,8 @@ function renderShopItems() {
         let dim = learned || cantLearn;
 
         // 箭矢與肉的顯示判斷
-        let nameDisp = id === 'wpn_5' ? '箭 (1000根)' : (id === 'wpn_22' ? '銀箭 (1000根)' : d.n);
-        let priceDisp = id === 'wpn_5' ? shopPrice(100).toLocaleString() : (id === 'wpn_22' ? shopPrice(200).toLocaleString() : shopPrice(d.p || 0).toLocaleString());
+        let nameDisp = testOffer ? `<span class="c-blessed">祝福的 </span>+${testEn} ${d.n}` : (id === 'wpn_5' ? '箭 (1000根)' : (id === 'wpn_22' ? '銀箭 (1000根)' : d.n));
+        let priceDisp = testOffer ? '1' : (id === 'wpn_5' ? shopPrice(100).toLocaleString() : (id === 'wpn_22' ? shopPrice(200).toLocaleString() : shopPrice(d.p || 0).toLocaleString()));
 
         el.innerHTML = `
             <div class="flex items-center gap-4 min-w-0 flex-1 ${dim ? 'opacity-50' : ''}">
@@ -281,7 +284,9 @@ function renderShopItems() {
                     </div>
                 </div>
             </div>
-            ${ d.type === 'skillbk'
+            ${ testOffer
+                ? `<button class="btn bg-amber-700 hover:bg-amber-600 border-amber-500 py-2 px-5 font-bold shrink-0 shadow" onclick="buyTestWeapon('${id}')">購買</button>`
+                : d.type === 'skillbk'
                 ? (cantLearn
                     ? `<button class="btn bg-slate-700 border-slate-600 text-slate-500 py-2 px-6 font-bold shrink-0 cursor-not-allowed opacity-60" disabled>無法學習</button>`
                     : `<button class="btn bg-blue-700 hover:bg-blue-600 border-blue-500 py-2 px-6 font-bold shrink-0 shadow" onclick="buyItem('${id}')">${learned ? '再買' : '購買'}</button>`)
@@ -292,6 +297,24 @@ function renderShopItems() {
         `;
         listDiv.appendChild(el);
     });
+}
+
+// 銀騎士村測試商人：只在專屬商店販售固定詞綴／強化值的測試武器，不改動正式製作與掉落。
+function buyTestWeapon(id) {
+    if (_currentShopNpc !== 'npc_weapon_tester' || !SHOP_LISTS.npc_weapon_tester.includes(id)) return;
+    let d = DB.items[id];
+    if (!d) return;
+    if (player.gold < 1) { logSys('金幣不足。'); return; }
+    let en = d.godWeapon ? 10 : 15;
+    player.gold -= 1;
+    let inst = { id, uid: uid(), cnt: 1, en, bless: true, anc: false, attr: false, seteff: false, lock: false, junk: false };
+    player.inv.push(inst);
+    if (typeof registerEquipObtained === 'function') registerEquipObtained(id);
+    logSys(`購買了 <span class="font-bold">${getItemFullName(inst)}</span>。`);
+    try { if (typeof autoSortInventory === 'function') autoSortInventory(); } catch (e) {}
+    updateUI();
+    renderTabs(true);
+    saveGame();
 }
 
 function migrateSaves(){
