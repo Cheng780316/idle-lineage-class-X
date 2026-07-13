@@ -700,6 +700,12 @@ const GOD_WEAPON_CLASS = {
     god_dark_dantes: 'dark', god_illusion_theia: 'illusion', god_dragon_aurakia: 'dragon', god_warrior_fear: 'warrior'
 };
 Object.keys(GOD_WEAPON_CLASS).forEach(function(id) { if (DB.items[id]) DB.items[id].req = GOD_WEAPON_CLASS[id]; });
+// ✨ 伊娃的誓約：保留命中恢復 MP，並新增施放傷害魔法時可觸發的「魔爆」。
+if (DB.items.god_mage_eva) {
+    DB.items.god_mage_eva.eff = 'magicburst';
+    DB.items.god_mage_eva.mpOnHit = true;
+    DB.items.god_mage_eva.d += ' 武器特性：魔爆。';
+}
 // ✨ 神話武器共通特性：除奇古獸外全部取得「貫穿」，無視怪物硬皮的額外物理減傷。
 Object.keys(DB.items).forEach(function(id) {
     let d = DB.items[id];
