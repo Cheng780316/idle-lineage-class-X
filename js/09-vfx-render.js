@@ -299,23 +299,34 @@ function _playGodWeaponDecor(style, ax, ay, targetRect, layer) {
         }
     } catch (e) {}
 }
-// 神話武器正式動態素材：由使用者確認的八格概念動圖拆分為 8 個透明 Animated WebP。
-// 28 幀 × 70ms＝1.96 秒；只替換畫面，武器傷害／發動率仍走原戰鬥公式。
+// 神話武器正式動態素材：24 幀 × 65ms＝1.56 秒透明 Animated WebP。
+// 只替換畫面，武器傷害／發動率仍走原戰鬥公式。
 const GOD_WEAPON_ANIM_FX = {
-    '殷海薩的憤怒':     { src:'assets/effects/god-weapons/ainshasad.webp',         h:1.82, anchorY:0.69 },
-    '格蘭肯的憤怒':     { src:'assets/effects/god-weapons/grankain_judgment.webp', h:1.74, anchorY:0.66 },
-    '沙哈的憤怒':       { src:'assets/effects/god-weapons/sayha.webp',             h:1.78, anchorY:0.67 },
-    '伊娃的憤怒':       { src:'assets/effects/god-weapons/eva.webp',               h:1.76, anchorY:0.68 },
-    '丹特斯的憤怒':     { src:'assets/effects/god-weapons/dantes.webp',            h:1.72, anchorY:0.56 },
-    '泰亞的憤怒':       { src:'assets/effects/god-weapons/theia.webp',             h:1.78, anchorY:0.68 },
-    '奧拉奇亞的憤怒':   { src:'assets/effects/god-weapons/aurakia.webp',           h:1.94, anchorY:0.72 },
-    '格蘭肯的恐怖之怒': { src:'assets/effects/god-weapons/grankain_fear.webp',     h:1.84, anchorY:0.63 }
+    '殷海薩的憤怒':     { src:'assets/effects/god-weapons/ainshasad.webp?v=20260713-24f',         h:1.82, anchorY:0.69, duration:1560 },
+    '格蘭肯的憤怒':     { src:'assets/effects/god-weapons/grankain_judgment.webp?v=20260713-24f', h:1.74, anchorY:0.66, duration:1560 },
+    '沙哈的憤怒':       { src:'assets/effects/god-weapons/sayha.webp?v=20260713-24f',             h:1.78, anchorY:0.67, duration:1560 },
+    '伊娃的憤怒':       { src:'assets/effects/god-weapons/eva.webp?v=20260713-24f',               h:1.76, anchorY:0.68, duration:1560 },
+    '丹特斯的憤怒':     { src:'assets/effects/god-weapons/dantes.webp?v=20260713-24f',            h:1.72, anchorY:0.56, duration:1560 },
+    '泰亞的憤怒':       { src:'assets/effects/god-weapons/theia.webp?v=20260713-24f',             h:1.78, anchorY:0.68, duration:1560 },
+    '奧拉奇亞的憤怒':   { src:'assets/effects/god-weapons/aurakia.webp?v=20260713-24f',           h:1.94, anchorY:0.72, duration:1560 },
+    '格蘭肯的恐怖之怒': { src:'assets/effects/god-weapons/grankain_fear.webp?v=20260713-24f',     h:1.84, anchorY:0.63, duration:1560 }
+};
+// 可羅蘭斯傳說武器「+6 以上」正式動態素材：16 幀 × 80ms＝1.28 秒。
+const LEGEND_WEAPON_ANIM_FX = {
+    '風之力':     { src:'assets/effects/legend-plus6/windblade.webp?v=20260713-16f',          h:1.65, anchorY:0.70, duration:1280 },
+    '審判衝擊':   { src:'assets/effects/legend-plus6/emperor-blade.webp?v=20260713-16f',      h:1.75, anchorY:0.68, duration:1280 },
+    '大地射擊':   { src:'assets/effects/legend-plus6/gaia-rage.webp?v=20260713-16f',          h:1.40, anchorY:0.55, duration:1280 },
+    '致命落雷':   { src:'assets/effects/legend-plus6/holycrystal-wand.webp?v=20260713-16f',  h:1.75, anchorY:0.70, duration:1280 },
+    '迅捷斬擊':   { src:'assets/effects/legend-plus6/redshadow-dual.webp?v=20260713-16f',    h:1.30, anchorY:0.55, duration:1280 },
+    '黑暗隕石':   { src:'assets/effects/legend-plus6/hyperion-despair.webp?v=20260713-16f', h:1.55, anchorY:0.58, duration:1280 },
+    '致命一擊':   { src:'assets/effects/legend-plus6/cronos-fear.webp?v=20260713-16f',       h:1.45, anchorY:0.58, duration:1280 },
+    '泰坦之怒':   { src:'assets/effects/legend-plus6/titan-rage.webp?v=20260713-16f',        h:1.35, anchorY:0.55, duration:1280 }
 };
 let _godWeaponAnimActive = {};
 function playGodWeaponAnimatedFx(skn, mob) {
     try {
         if (_vfxMute() || !mob) return;
-        let cfg = GOD_WEAPON_ANIM_FX[skn]; if (!cfg) return;
+        let cfg = GOD_WEAPON_ANIM_FX[skn] || LEGEND_WEAPON_ANIM_FX[skn]; if (!cfg) return;
         let key = skn + '|' + mob.uid; if (_godWeaponAnimActive[key]) return;
         let ml = document.getElementById('mob-list');
         let slot = ml && ml.querySelector('.mob-target[data-uid="' + mob.uid + '"]'); if (!slot) return;
@@ -324,7 +335,7 @@ function playGodWeaponAnimatedFx(skn, mob) {
         let layer = _vfxLayer(); if (!layer || layer.childElementCount > 190) return;
         let body = box.querySelector('img:not(.mob-anim-shadow):not(.mob-anim-weapon):not(.mob-anim-weapon2)');
         let anc = _mobImgAnchor(body), cx = r.left + r.width * anc.hc, cy = r.top + r.height * anc.vc;
-        let h = r.height * cfg.h, w = h * (212 / 238);
+        let h = r.height * cfg.h, w = h;
         let el = document.createElement('img');
         el.className = 'vfx-spell vfx-god-weapon-anim'; el.src = cfg.src; el.alt = ''; el.draggable = false;
         el.style.position = 'fixed'; el.style.pointerEvents = 'none'; el.style.objectFit = 'contain';
@@ -332,11 +343,11 @@ function playGodWeaponAnimatedFx(skn, mob) {
         el.style.left = (cx - w / 2) + 'px'; el.style.top = (cy - h * cfg.anchorY) + 'px';
         el.style.mixBlendMode = 'screen'; el.style.zIndex = '12';
         layer.appendChild(el); _godWeaponAnimActive[key] = true;
-        setTimeout(() => { try { el.remove(); } catch (_) {} delete _godWeaponAnimActive[key]; }, 1980);
+        setTimeout(() => { try { el.remove(); } catch (_) {} delete _godWeaponAnimActive[key]; }, cfg.duration);
     } catch (e) {}
 }
 (function _preloadGodWeaponAnimFx() {
-    try { Object.values(GOD_WEAPON_ANIM_FX).forEach(cfg => { let im = new Image(); im.src = cfg.src; }); } catch (e) {}
+    try { [...Object.values(GOD_WEAPON_ANIM_FX), ...Object.values(LEGEND_WEAPON_ANIM_FX)].forEach(cfg => { let im = new Image(); im.src = cfg.src; }); } catch (e) {}
 })();
 // ⚡ 在目標怪身上疊播一輪法術特效。skn=技能顯示名（須在 SPELL_FX 註冊·未註冊者靜默略過）。
 //    v2.7.16：立即渲染（不再等 first.load）＋ _spellFxActive[技能名|uid] 去重（修「一次顯示兩個／忽多忽少」）。
@@ -347,7 +358,7 @@ function _vfxMute() { return !!(window.__vfxOff || (typeof state !== 'undefined'
 function playSpellFx(skn, mob) {
     try {
         if (_vfxMute() || !mob) return;
-        if (GOD_WEAPON_ANIM_FX[skn]) { playGodWeaponAnimatedFx(skn, mob); return; }
+        if (GOD_WEAPON_ANIM_FX[skn] || LEGEND_WEAPON_ANIM_FX[skn]) { playGodWeaponAnimatedFx(skn, mob); return; }
         let cfg = SPELL_FX[skn]; if (!cfg) return;
         // 🔮 v2.7.44 屬性變體(cfg.byEle)：依「目標怪屬性 mob.e」選對應幀組(如能量感測 火/水/地/風)·目標無對應屬性(none等)→靜默不播
         if (cfg.byEle) { let _v = cfg.byEle[mob.e]; if (!_v) return; cfg = Object.assign({}, cfg, _v); }
