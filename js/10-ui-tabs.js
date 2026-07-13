@@ -684,6 +684,13 @@ const WEAPON_TAGS = {
 DB.items.god_knight_judgment.eff = 'cleave';          // 雙手劍：切割
 DB.items.god_elf_obsession.rapidfire = 100;           // 弓：連射必定發動
 DB.items.wpn_gaia_rage.rapidfire = 100;               // 大地女神的激怒：連射必定發動
+// 可羅蘭斯其餘六把物理傳說武器：沿用泰坦之怒的主屬性／物理傷害成長，
+// 並提高到同一輸出級距；弓以 DEX／遠距離傷害取代 STR／近距離傷害。
+['wpn_emperor_blade','wpn_windblade_dagger','wpn_redshadow_dual','wpn_beastking_claw','wpn_gaia_rage','wpn_cronos_fear']
+    .forEach(function(id) {
+        let d = DB.items[id];
+        if (d && d.spellProc) d.spellProc.powerMult = 2;
+    });
 // 神話武器只能由席琳神殿赫爾以哈爾巴斯之心專用強化，最高 +15；一般強化介面仍保持禁用。
 ['god_royal_flash','god_knight_judgment','god_elf_obsession','god_mage_eva','god_dark_dantes','god_illusion_theia','god_dragon_aurakia','god_warrior_fear']
     .forEach(function(id) { if (DB.items[id]) DB.items[id].maxEn = 15; });

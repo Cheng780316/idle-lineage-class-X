@@ -589,8 +589,8 @@ function allyDollDamageReduced(ally, dmg) {
     }
     return dmg;
 }
-// 武器附魔的能力倍率：一般魔法吃魔法傷害；泰坦之怒改由 STR 與近戰傷害共同增幅。
-// meleeScale 公式刻意採較平緩曲線，避免近戰傷害本身已含 STR 後再次過度放大。
+// 武器附魔的能力倍率：一般魔法吃魔法傷害；物理系傳說／神話依主屬性與近／遠距離傷害共同增幅。
+// 物理成長公式刻意採較平緩曲線，避免物理傷害本身已含主屬性後再次過度放大。
 function weaponSpellPowerMult(stats, sp) {
     stats = stats || {};
     let mult;
