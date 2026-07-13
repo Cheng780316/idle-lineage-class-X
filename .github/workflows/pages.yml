@@ -2,7 +2,7 @@ name: 部署線上網頁版
 
 on:
   push:
-    branches: [online-web]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -32,6 +32,8 @@ jobs:
 
       - name: 設定 GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: 上傳網頁成品
         uses: actions/upload-pages-artifact@v3

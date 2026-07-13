@@ -52,6 +52,7 @@ function recomputeStats() {
         if (ed.con) d.con += ed.con;
         if (ed.wis) d.wis += ed.wis;
         if (ed.cha) d.cha += ed.cha;   // 🔧 裝備魅力(cha)：可突破 60 上限
+        if (ed.swordStr && p.eq.wpn) { let _st = getWeaponTags(p.eq.wpn.id); if (_st.includes('單手劍') || _st.includes('雙手劍')) d.str += ed.swordStr; }   // 🏺 將軍愛用的握劍護腕：持單手劍／雙手劍時力量 +N（提前計入衍生能力）
     }
     // 👑 同名 buff 去重（頭盔版「力盔/敏盔」優先，蓋掉法師魔法版／王族魔法精通版，避免同效果疊加）：頭盔版生效時把對應法師版 buff 歸零
     if (p.buffs.sk_helm_str1 > 0) p.buffs.sk_ench_wpn = 0;   // 擬似魔法武器（extraDmg）
@@ -186,6 +187,7 @@ function recomputeStats() {
     d.mpReduce  += getIntMpReduce(d.int);
     // 精神（MR / MP恢復）
     d.mr  += getWisMR(d.wis);
+    if (p.eq) { for (let _k in p.eq) { let _e = p.eq[_k], _ed = _e && DB.items[_e.id]; if (_ed && _ed.mrPerWis) d.mr += d.wis * _ed.mrPerWis; } }   // 🏺 魔力阻抗襯衫：每 1 點最終精神增加 MR
     if (p.skills && p.skills.includes('sk_royal_kingguard')) d.mr += 10;   // 👑 王者加護（被動）：MR+10
     d.mpR  = getWisMpRegen(d.wis);
     d.hpR  = 0;   // HP自然恢復量(裝備/精靈斗篷加成)：每次重算先歸零，避免持續疊加且卸下不還原
@@ -222,17 +224,19 @@ function recomputeStats() {
     if (p.eq.wpn) {
         let w = DB.items[p.eq.wpn.id];
         let isRanged = !!w.ranged;
-        let _enW = enhanceWpnBonus(p.eq.wpn.en);   // 🔧 武器強化固定加成（傷害每階+1延伸到+20、命中+1~+10後依表續加）
+        let _enW = enhanceWpnBonus(capEn(p.eq.wpn.en, w));   // 武器原始強化固定加成（依各武器自身上限截斷）
         // 武器自身固定傷害/命中：只加武器本身的攻擊類型（近戰武器→近距離、遠程武器→遠距離）
         if (isRanged) { d.rangedDmg += (w.dmgBonus||0); d.rangedHit += (w.hit||0); }
         else { d.meleeDmg += (w.dmgBonus||0); d.meleeHit += (w.hit||0); }
         // 🏺 v3.2.17 猴子的金箍棒：近距離傷害/命中 +(等級/lvDmgDiv·lvHitDiv)（隨等級成長的武器加成）
         if (w.lvDmgDiv) { let _lb = Math.floor((p.lv || 1) / w.lvDmgDiv); if (isRanged) d.rangedDmg += _lb; else d.meleeDmg += _lb; }
         if (w.lvHitDiv) { let _lh = Math.floor((p.lv || 1) / w.lvHitDiv); if (isRanged) d.rangedHit += _lh; else d.meleeHit += _lh; }
-        // 🔧 武器「強化」固定加成：近距離與遠距離 傷害＋命中 同時各加（每強化+1→四者各+1）。⚠️ 與「最終傷害倍率」wpnEnFinalMult 各自獨立疊加（依使用者指定·+20 武器明顯變強）
-        d.meleeDmg += _enW.dmg; d.rangedDmg += _enW.dmg;
-        d.meleeHit += _enW.hit; d.rangedHit += _enW.hit;
-        let _enCustom = capWpnEn(p.eq.wpn.en);
+        // 武器原始強化只增加該武器實際使用的攻擊類型；奇古獸為必中魔法攻擊，改由奇古獸攻擊公式直接加入骰值。
+        if (!w.qigu) {
+            if (isRanged) { d.rangedDmg += _enW.dmg; d.rangedHit += _enW.hit; }
+            else { d.meleeDmg += _enW.dmg; d.meleeHit += _enW.hit; }
+        }
+        let _enCustom = capEn(p.eq.wpn.en, w);
         let _customDmg = _enCustom * (w.enDmgExtra || 0);
         let _customHit = Math.floor(_enCustom / 2) * (w.enHitEvery2 || 0);
         if (isRanged) { d.rangedDmg += _customDmg; d.rangedHit += _customHit; }
@@ -264,7 +268,7 @@ function recomputeStats() {
         if(w.atkSpdPct) d.atkSpdPct += w.atkSpdPct;   // 🏺 武器攻速%（遺物 阿魯巴的加速棍棒 +20／牛頭怪的殘暴巨斧 +25；防具/飾品 atkSpdPct 走另一迴圈·武器需此處·v3.1.33 稽核修）
         if(w.mr) d.mr += w.mr;   // 🐍 武器 MR（提卡爾庫庫爾坎之矛/蛇神的倒勾獠牙 MR+5；防具/飾品 mr 走另一迴圈·武器需此處·v3.1.76 稽核高#2）
         if(w.fullHpMpHalf) d.fullHpMpHalf = true;   // 🏺 v3.1.80 巫師的黑暗魔導書：滿血時技能消耗 MP 減半（getMpCost 讀取）
-        let _wEn = capWpnEn(p.eq.wpn.en);   // 🔧 超過 +20 一律以 +20 計算所有隨強化提升的能力
+        let _wEn = capEn(p.eq.wpn.en, w);   // 所有隨強化提升的能力依該武器上限截斷
         if(w.mpROverSafe && _wEn > (w.safe || 0)) d.mpR += (_wEn - (w.safe || 0)) * w.mpROverSafe;   // 突破安定值：每超過1階，MP自然恢復量 +mpROverSafe
         if(w.extraMpPerEn)  d.extraMp  += _wEn * w.extraMpPerEn;    // 每強化+1 → 額外魔法點數
         if(w.meleeHitPerEn) d.meleeHit += _wEn * w.meleeHitPerEn;   // 每強化+1 → 近距離命中

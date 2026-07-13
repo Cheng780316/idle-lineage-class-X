@@ -198,6 +198,8 @@ function getGlowClass(item, d) {
     // 🔮 席琳套裝效果裝備：套裝光芒優先於傳說圖示光（名稱仍由 getItemColor 決定為琥珀金）
     if (item && item.seteff) return 'sherine-glow-icon';
     if ((item && item.id === 'wpn_manadagger') || (d && d.n === '魔力短劍')) return 'mana-glow';   // 🔧 魔力短劍：專屬藍色圖示光芒（凌駕傳說琥珀金光）
+    // 祝福的裝備保護卷軸：沿用「祝福的 對武器施法的卷軸」相同金色光暈。
+    if ((item && item.id === 'scroll_equip_protect_b') || (d && d.protectScroll && d.isB)) return 'bless-glow';
     if (d && d.relic) return 'relic-glow';   // 🏺 遺物：海藍色圖示光芒
     if (d && d.legend) return 'legend-glow';   // 🏅 傳說武器：琥珀金圖示光芒
     let bless = (item && item.bless) || (d && d.isB);
@@ -642,7 +644,7 @@ function royalEquipOk(d, id) {
 }
 function checkCanEquip(item) {
     let d = DB.items[item.id];
-    if (d && d.reqAvatar && player && player.avatar && player.avatar !== d.reqAvatar) return false;   // 👸 性別頭像限定（公主/王子…）：單一真實裝備閘，套用於所有職業；缺 avatar(舊檔)不硬擋。職業適用顯示走 *EquipOk（純粹·不讀玩家狀態）
+    if (d && d.reqAvatar && player && ((d.strictAvatar && player.avatar !== d.reqAvatar) || (!d.strictAvatar && player.avatar && player.avatar !== d.reqAvatar))) return false;   // 👸 性別頭像限定；strictAvatar（純潔少女的憐愛）要求必須明確為女妖精，舊檔缺 avatar 亦不放行
     if (isRelic(d)) return reqAllowsClass(d, player.cls);   // 🏺 遺物：職業限制純以 req 白名單為準（略過各職業專屬 *EquipOk 武器/防具清單，否則戰士等會被拒）
     if (player.cls === 'dark') return darkEquipOk(d, item.id);   // 🔧 黑暗妖精專屬裝備規則
     if (player.cls === 'illusion') return illusionEquipOk(d, item.id);   // 🔮 幻術士專屬裝備規則（除匕首外的全職業裝備＋開放清單）
@@ -690,7 +692,7 @@ function equipItem(item) {
 
     // 職業/裝備資格統一走 checkCanEquip（含黑暗妖精規則、負重強化、劍術精通例外），與顯示用判定同一來源
     if (!checkCanEquip(item)) {
-        logSys(`無法裝備，職業不符。`);
+        logSys(d.reqAvatar ? `無法裝備，「${d.n}」僅限${d.reqAvatar}。` : `無法裝備，職業不符。`);
         return;
     }
 
@@ -708,15 +710,15 @@ function equipItem(item) {
     if (slot === 'ring') {
         if(!player.eq.ring1) slot = 'ring1';
         else if(!player.eq.ring2) slot = 'ring2';
-        else if(player.lv >= 55 && !player.eq.ring3) slot = 'ring3';   // 第3戒指欄：需 Lv55
-        else if(player.lv >= 65 && !player.eq.ring4) slot = 'ring4';   // 第4戒指欄：需 Lv65
+        else if(player.lv >= 76 && !player.eq.ring3) slot = 'ring3';   // 第3戒指欄：需 Lv76
+        else if(player.lv >= 81 && !player.eq.ring4) slot = 'ring4';   // 第4戒指欄：需 Lv81
         else slot = 'ring1';
     }
 
-    // 🦻 耳環欄位分配：一開始 1 個（ear1），Lv50 開放第 2 個（ear2），最多 2 個
+    // 🦻 耳環欄位分配：一開始 1 個（ear1），Lv59 開放第 2 個（ear2），最多 2 個
     if (slot === 'ear') {
         if(!player.eq.ear1) slot = 'ear1';
-        else if(player.lv >= 50 && !player.eq.ear2) slot = 'ear2';   // 第2耳環欄：需 Lv50
+        else if(player.lv >= 59 && !player.eq.ear2) slot = 'ear2';   // 第2耳環欄：需 Lv59
         else slot = 'ear1';
     }
     // 🦻 不能同時裝備兩個名字相同的耳環
@@ -844,6 +846,10 @@ function buyItem(id, qty) {
 }
 
 let activeScroll = null;
+function canUseEquipProtectScroll(d, en) {
+    en = Number(en) || 0;
+    return !!d && ((d.type === 'wpn' && en >= 11) || (d.type === 'arm' && en >= 9));
+}
 function openEnhanceModal(scroll) {
     activeScroll = scroll;
     let targets = Object.values(player.eq).filter(e => e && DB.items[e.id].type === scroll.target && !isMaxEnhanced(e) && !DB.items[e.id].noEnhance);   // 🔧 已達強化上限者不列入；🏛️ 無法強化的裝備（古老系列）不列入
@@ -889,6 +895,12 @@ function doEnhance(targetUid, isEq = true) {
     }
     let scroll = activeScroll;
     activeScroll = null;
+    let _scrollDef = DB.items[scroll.id] || {};
+    if (_scrollDef.protectScroll && !canUseEquipProtectScroll(d, target.en)) {
+        logSys('<span class="text-red-400 font-bold">裝備保護卷軸僅能用於 +11 以上武器或 +9 以上防具。</span>');
+        closeModal();
+        return;
+    }
     consume(scroll); // 消耗卷軸
     
     // 👇 核心邏輯：如果強化的是「背包」裡的裝備，且數量 > 1，則拆分出一件來衝，保護其餘裝備不被波及
@@ -899,7 +911,7 @@ function doEnhance(targetUid, isEq = true) {
         target = singleItem; 
     }
     
-    let success = false, destroy = false, nochange = false;
+    let success = false, destroy = false, nochange = false, protectedDrop = false;
     // 防呆：強化值正規化為有效數字。若 en 為 undefined/NaN，(undefined < safe) 會是 false 而誤入失敗/爆裝分支，
     //        導致看似 +0 的武器仍可能消失。此處統一視為 0，確保 +0(含未初始化 en)在安定值內必定成功、不會爆裝。
     target.en = Number(target.en) || 0;
@@ -913,13 +925,25 @@ function doEnhance(targetUid, isEq = true) {
     else if (_oc === 'break') destroy = true;
     else nochange = true;   // 武器 +9 起 1/6 無事：卷軸已消耗、強化值不變
 
+    // 🛡️ 裝備保護卷軸：任何未成功結果都不會摧毀裝備。
+    // 普通版失敗強化值-1；祝福版失敗強化值不變。
+    if (_scrollDef.protectScroll && !success) {
+        destroy = false;
+        nochange = true;
+        if (!_scrollDef.isB) {
+            target.en = Math.max(-1, target.en - 1);
+            protectedDrop = true;
+        }
+    }
+
     let fn = getItemFullName(target);
     if (success) {
-        let add = (DB.items[scroll.id] && DB.items[scroll.id].isB) ? blessEnhanceGain(target.en) : 1;   // 🌟 祝福卷：+2 以下(含負值) +1~+3、+3~+5 +1~+2、+6 起等同一般卷 +1（純機率）
+        let add = (_scrollDef.isB && !_scrollDef.protectScroll) ? blessEnhanceGain(target.en) : 1;   // 🌟 一般祝福強化卷可跳級；祝福裝備保護卷成功固定+1
         target.en = Math.min(_cap, target.en + add);   // 🔧 祝福卷軸跳級不超過上限
         let prefix = (target.en > (d.safe||0)) ? "持續" : "";
         let _enTxt = '+' + capEn(target.en, d);   // 🔧 顯示 +N（夾擠至強化上限）
-        logSys(`<span class="text-yellow-400 font-bold">${_enTxt} ${d.n} ${prefix}發出銀色的光芒。</span>`);
+        let _light = (_scrollDef.protectScroll && _scrollDef.isB) ? '黃色' : '銀色';
+        logSys(`<span class="text-yellow-400 font-bold">${_enTxt} ${d.n} ${prefix}發出${_light}的光芒。</span>`);
     } else if (destroy) {
         logSys(`<span class="text-red-500 font-bold">${fn} 強烈的發出銀色的光芒就消失了。</span>`);
         if (isEq) {
@@ -927,6 +951,9 @@ function doEnhance(targetUid, isEq = true) {
         } else {
             player.inv = player.inv.filter(i => i.uid !== target.uid); // 碎掉背包裝備
         }
+    } else if (_scrollDef.protectScroll) {
+        if (protectedDrop) logSys(`<span class="text-orange-300 font-bold">${fn} 強化失敗，受到裝備保護卷軸保護而沒有消失，強化值降為 ${target.en < 0 ? target.en : '+' + target.en}。</span>`);
+        else logSys(`<span class="text-yellow-300 font-bold">${fn} 發出黃色的光芒；強化失敗，但受到祝福保護，強化值維持不變。</span>`);
     } else {
         logSys(`<span class="text-slate-400">${fn} 一瞬間發出銀色的光芒。</span>`);
     }
@@ -1120,9 +1147,6 @@ function _updateUIImpl() {
       if (_riftLock) { _txt = '撤離'; _fn = riftEvacuate; }
       let rb = document.getElementById('btn-return-town');
       if (rb) { rb.style.display = ''; rb.textContent = _txt; rb.onclick = _fn; rb.style.background = _riftLock ? '#7c3aed' : (_inTown ? '#1d4ed8' : ''); rb.style.borderColor = _riftLock ? '#c4b5fd' : (_inTown ? '#93c5fd' : ''); }
-      // 📱 手機常駐快捷鍵：與桌機按鈕同步（藍＝出發、綠＝回村/回城、紫＝撤離）
-      let mb = document.getElementById('mv-action-btn');
-      if (mb) { mb.style.display = ''; mb.textContent = _txt; mb.onclick = _fn; mb.style.background = _riftLock ? '#7c3aed' : (_inTown ? '#1d4ed8' : '#047857'); mb.style.borderColor = _riftLock ? '#c4b5fd' : (_inTown ? '#93c5fd' : '#34d399'); }
       // 🌀 順移按鈕：固定顯示（含村莊/野外/狩獵/隱藏區域），不隨敵人或每幀重繪閃爍；僅在「傳送會破壞玩法」的鎖定模式隱藏（裂痕/傲慢之塔封鎖樓/遺忘之島/軍王之室）。
       // ⚠️ 用「狀態改變才寫 DOM」的守衛：避免每個 tick 重複 toggle class / 設 display 造成按鈕閃爍。
       { let tpb = document.getElementById('btn-teleport'); if (tpb) { let _hideTp = !!(KING_ROOMS[mapState.current] || (typeof prideTeleportBlocked === 'function' && prideTeleportBlocked()) || state.oblivion); if (tpb.classList.contains('hidden') !== _hideTp) { tpb.classList.toggle('hidden', _hideTp); tpb.style.display = _hideTp ? 'none' : ''; } } } }   // ⚠️ _hideTp 必須 !! 強轉布林：否則 (undefined||false||undefined)===undefined → 守衛 (boolean!==undefined) 恆真 → toggle('hidden', undefined) 變成「無參數 bare toggle」每幀翻轉 → 按鈕閃爍
@@ -1143,10 +1167,9 @@ function _updateUIImpl() {
     if(document.getElementById('st-classname')) document.getElementById('st-classname').innerText = clsDisplayName;   // 🏅 精通徽記已移除，僅顯示職業名
     if(!window._editingName) document.getElementById('st-class').innerText = (player.name || '');   // 未取名則不顯示任何文字（仍可點擊命名）
 
-    // 處理背景圖片：抓取 player.avatar 決定背景圖 (加上 bg-top 防止頭部裁切)
+    // 處理背景圖片：全部職業／性別頭像統一使用 assets/character 對應的 PNG。
     let bgImageName = player.avatar || clsDisplayName;
-    let bgExt = (player.cls === 'dark' || player.cls === 'illusion' || player.cls === 'dragon' || player.cls === 'warrior' || player.cls === 'royal') ? 'png' : 'jpg';   // 🔧 黑暗妖精／幻術士／龍騎士／戰士／王族頭像為 png，其餘職業為 jpg
-    document.getElementById('status-panel').style.backgroundImage = `url('assets/character/${bgImageName}.${bgExt}')`;
+    document.getElementById('status-panel').style.backgroundImage = `url('assets/character/${bgImageName}.png')`;
     document.getElementById('status-panel').classList.add('bg-top'); // 確保圖片從頂部對齊
 
     document.getElementById('st-ac').innerText = player.d.ac;

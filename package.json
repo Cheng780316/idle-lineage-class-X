@@ -1,0 +1,36 @@
+{
+  "name": "idle-lineage-snake-god",
+  "version": "3.3.27",
+  "private": true,
+  "description": "放置天堂－蛇神降世 Windows 桌面版",
+  "main": "desktop/main.js",
+  "scripts": {
+    "desktop": "electron .",
+    "build:win": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "tw.cheng.idle-lineage.snake-god",
+    "productName": "放置天堂-蛇神降世",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "assets/**/*",
+      "css/**/*",
+      "js/**/*",
+      "public/**/*",
+      "desktop/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "artifactName": "放置天堂-蛇神降世-${version}.exe"
+    }
+  }
+}
