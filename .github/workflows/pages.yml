@@ -2,7 +2,7 @@ name: 部署線上網頁版
 
 on:
   push:
-    branches: [online-web]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
