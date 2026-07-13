@@ -668,7 +668,6 @@ function castSkillInner(skId) {
                 }
 
                 let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
-                if (player.cls === 'elf' && hasMastery('e_magic') && sk.ele && sk.ele !== 'none' && sk.ele === player.elfEle) effMr *= 0.7;
                 let mrFactor = mrMult(effMr);
 
                 let dmgArray = sk.multiDmg || (sk.dmgDice ? [[sk.dmgDice[0], sk.dmgDice[1]]] : []);

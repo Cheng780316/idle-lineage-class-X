@@ -402,9 +402,9 @@ const CRAFT_RECIPES = {
     ],
     // 🔷🔶 象牙塔・神秘的魔法師（魔杖改造）：僅有客製配方（見 MYSTICWAND_RECIPES），空陣列讓 renderUniversalCraft 通過並附加客製區塊
     'npc_mystic_mage': [],
-    // 🐉 席琳神殿・赫爾：四大龍心各1＋5000萬金幣 → 哈爾巴斯之心
+    // 🐉 席琳神殿・赫爾：四大龍心各1＋2000萬金幣 → 哈爾巴斯之心
     'npc_halphas_smith': [
-        { result: 'heart_halphas', req: [{ id: 'heart_antaras', cnt: 1 }, { id: 'heart_valakas', cnt: 1 }, { id: 'heart_fafurion', cnt: 1 }, { id: 'heart_lindvior', cnt: 1 }, { id: 'gold', cnt: 50000000 }] }
+        { result: 'heart_halphas', req: [{ id: 'heart_antaras', cnt: 1 }, { id: 'heart_valakas', cnt: 1 }, { id: 'heart_fafurion', cnt: 1 }, { id: 'heart_lindvior', cnt: 1 }, { id: 'gold', cnt: 20000000 }] }
     ]
 };
 

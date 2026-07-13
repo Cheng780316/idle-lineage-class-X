@@ -362,9 +362,9 @@ function useItem(u, silent = false) {
         if (d.type === 'pot' && d.val != null) {
             if (!d.noPotionDelay && player.cds.pot > 0) return;
             let h = Math.floor(potionHealBase(d) * (1 + (getConPotionPct(player.d.con) + dollFieldVal('potionBonus') + (player._miscPotionBonus || 0)) / 100));   // 🍶 藥水基準改隨機區間 valMin~valMax（紅10~20/橙30~50/白60~80）；🪆 魔法娃娃 potionBonus%（吸血鬼）；🧰 道具收集冊 材料/其他全收集：藥水恢復%
-            if (hasMastery('k_survive')) h = Math.floor(h * 1.35);   // 🏅 生存精通：治癒藥水恢復 +35%
+            if (hasMastery('k_survive')) h = Math.floor(h * 1.25);   // 🏅 生存精通：治癒藥水恢復 +25%
             if (hasMastery('k_tough') && player.hp < player.mhp * 0.4) h = Math.floor(h * 1.5);   // ⚔️ 堅韌精通：HP<40% 時藥水治癒量 +50%
-            if (hasMastery('k_dragonblood')) h = Math.floor(h * 1.25);   // 🐉 龍血精通：治癒藥水恢復 +25%
+            if (hasMastery('k_dragonblood')) h = Math.floor(h * 1.15);   // 🐉 龍血精通：治癒藥水恢復 +15%
             if (player.hp < player.mhp * 0.2) { try { for (let _k in player.eq) { let _e = player.eq[_k]; if (_e && DB.items[_e.id] && DB.items[_e.id].lowHpPotionX2) { h = h * 2; break; } } } catch (e) {} }   // 🏺 v3.2.17 聖伯納的急救酒桶：HP<20% 時治癒藥水恢復量 ×2
             player.hp = Math.min(player.mhp, player.hp + h);
             if (!d.noPotionDelay) player.cds.pot = 1;

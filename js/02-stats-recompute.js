@@ -199,7 +199,7 @@ function recomputeStats() {
         let c = Math.max(1, Math.ceil(baseMp * (1 - d.mpReduce / 100)));
         if (p._setApprentice5 && p.mp < p.mmp * 0.3) c = Math.max(1, Math.ceil(c / 2));   // 🔮 學徒 5/5：MP 低於最大值 30% 時，所有技能耗魔減半
         if (d.fullHpMpHalf) { let _hpNow = (p.curHp != null) ? p.curHp : p.hp; if (_hpNow >= (p.mhp || 1)) c = Math.max(1, Math.ceil(c / 2)); }   // 🏺 v3.1.80 巫師的黑暗魔導書：滿血時技能消耗 MP 減半（玩家 p.hp／傭兵 p.curHp·recompute 共用）
-        if (p.mastery === 'i_mana') c = Math.ceil(c * 1.75);   // 🔮 魔力精通：MP上限×2、技能消耗×1.75，保留淨續航收益
+        if (p.mastery === 'i_mana') c *= 2;   // 🔮 魔力精通：所有技能MP消耗加倍（與 MP 上限加倍配套）
         return c;
     };
 
@@ -484,8 +484,8 @@ d.mr += (baseMr + bonusMr);
     // 🧰 道具收集冊：各類「全收集」加成（藥水/卷軸→負重、技能書→MP恢復、材料/其他→藥水恢復%；weight→d._miscWeightBonus 供負重段、potion→p._miscPotionBonus 供 js/08）
     if (typeof miscCollectionBonus === 'function') miscCollectionBonus(p, d);
 
-    // 🏅 生存精通：MR+25（藥水恢復 +35% 於 useItem 套用）
-    if (p.mastery === 'k_survive') d.mr += 25;
+    // 🏅 生存精通：MR+15（藥水恢復 +25% 於 useItem 套用）
+    if (p.mastery === 'k_survive') d.mr += 15;
     if (player.skills.includes('sk_warrior_crush')) d.meleeDmg += 2 + Math.max(0, p.lv - 44);   // ⚔️ 粉碎：近距離傷害+2；玩家等級45起每升一級+1
     
     let spdMult = 1.0;
@@ -494,7 +494,7 @@ d.mr += (baseMr + bonusMr);
     if(p.buffs.brave > 0 || (_mercPots && ['knight','dragon','warrior','royal'].includes(p.cls))) spdMult *= 0.67;   // 勇敢藥水；可用職業傭兵常駐 +33%
     if(p.buffs.elfcookie > 0 || (_mercPots && p.cls === 'elf')) spdMult *= 0.85; // 精靈餅乾；妖精傭兵常駐 +15%
     if(p.buffs.sk_dark_walkhaste > 0) spdMult *= 0.85; // 🔧 行走加速：攻速+15%（與加速術等相乘疊加）
-    { let _clvW = p.eq.wpn ? DB.items[p.eq.wpn.id] : null; let _clvOn = !p.classicMode && ((p.statuses && p.statuses.cleave > 0) || (p.mastery === 'k_cleave' && _clvW && _clvW.eff === 'cleave')); if(_clvOn) spdMult *= (p.mastery === 'k_cleave' ? (1/1.3) : 0.80); }   // 切割：攻速+20%（🏅 切割精通：+30%・持切割武器常駐）
+    { let _clvW = p.eq.wpn ? DB.items[p.eq.wpn.id] : null; let _clvOn = !p.classicMode && ((p.statuses && p.statuses.cleave > 0) || (p.mastery === 'k_cleave' && _clvW && _clvW.eff === 'cleave')); if(_clvOn) spdMult *= (p.mastery === 'k_cleave' ? 0.50 : 0.80); }   // 切割：攻速+20%（🏅 切割精通：+50%・持切割武器常駐），與其他加速相乘疊加；🎮 經典模式停用
     { let _swMelee = p.eq.wpn ? DB.items[p.eq.wpn.id] : null; if(p.mastery === 'e_sword' && _swMelee && !_swMelee.w2h && !_swMelee.isBow && !_swMelee.ranged) spdMult *= (1/1.5); }   // 🏅 劍術精通：持單手近戰武器攻速+50%（與加速/勇敢/餅乾/變身相乘疊加）
     { let _aw = p.eq.wpn ? getWeaponTags(p.eq.wpn.id) : []; let _ow = p.eq.offwpn ? getWeaponTags(p.eq.offwpn.id) : []; if(p.mastery === 'k_giantaxe' && (_aw.includes('雙手鈍器') || _ow.includes('雙手鈍器'))) spdMult *= (1/1.3); else if(p.mastery === 'k_dualaxe' && _aw.includes('單手鈍器') && p.eq.offwpn && _ow.includes('單手鈍器')) spdMult *= (1/1.3); }   // ⚔️ 巨斧精通(主手或副手任一持雙手鈍器·符合「持雙手鈍器+30%」描述·含混裝)／雙斧精通(主副手皆單手鈍器)：攻速+30%
     { let _rw = p.eq.wpn ? getWeaponTags(p.eq.wpn.id) : []; if(p.mastery === 'k_royal_sword' && (_rw.includes('單手劍') || _rw.includes('雙手劍'))) spdMult *= (1/1.5); }   // 👑 劍術精通：裝單手劍／雙手劍攻速+50%

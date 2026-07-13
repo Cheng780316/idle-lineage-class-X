@@ -1203,11 +1203,11 @@ function applyPlayerWeakExpose(target) {
     target.weakExpose = Math.min(weakExposeMaxLayers(), before + 1);
 }
 // 🏅 鎖刃精通：目標每有 1 層弱點曝光，對其最終傷害 +10%（最高 5 層 +50%）
-function weakExposeDmgMult(m) { return (hasMastery('k_chainblade') && m && m.weakExpose > 0) ? (1 + 0.08 * Math.min(5, m.weakExpose)) : 1; }
+function weakExposeDmgMult(m) { return (hasMastery('k_chainblade') && m && m.weakExpose > 0) ? (1 + 0.1 * Math.min(5, m.weakExpose)) : 1; }
 // 🐉 龍血精通：所有技能 HP 消耗減半
 function effHpCost(sk) {
     if (sk && sk.hpCost && player && player._setDragonblood3 && player.buffs) player.buffs.sk_set_dragonscion = 100;   // 🐉 龍血3/5：施放HP消耗技→獲得「龍裔」10秒（受傷-15%·由減傷乘算鏈讀此 buff）
-    return Math.ceil((sk.hpCost || 0) * (hasMastery('k_dragonblood') ? 0.4 : 1));
+    return Math.ceil((sk.hpCost || 0) * (hasMastery('k_dragonblood') ? 0.5 : 1));
 }
 // 🐉 龍鱗臂甲 額外攻擊：每攻擊週期追加 d.equipExtraAtk 次全傷害一般近戰攻擊（各自命中判定；不遞迴再觸發額外攻擊）
 function dragonExtraAttackProc(target) {
@@ -1272,7 +1272,7 @@ function effTwoHanded(d, id) {
     return isTwoHandedWpn(d);
 }
 // ⚔️ 反彈精通：忍耐(泰坦)系觸發閾值（k_rebound→HP 80% 以下，否則 40%）
-function titanThreshold() { return (player.cls === 'warrior' && hasMastery('k_rebound')) ? 0.6 : 0.4; }
+function titanThreshold() { return (player.cls === 'warrior' && hasMastery('k_rebound')) ? 0.8 : 0.4; }
 // ⚔️ 迅猛雙斧：為戰士、已學迅猛雙斧、且主手可雙持(單手鈍器／巨斧精通的雙手鈍器)時，可於 offwpn 欄再持一把
 function dualWieldOffhandOk() {
     return player.cls === 'warrior' && player.skills.includes('sk_warrior_dualaxe')
@@ -1310,8 +1310,6 @@ function syncDualWield() {
 // ⚔️ 反彈精通：觸發忍耐被動時，額外對攻擊者發動一次普通攻擊（副手有雙持武器則主副手各一次）
 function reboundExtraAttack(mob) {
     if (!mob || mob.curHp <= 0 || mob._dead) return;
-    if ((player._reboundMasteryCd || 0) > state.ticks) return;
-    player._reboundMasteryCd = state.ticks + 30;   // 反彈精通追打每 3 秒最多一次；原本反射效果不受影響
     let wpn = player.eq.wpn ? DB.items[player.eq.wpn.id] : null;
     if (wpn && !wpn.isBow && !wpn.ranged) {
         let dice = mob.s === 'L' ? wpn.dmgL : wpn.dmgS;
@@ -1399,7 +1397,7 @@ function waterVitalHeal(heal) {
 // 🔮 幻術士 魔力精通：消耗 MP 時，所有有 MP 的傭兵恢復消耗量 10% 的 MP
 function manaMasteryRefund(spent) {
     if (!spent || spent <= 0) return;
-    let give = Math.max(1, Math.floor(spent * 0.15));
+    let give = Math.max(1, Math.floor(spent * 0.10));
     if (player.allies) player.allies.forEach(a => { if (a && (a.mmp || 0) > 0) a.mp = Math.min(a.mmp, (a.mp || 0) + give); });
 }
 // 🔮 是否為魔杖/法杖類武器（沿用 js/10 同一套名稱判定，排除黃金權杖＝王族單手劍）：
@@ -1429,8 +1427,8 @@ function qiguPlayerAttack(target, wpn) {
     let raw = core + (d.extraMp || 0) + (d.extraDmg || 0);
     let effMr = (target.st && target.st.mrhalf > 0) ? (target.mr / 2) : target.mr;
     if (target.st && (target.st.confuse > 0 || target.st.panic > 0)) effMr = Math.max(0, effMr - 10);   // 🔮 混亂/恐慌：MR-10（下限0，與其他魔法路徑 mrMult(Math.max(0,...)) 一致）
-    let qiguMastery = (player.mastery === 'i_qigu' && wpn.qigu);
-    let dmg = Math.max(1, Math.floor(raw * mrMult(qiguMastery ? effMr * 0.3 : effMr)));   // 奇古獸精通：穿透 70% MR
+    let ignoreMr = (player.mastery === 'i_qigu' && wpn.qigu);   // 🔮 奇古獸精通：裝備奇古獸時無視魔抗
+    let dmg = Math.max(1, Math.floor(raw * (ignoreMr ? 1 : mrMult(effMr))));
     let ele = 'none';
     { let _qa = player.eq.wpn && getAttrAffix(player.eq.wpn.attr); if (_qa) ele = _qa.ele; }   // 🔥 getAttrAffix：相容舊12代碼
     dmg = Math.max(1, Math.floor(dmg * elementCounterMult(ele, target.e)));   // ⚔️ 屬性剋制 ×1.4(剋)/×0.6(被剋)（取代舊 +6）
@@ -1470,14 +1468,14 @@ function qiguWeaponProc(target, wpn) {
     if (!wpn || !wpn.qiguProc || !target || target.curHp <= 0) return;
     let en = capWpnEn((player.eq.wpn && player.eq.wpn.en) || 0);
     if (Math.random() >= (1 + en) / 100) return;   // 1% + 每強化 +1%
-    let qiguMastery = (player.mastery === 'i_qigu' && wpn.qigu);   // 🔮 奇古獸精通：穿透 70% MR
+    let ignoreMr = (player.mastery === 'i_qigu' && wpn.qigu);   // 🔮 奇古獸精通：裝備奇古獸時其觸發特效亦無視魔抗（與主擊一致，避免非奇古獸武器誤觸）
     let dmg = 0, label = '', cls = 'magic';
     if (wpn.qiguProc === 'phantom') {
         dmg = 79 + roll(1, 81);   // 80~160 無屬性固定傷害（不受MR）
         label = '幻影衝擊'; cls = 'player-special';
     } else if (wpn.qiguProc === 'mindbreak') {
         let effMr = (target.st && target.st.mrhalf > 0) ? (target.mr / 2) : target.mr;
-        dmg = Math.max(1, Math.floor((player.mmp || 0) * 0.05 * (1 + (player.d.magicDmg || 0) / 16) * mrMult(qiguMastery ? effMr * 0.3 : effMr)));   // 玩家最大MP 5% ×(1+魔法傷害/16)
+        dmg = Math.max(1, Math.floor((player.mmp || 0) * 0.05 * (1 + (player.d.magicDmg || 0) / 16) * (ignoreMr ? 1 : mrMult(effMr))));   // 玩家最大MP 5% ×(1+魔法傷害/16)（比照技能心靈破壞·不消耗MP）
         label = '心靈破壞';
     } else return;
     dmg = Math.max(1, Math.floor(dmg * fragileMult(target) * illuLvMult(player) * enhanceWpnFinalMult(en, wpn)));   // 🔮 幻術士等級加成 ×(1+等級/50)；🔧 武器強化 +11~+20 最終倍率

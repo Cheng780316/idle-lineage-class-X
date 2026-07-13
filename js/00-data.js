@@ -1249,7 +1249,7 @@ const DB = {
         "heart_valakas": { n: "巴拉卡斯之心", type: "etc", p: 1, c: "text-red-300", img: "assets/icons/items/巴拉卡斯之心.png?v=20260713-dragon-hearts", noUse: true, noSell: true, gachaWeight: 0, d: "火龍巴拉卡斯的心臟。哈爾巴斯之心製作材料。" },
         "heart_fafurion": { n: "法利昂之心", type: "etc", p: 1, c: "text-blue-300", img: "assets/icons/items/法利昂之心.png?v=20260713-dragon-hearts", noUse: true, noSell: true, gachaWeight: 0, d: "水龍法利昂的心臟。哈爾巴斯之心製作材料。" },
         "heart_lindvior": { n: "林德拜爾之心", type: "etc", p: 1, c: "text-emerald-300", img: "assets/icons/items/林德拜爾之心.png?v=20260713-dragon-hearts", noUse: true, noSell: true, gachaWeight: 0, d: "風龍林德拜爾的心臟。哈爾巴斯之心製作材料。" },
-        "heart_halphas": { n: "哈爾巴斯之心", type: "etc", p: 1, c: "text-violet-300", noUse: true, noSell: true, gachaWeight: 0, d: "融合四大龍心與五千萬金幣而成。僅用於強化八職業神話武器。" },
+        "heart_halphas": { n: "哈爾巴斯之心", type: "etc", p: 1, c: "text-violet-300", noUse: true, noSell: true, gachaWeight: 0, d: "融合四大龍心與兩千萬金幣而成。僅用於強化八職業神話武器。" },
         "mat_steel_chunk":        { n: "鋼鐵塊",         type: "etc", p: 10, c: "text-blue-300", noUse: true, gachaWeight: 0, d: "沉甸甸的粗鍛鋼鐵。寵物防具製作材料。" },
         "mat_golem_heart":        { n: "高崙之心",       type: "etc", p: 1, c: "text-blue-300", noUse: true, gachaWeight: 0, d: "高崙體內的核心。王族聖器製作材料。" },
         "mat_icequeen_heart":     { n: "冰之女王之心",   type: "etc", p: 1, c: "text-blue-300", noUse: true, gachaWeight: 0, d: "冰之女王的寒冰核心。王族聖器製作材料。" },

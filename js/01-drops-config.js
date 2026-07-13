@@ -1039,7 +1039,7 @@ function fragileMult(t) {
         if (player.buffs && player.buffs.sk_royal_precise > 0) _pp = player;
         else if (player.allies) { for (let _a of player.allies) { if (_a && !_a._downed && _a.buffs && _a.buffs.sk_royal_precise > 0) { _pp = _a; break; } } }
     }
-    if (_pp) { let _div = (_pp.mastery === 'k_royal_pledge') ? 8 : 15; m *= (1 + (1 + (_pp.lv || 1) / _div) / 100); }
+    if (_pp) { let _div = (_pp.mastery === 'k_royal_pledge') ? 10 : 15; m *= (1 + (1 + (_pp.lv || 1) / _div) / 100); }
     return m;
 }   // 🔮 脆弱(白鳥5)+20%、🔧 破壞盔甲+58%；👑 精準目標（隊長或傭兵擇一）
 
@@ -1054,7 +1054,7 @@ const MASTERY_DATA = {
         k_counter: { n: '反擊精通', pos: 'top',    msg: '將反擊與居合磨鍊至極致',       d: '洞悉敵人的攻勢，以必殺的反擊與居合斬破要害，連堅硬外皮也會在劍鋒下崩解。' },
         k_cleave:  { n: '切割精通', pos: 'left',   msg: '切割架勢常駐，攻勢更加凌厲',           d: '完全掌握切割武器的重心，使迅捷的連斬與沉重的猛擊自然銜接。' },
         k_pierce:  { n: '穿透精通', pos: 'right',  msg: '穿透變全體攻擊、無視硬皮',                     d: '使用有穿透的武器時，穿透效果變成全體攻擊，且穿透傷害無視硬皮減傷' },
-        k_survive: { n: '生存精通', pos: 'bottom', msg: '藥水恢復+35%、MR+25',             d: '久經死戰的騎士使治癒藥水恢復量增加35%，魔法防禦增加25。' }
+        k_survive: { n: '生存精通', pos: 'bottom', msg: '強化治癒藥水與魔法抵抗',             d: '久經死戰的騎士更能發揮治癒藥水的效力，也更能抵擋敵人的魔法。' }
     } },
     mage: { logo: 'assets/logo/法師logo.png', boss: '飛龍', list: {
         m_resonance: { n: '共鳴精通', pos: 'top',    msg: '共鳴之光穿透魔法防護',           d: '使魔杖的共鳴化為純粹光箭，穿透魔法防護並將造成的傷害轉回自身魔力。' },
@@ -1066,30 +1066,30 @@ const MASTERY_DATA = {
         e_rapid:  { n: '連射精通', pos: 'top',    msg: '連射更強，箭勢更加密集',                   d: '將風的律動融入弓弦，使每次連射都能放出更多、更具威力的箭矢。' },
         e_spirit: { n: '精靈精通', pos: 'left',   msg: '呼喚元素精靈王降臨',     d: '與元素締結最高階的契約，使強力精靈昇華為精靈王；精靈王能以同屬性的強大法術席捲敵陣。' },
         e_sword:  { n: '劍術精通', pos: 'right',  msg: '掌握騎士劍術並發動看破',         d: '學會駕馭騎士的單手武器，以迅捷劍勢貼近敵人，並在交鋒中看破其弱點。' },
-        e_magic:  { n: '魔導精通', pos: 'bottom', msg: '同屬MP減半、穿透30%MR',     d: '同屬性魔法消耗MP減半並穿透30%魔法防禦，也可研習高階元素法術。' }
+        e_magic:  { n: '魔導精通', pos: 'bottom', msg: '深化屬性魔法並研習高階法術',     d: '與自身元素共鳴，降低同屬性魔法的負擔，並開啟研習高階元素法術的道路。' }
     } },
     dark: { logo: 'assets/logo/黑暗妖精logo.png', boss: '飛龍', list: {
-        d_poison: { n: '劇毒精通', pos: 'top',    msg: '劇毒必定觸發、每秒80%傷害',     d: '淬毒攻擊必定使目標中毒，每秒造成該次攻擊80%的傷害，持續5秒。' },
+        d_poison: { n: '劇毒精通', pos: 'top',    msg: '使附加劇毒更致命',     d: '將席琳的劇毒深植兵刃，使每次淬毒攻擊都留下猛烈而持續的傷害。' },
         d_bleed:  { n: '出血精通', pos: 'left',   msg: '雙刀亦能撕裂傷口',     d: '精通以匕首與雙刀撕裂要害，連續命中會讓傷口惡化，流血不止。' },
         d_crit:   { n: '爆擊精通', pos: 'right',  msg: '更易命中要害並乘勢追擊',       d: '無論近戰或遠攻都能準確捕捉破綻，擊中要害後立刻乘勢追加攻擊。' },
         d_evade:  { n: '迴避精通', pos: 'bottom', msg: '承受攻勢後伺機閃避反殺',     d: '在敵人的連續攻勢中逐漸看清其動作；成功閃避後，下一擊將準確命中要害。' }
     } },
     illusion: { logo: 'assets/logo/幻術士logo.png', boss: '飛龍', list: {
-        i_qigu:       { n: '奇古獸精通', pos: 'top',    msg: '奇古獸穿透70%魔法防禦',         d: '奇古獸攻擊與觸發能力穿透目標70%的魔法防禦，並提升攻擊速度30%。' },
+        i_qigu:       { n: '奇古獸精通', pos: 'top',    msg: '奇古獸之力穿透魔法防護',         d: '與奇古獸完全同步，使攻擊與奇異能力不再受魔法防護阻隔，出手也更加迅捷。' },
         i_magicsword: { n: '魔劍精通',   pos: 'left',   msg: '將近戰兵刃化為魔力媒介', d: '以魔杖之外的近戰武器承載奇古獸之力，使斬擊化為精準的魔法傷害，並提升攻勢。' },
         i_illusion:   { n: '幻術精通',   pos: 'right',  msg: '幻覺法術召喚幻象並肩作戰',               d: '施放特定幻覺法術（幻覺：歐吉／巫妖／鑽石高崙）時，產生對應的召喚幻象一同戰鬥（需習得對應記憶水晶法術）' },
-        i_mana:       { n: '魔力精通',   pos: 'bottom', msg: 'MP×2、消耗×1.75、回饋15%',             d: '最大MP加倍、技能消耗提高75%；消耗的15%會回復同行隊友的MP。' }
+        i_mana:       { n: '魔力精通',   pos: 'bottom', msg: '擴張魔力並與傭兵共享',             d: '大幅擴張幻術士的魔力容器，代價是法術更為沉重；施法時逸散的魔力會流向同行的傭兵。' }
     } },
     dragon: { logo: 'assets/logo/龍騎士logo.png', boss: '飛龍', list: {
         k_awaken:      { n: '覺醒精通', pos: 'top',    msg: '同時承受多種龍之覺醒',           d: '讓龍騎士的血脈容納多種龍之覺醒，並進一步激發覺醒時的戰鬥速度。' },
-        k_chainblade:  { n: '鎖刃精通', pos: 'left',   msg: '每層弱點增傷8%、最多5層',   d: '鎖鏈劍必定揭露弱點，最多5層；每層使最終傷害增加8%。' },
+        k_chainblade:  { n: '鎖刃精通', pos: 'left',   msg: '迅速累積弱點並強化屠宰者',   d: '鎖鏈劍能接連揭露敵人的弱點，屠宰者會利用每一道破綻造成更沉重的傷害。' },
         k_weakness:    { n: '弱點精通', pos: 'right',  msg: '所有近戰皆可揭露弱點',       d: '任何近戰兵刃都能撕開敵人的防勢，使後續攻擊更易命中，且屠宰者不再抹去既有破綻。' },
-        k_dragonblood: { n: '龍血精通', pos: 'bottom', msg: 'HP消耗降60%、藥水恢復+25%',                 d: '龍魔法只需支付原本40%的生命，治癒藥水恢復量增加25%。' }
+        k_dragonblood: { n: '龍血精通', pos: 'bottom', msg: '降低龍魔法代價並強化治癒',                 d: '淬鍊體內龍血，減輕施展龍魔法時的生命代價，也能更充分吸收治癒藥水。' }
     } },
     warrior: { logo: 'assets/logo/戰士logo.png', boss: '飛龍', list: {
         k_giantaxe: { n: '巨斧精通', pos: 'top',    msg: '以單手駕馭沉重巨斧',          d: '以驚人腕力單手揮舞原本需雙手持用的鈍器，精通迅猛雙斧後更能雙持巨兵。' },
         k_dualaxe:  { n: '雙斧精通', pos: 'left',   msg: '強化雙持、投斧與出血', d: '戰斧投擲不再消耗魔力，撕裂的傷口也更加嚴重；雙持鈍器時攻勢更為迅猛。' },
-        k_rebound:  { n: '反彈精通', pos: 'right',  msg: 'HP60%啟動、追打冷卻3秒',             d: '忍耐系能力在HP低於60%時啟動；觸發後的額外追打每3秒最多一次。' },
+        k_rebound:  { n: '反彈精通', pos: 'right',  msg: '更早喚醒忍耐並立即反攻',             d: '戰況轉危時便能喚醒忍耐之力，每次承受住致命攻勢，都會立即向敵人還以猛擊。' },
         k_tough:    { n: '堅韌精通', pos: 'bottom', msg: '危境中強化治癒與護甲',               d: '瀕臨危境時能更充分吸收治癒藥水，護甲身軀也能卸去更多傷害。' }
     } },
     royal: { logo: 'assets/logo/王族logo.png', boss: '飛龍', list: {

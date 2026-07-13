@@ -406,8 +406,8 @@ function allyQiguAttack(ally, t, wpn) {
     let core = roll(1, dice) * (1 + (d.magicDmg || 0) / 16);
     let raw = core + (d.extraMp || 0) + (d.extraDmg || 0);
     let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
-    let qiguMastery = (ally.mastery === 'i_qigu' && wpn.qigu);
-    let dmg = Math.max(1, Math.floor(raw * mrMult(qiguMastery ? effMr * 0.3 : effMr)));
+    let ignoreMr = (ally.mastery === 'i_qigu' && wpn.qigu);
+    let dmg = Math.max(1, Math.floor(raw * (ignoreMr ? 1 : mrMult(effMr))));
     let ele = 'none';
     { let _qa = ally.eq.wpn && getAttrAffix(ally.eq.wpn.attr); if (_qa) ele = _qa.ele; }   // 🔥 getAttrAffix：相容舊12代碼
     dmg = Math.max(1, Math.floor(dmg * wpnEnFinalMult(ally.eq.wpn)));
@@ -440,7 +440,7 @@ function allyQiguAttack(ally, t, wpn) {
         if (t.curHp > 0 && Math.random() < (1 + en) / 100) {
             let pd = 0, lb = '';
             if (wpn.qiguProc === 'phantom') { pd = 79 + roll(1, 81); lb = '幻影衝擊'; }
-            else if (wpn.qiguProc === 'mindbreak') { let _m = (t.st && t.st.mrhalf > 0) ? t.mr/2 : t.mr; if (ally.mastery === 'i_qigu' && wpn.qigu) _m *= 0.3; pd = Math.max(1, Math.floor((ally.mmp||0) * 0.05 * (1 + ((ally.d && ally.d.magicDmg) || 0) / 16) * mrMult(_m))); lb = '心靈破壞'; }   // 🔮 奇古獸精通穿透70% MR
+            else if (wpn.qiguProc === 'mindbreak') { let _m = (t.st && t.st.mrhalf > 0) ? t.mr/2 : t.mr; pd = Math.max(1, Math.floor((ally.mmp||0) * 0.05 * (1 + ((ally.d && ally.d.magicDmg) || 0) / 16) * ((ally.mastery==='i_qigu' && wpn.qigu)?1:mrMult(_m)))); lb = '心靈破壞'; }   // 🔮 比照技能：×(1+魔法傷害/16)
             if (pd > 0) { pd = Math.max(1, Math.floor(pd * fragileMult(t) * illuLvMult(ally) * enhanceWpnFinalMult(en, wpn))); pd = Math.max(1, Math.floor(pd * royalAllyMult()));   /* 👑 王族魅力加成：傭兵造成傷害 ×(1+魅力/100) */ t.curHp -= pd; t.justHit = 'magic'; mobWake(t); logCombat(`<span class="font-bold" style="color:#a78bfa;">【協力·${lb}】</span>對 <span class="${getMobColor(t.lv)}">${t.n}</span> 造成 ${pd} 點傷害！`, 'magic'); }
         }
     }
@@ -578,7 +578,7 @@ function allyAttackOnce(ally, _arrowDelay) {   // 🏹 v3.2.14 _arrowDelay(選�
         // 🔧 黑暗妖精傭兵：預設攻擊自動維持附加劇毒（學過 sk_dark_poison 即視為常駐增益）；命中 50%／劇毒精通 100% 使目標中毒（與玩家同規則）
         if (ally.cls === 'dark' && ally.skills && ally.skills.includes('sk_dark_poison') && t.curHp > 0 && Math.random() < (allyHasMastery(ally, 'd_poison') ? 1 : 0.5)) {
             if (!t.st) t.st = newMobStatus();
-            let _pPct = allyHasMastery(ally, 'd_poison') ? 0.8 : 0.6;   // 🔧 劇毒精通：每秒 80%；否則 60%
+            let _pPct = allyHasMastery(ally, 'd_poison') ? 2.0 : 0.6;   // 🔧 劇毒精通：每秒 200%；否則 60%
             let _pUnit = Math.max(1, Math.floor(dmg * _pPct * ((wpn && wpn.poisonMult) || 1)));   // 🏺 暗黑蠍的雙鉗：poisonMult 放大附加劇毒（傭兵鏡像玩家）
             // 🔧 新規則（與玩家一致）：未中毒、或新傷害高於現有時才上毒（取代並刷新5秒）；否則不更新，須等舊毒跑完
             if ((t.st.poison || 0) <= 0 || _pUnit > (t.st.poisonUnit || 0)) {
@@ -663,7 +663,6 @@ function allyCastMagic(ally, sk) {
     let texts = [], _burstDmg = 0;   // 🔧 神官魔杖·魔爆：累計本次魔法總傷害
     targets.forEach(t => {
         let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
-        if (ally.cls === 'elf' && allyHasMastery(ally, 'e_magic') && sk.ele && sk.ele !== 'none' && sk.ele === ally.elfEle) effMr *= 0.7;
         let mrFactor = mrMult(effMr);
         let isCrit = Math.random()*100 < (d.magicCrit||0);
         let critMult = isCrit ? (1 + (d.magicCritDmg||0)/100) : 1;
@@ -770,7 +769,7 @@ function allyCastNonDamage(ally, sk) {
     // 純異常狀態：所有存活目標皆已具該狀態 → 退回一般攻擊（不重複施放、不浪費 MP，與玩家 castSkill 8235 一致）
     if (sk.status && targets.every(m => m.st && m.st[sk.status.kind] > 0)) return false;
     let cost = Math.max(1, Math.ceil((sk.mp || 0) * (1 - (d.mpReduce || 0) / 100)));
-    if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
     if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半（與魔導精通疊加）
     if (allyHasMastery(ally, 'e_magic') && sk.ele && sk.ele !== 'none' && sk.ele === ally.elfEle) cost = Math.max(1, Math.ceil(cost * 0.5));   // 🏅 魔導精通（傭兵）：同屬性 MP -50%(2026-07 30%→50%)
@@ -807,7 +806,7 @@ function allyCastPhysicalSkill(ally, sk) {
     if (sk.reqWpn === 'w2h'    && !(wpn && wpn.w2h && !wpn.isBow)) return false;   // 需雙手武器（🛡️ v2.6.69 審計#4：且非弓·與玩家路徑一致）
     if (sk.reqWpn === 'bow'    && !(wpn && wpn.isBow))  return false;   // 需弓（🧹 v3.1.79 大掃除：移除 'nonbow' 死閘·全技能無此值）
     let cost = Math.max(1, Math.ceil((sk.mp || 0) * (1 - (d.mpReduce || 0) / 100)));
-    if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
     if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
     if ((ally.mp || 0) < cost) return false;
@@ -854,7 +853,7 @@ function allyMageAct(ally) {
     let d = ally.d || {};
     if (sk && sk.type === 'atk' && sk.dmgType !== 'physical' && (sk.dmgDice || sk.multiDmg)) {
         let cost = Math.max(1, Math.ceil((sk.mp || 0) * (1 - (d.mpReduce || 0) / 100)));
-        if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
         if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
         if ((ally.mp || 0) >= cost) { ally.mp -= cost; allyManaMasteryRefund(ally, cost); allyCastMagic(ally, sk); return; }
@@ -1369,7 +1368,7 @@ function allyReflectOnHit(ally, mob, dmgTaken, isMagic) {
         _allyDamageMob(ally, mob, _rf, 'magic');
     }
     { let _titanSk = isMagic ? 'sk_warrior_titan_magic' : 'sk_warrior_titan_rock';   // 泰坦：岩石(物理)/魔法(魔法)·HP<40%(反彈精通80%)·100%
-      if (ally.skills && ally.skills.includes(_titanSk) && mob.curHp > 0 && (ally.curHp || 0) < (ally.mhp || 1) * ((ally.cls === 'warrior' && allyHasMastery(ally, 'k_rebound')) ? 0.6 : 0.4)) {
+      if (ally.skills && ally.skills.includes(_titanSk) && mob.curHp > 0 && (ally.curHp || 0) < (ally.mhp || 1) * ((ally.cls === 'warrior' && allyHasMastery(ally, 'k_rebound')) ? 0.8 : 0.4)) {
         let _tr = Math.max(1, Math.floor(dmgTaken * _fm));
         logCombat(`<span class="font-bold" style="color:#d6d3d1;">【協力·${ally._allyName}·泰坦】</span>反彈 <span class="${getMobColor(mob.lv)}">${mob.n}</span> ${_tr} 點傷害。`, 'magic');
         _allyDamageMob(ally, mob, _tr, 'magic');
@@ -1490,7 +1489,7 @@ function allyDarkAct(ally) {
     if (ally._atkSkill === 'sk_dark_armorbreak') {
         let sk = DB.skills['sk_dark_armorbreak']; let d = ally.d || {};
         let cost = Math.max(1, Math.ceil(((sk && sk.mp) || 0) * (1 - (d.mpReduce || 0) / 100)));
-        if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
         if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
         if (sk && sk.status && !(t.st && t.st[sk.status.kind] > 0) && (ally.mp || 0) >= cost) {
@@ -1509,7 +1508,7 @@ function allyDarkAct(ally) {
         if (_sk && _sk.type === 'atk' && _sk.dmgType !== 'physical' && (_sk.dmgDice || _sk.multiDmg)) {
             // 🖤 v2.7.92 傷害魔法（光箭/冰箭/風刃/火箭/地獄之牙·黑妖 Lv12/24 可學）：比照騎士，MP 足夠優先施放（無法師倍率，由 allyCastMagic 依職業處理）。修稽核C類：原本只認 status/instakill→純傷害魔法默默退普攻
             let cost = Math.max(1, Math.ceil((_sk.mp || 0) * (1 - (d.mpReduce || 0) / 100)));
-            if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
             if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
             if ((ally.mp || 0) >= cost) { ally.mp -= cost; allyManaMasteryRefund(ally, cost); allyCastMagic(ally, _sk); return; }
@@ -1528,7 +1527,7 @@ function allyKnightAct(ally) {
             if (allyCastPhysicalSkill(ally, sk)) return;                                   // 衝擊之暈等物理技
         } else if (sk.dmgDice || sk.multiDmg) {
             let cost = Math.max(1, Math.ceil((sk.mp || 0) * (1 - (d.mpReduce || 0) / 100)));   // 騎士可學的傷害魔法（光箭/冰箭/風刃；無法師倍率，由 allyCastMagic 依職業處理）
-            if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
             if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
             if ((ally.mp || 0) >= cost) { ally.mp -= cost; allyManaMasteryRefund(ally, cost); allyCastMagic(ally, sk); return; }
@@ -1548,7 +1547,7 @@ function allyWarriorAct(ally) {
         let targets = mapState.mobs.filter(m => m && m.curHp > 0 && !m._dead);
         if (targets.length) {
             let cost = Math.max(1, Math.ceil((sk.mp || 0) * (1 - (d.mpReduce || 0) / 100)));
-            if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
             if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
             if ((ally.mp || 0) >= cost) {
@@ -1564,7 +1563,7 @@ function allyWarriorAct(ally) {
     } else if (sk && sk.type === 'atk' && sk.dmgType !== 'physical' && (sk.dmgDice || sk.multiDmg)) {
         // ⚔️ v2.7.92 傷害魔法（光箭/冰箭/風刃·戰士 Lv15 可學）：比照騎士，MP 足夠優先施放（無法師倍率，由 allyCastMagic 依職業處理）。修稽核C類：原本只認 roarFixed→三箭默默退普攻
         let cost = Math.max(1, Math.ceil((sk.mp || 0) * (1 - (d.mpReduce || 0) / 100)));
-        if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
         if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
         if ((ally.mp || 0) >= cost) { ally.mp -= cost; allyManaMasteryRefund(ally, cost); allyCastMagic(ally, sk); return; }
@@ -1594,7 +1593,7 @@ function allyRoyalAct(ally) {
     if (sk && sk.type === 'atk' && sk.callAllies) {                                          // 👑 呼喚盟友：號召所有傭兵各補一刀
         let allies = (player.allies || []).filter(a => a && a.curHp > 0);
         let cost = Math.max(1, Math.ceil((sk.mp || 0) * (1 - (d.mpReduce || 0) / 100)));
-        if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
         if (allyHasMastery(ally, 'k_royal_pledge')) cost = Math.ceil(cost / 2);              // 🏅 血盟精通（傭兵）：呼喚盟友消耗 MP 減半
         if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
@@ -1607,7 +1606,7 @@ function allyRoyalAct(ally) {
     } else if (sk && sk.type === 'atk' && sk.dmgType !== 'physical' && (sk.dmgDice || sk.multiDmg)) {
         // 👑 v2.7.92 傷害魔法（一二階＋魔法精通三~五階：光箭~冰錐/極道落雷/燃燒的火球…）：比照騎士，MP 足夠優先施放（無法師倍率，由 allyCastMagic 依職業處理）。修稽核C類：原本只認 callAllies→17 個可學法師魔法全默默退普攻
         let cost = Math.max(1, Math.ceil((sk.mp || 0) * (1 - (d.mpReduce || 0) / 100)));
-        if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
         if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
         if ((ally.mp || 0) >= cost) { ally.mp -= cost; allyManaMasteryRefund(ally, cost); allyCastMagic(ally, sk); return; }
@@ -1655,7 +1654,7 @@ function allyIllusionAct(ally) {
             if (allyCastPhysicalSkill(ally, sk)) return;
         } else if (sk.dmgDice || sk.multiDmg) {                     // 混亂/幻想（傷害魔法 + 附帶 混亂/沉睡，由 allyCastMagic 套狀態）
             let cost = (sk.mp || 0) > 0 ? Math.max(1, Math.ceil(sk.mp * (1 - (d.mpReduce || 0) / 100))) : 0;
-            if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
             if (cost > 0 && ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
             if ((ally.mp || 0) >= cost) { ally.mp -= cost; allyManaMasteryRefund(ally, cost); allyCastMagic(ally, sk); return; }
@@ -1677,7 +1676,7 @@ function _allyWpnFullHpMpHalf(ally, cost) {
 }
 function allyManaMasteryRefund(ally, spent) {
     if (!spent || spent <= 0 || !allyHasMastery(ally, 'i_mana')) return;
-    let give = Math.max(1, Math.floor(spent * 0.15));
+    let give = Math.max(1, Math.floor(spent * 0.10));
     if (player && (player.mmp || 0) > 0 && !player.dead) player.mp = Math.min(player.mmp, (player.mp || 0) + give);
     (player.allies || []).forEach(a => { if (a && a !== ally && !a._downed && (a.mmp || 0) > 0) a.mp = Math.min(a.mmp, (a.mp || 0) + give); });
 }
@@ -1784,7 +1783,7 @@ function allyCastCrush(ally, sk) {
     let t = getTarget(); if (!t || t.curHp <= 0) return false;
     let d = ally.d || {};
     let cost = (sk.mp || 0) > 0 ? Math.max(1, Math.ceil(sk.mp * (1 - (d.mpReduce || 0) / 100))) : 0;
-    if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
     if ((ally.mp || 0) < cost) return false;
     ally.mp -= cost; allyManaMasteryRefund(ally, cost);
@@ -1817,7 +1816,7 @@ function allyCastFixedStatus(ally, sk) {
     if (sk.noRecastStatus && t.st && t.st[sk.noRecastStatus] > 0) return false;   // 已有狀態：不重複（不耗 MP）
     let d = ally.d || {};
     let cost = (sk.mp || 0) > 0 ? Math.max(1, Math.ceil(sk.mp * (1 - (d.mpReduce || 0) / 100))) : 0;
-    if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
     if ((ally.mp || 0) < cost) return false;
     ally.mp -= cost; allyManaMasteryRefund(ally, cost);
@@ -1838,7 +1837,7 @@ function allyCastSlaughter(ally, sk) {
     if (!wpn || wpn.isBow || wpn.ranged) return false;   // 需近距離武器
     let d = ally.d || {};
     let cost = (sk.mp || 0) > 0 ? Math.max(1, Math.ceil(sk.mp * (1 - (d.mpReduce || 0) / 100))) : 0;
-    if (allyHasMastery(ally, 'i_mana')) cost = Math.ceil(cost * 1.75);
+    if (allyHasMastery(ally, 'i_mana')) cost *= 2;
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
     if ((ally.mp || 0) < cost) return false;
     ally.mp -= cost; allyManaMasteryRefund(ally, cost);
