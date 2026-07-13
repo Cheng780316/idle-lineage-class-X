@@ -1077,7 +1077,7 @@ const DB = {
         "scroll_armor_c": { n: "詛咒的 對盔甲施法的卷軸", p: 33334, c: "c-cursed", d: "纏繞格蘭肯氣息的卷軸，會削弱防具上既有的強化魔力。", isC: true, gachaWeight: 20 },
         "scroll_acc": { n: "對飾品施法的卷軸", p: 50000, c: "text-white", d: "專為飾品刻寫的強化卷軸，細小的器物難以承受失控的魔力。", gachaWeight: 10 },
         "scroll_equip_protect": { n: "裝備保護卷軸", type: "misc", p: 500000, c: "text-white", img: "assets/icons/items/裝備保護卷軸.jpg", protectScroll: true, noUse: true, noSell: true, gachaWeight: 0, d: "頭目低機率掉落。限+11以上武器或+9以上防具使用；成功時強化值+1，失敗時裝備不會消失，但強化值-1。" },
-        "scroll_equip_protect_b": { n: "祝福裝備保護卷軸", type: "misc", p: 1000000, c: "text-yellow-300", img: "assets/icons/items/裝備保護卷軸.jpg", protectScroll: true, isB: true, noUse: true, noSell: true, gachaWeight: 0, d: "沉默洞穴可羅蘭斯製作。限+11以上武器或+9以上防具使用；成功時強化值+1，失敗時裝備不會消失，強化值維持不變。" },
+        "scroll_equip_protect_b": { n: "祝福的 裝備保護卷軸", type: "misc", p: 1000000, c: "text-yellow-300", img: "assets/icons/items/裝備保護卷軸.jpg", protectScroll: true, isB: true, noUse: true, noSell: true, gachaWeight: 0, d: "沉默洞穴可羅蘭斯製作。限+11以上武器或+9以上防具使用；成功時強化值+1，失敗時裝備不會消失，強化值維持不變。" },
         // ===== 🔥 屬性強化卷軸（v3.0.77 屬性強化系統）：怪物掉落·於象牙塔『碧恩』對裝備中武器使用·7% 獨立事件·失敗僅消耗卷軸 =====
         "scroll_attr_fire":  { n: "火之武器強化卷軸", type: "misc", p: 100000, c: "c-attr-fr3", noUse: true, gachaWeight: 0, d: "封存帕格里奧烈焰的卷軸，可交由象牙塔的碧恩嘗試將火之力灌入武器。" },
         "scroll_attr_water": { n: "水之武器強化卷軸", type: "misc", p: 100000, c: "c-attr-wa3", noUse: true, gachaWeight: 0, d: "封存伊娃潮汐的卷軸，可交由象牙塔的碧恩嘗試將水之力灌入武器。" },
@@ -2432,7 +2432,7 @@ const DB = {
                 { id: "npc_wh_silent", n: "雷亞斯", title: "倉庫", type: "warehouse", d: "存放物品與金幣，四個存檔角色共用。" },
                 { id: "npc_saedia", n: "賽帝亞", title: "魔法商人", type: "shop", d: "通曉暗影晶體的賽帝亞。販賣黑暗精靈水晶。" },
                 { id: "npc_kupu", n: "庫普", title: "製作", type: "craft", d: "黑暗妖精的鋒刃巨匠庫普，以銀與暗影鍛造致命之器。鍛造銀與黑暗妖精的鋼爪、雙刀、十字弓。" },
-                { id: "npc_kororanz", n: "可羅蘭斯", title: "製作", type: "craft", d: "鑽研拉斯塔巴德古史的鍛造師可羅蘭斯。可用10張裝備保護卷軸與1,000萬金幣製作祝福裝備保護卷軸，也能製作拉斯塔巴德傳說武器。" },
+                { id: "npc_kororanz", n: "可羅蘭斯", title: "製作", type: "craft", d: "鑽研拉斯塔巴德古史的鍛造師可羅蘭斯。可用10張裝備保護卷軸與1,000萬金幣製作祝福的 裝備保護卷軸，也能製作拉斯塔巴德傳說武器。" },
                 { id: "npc_runde", n: "倫得", title: "試煉", type: "quest", darkOnly: true, d: "黑暗妖精的 30 級試煉：達等級後接取任務，呈上以鮮血締結的死亡誓約，換得潛行於暗影中的影子手套。" },
                 { id: "npc_kang", n: "康", title: "試煉", type: "quest", darkOnly: true, d: "黑暗妖精的 15 級試煉：達等級後接取任務，獻上妖魔長老首級為憑，換得隱沒氣息的影子面具。" },
                 { id: "npc_brudica", n: "布魯迪卡", title: "試煉", type: "quest", darkOnly: true, d: "黑暗妖精的 45 級試煉：達等級後接取任務，帶回雪怪首級換得影子長靴；並主持黑暗妖精的 50 級試煉。" }

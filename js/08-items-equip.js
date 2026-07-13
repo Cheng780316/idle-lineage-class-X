@@ -198,8 +198,8 @@ function getGlowClass(item, d) {
     // 🔮 席琳套裝效果裝備：套裝光芒優先於傳說圖示光（名稱仍由 getItemColor 決定為琥珀金）
     if (item && item.seteff) return 'sherine-glow-icon';
     if ((item && item.id === 'wpn_manadagger') || (d && d.n === '魔力短劍')) return 'mana-glow';   // 🔧 魔力短劍：專屬藍色圖示光芒（凌駕傳說琥珀金光）
-    // 祝福裝備保護卷軸：使用專屬強金光，避免一般背包格裁切後看不出黃色光暈。
-    if ((item && item.id === 'scroll_equip_protect_b') || (d && d.protectScroll && d.isB)) return 'protect-scroll-bless-glow';
+    // 祝福的裝備保護卷軸：沿用「祝福的 對武器施法的卷軸」相同金色光暈。
+    if ((item && item.id === 'scroll_equip_protect_b') || (d && d.protectScroll && d.isB)) return 'bless-glow';
     if (d && d.relic) return 'relic-glow';   // 🏺 遺物：海藍色圖示光芒
     if (d && d.legend) return 'legend-glow';   // 🏅 傳說武器：琥珀金圖示光芒
     let bless = (item && item.bless) || (d && d.isB);
