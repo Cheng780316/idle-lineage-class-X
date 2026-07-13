@@ -427,7 +427,7 @@ function allyQiguAttack(ally, t, wpn) {
         let _last = t._allyQiguMentalTicks[_key];
         if ((_last == null || _now - _last >= 10) && Math.random() < 0.20) {
             t._allyQiguMentalTicks[_key] = _now;
-            let _rd = Math.max(1, Math.floor(dmg * 0.50)), _mp = Math.max(1, Math.floor((ally.mmp || 1) * 0.02));
+            let _rd = Math.max(1, Math.floor(dmg * 0.75)), _mp = Math.max(1, Math.floor((ally.mmp || 1) * 0.02));
             t.curHp -= _rd; t.justHit = 'magic'; mobWake(t);
             ally.mp = Math.min(ally.mmp || 1, (ally.mp || 0) + _mp);
             if (typeof playSpellFx === 'function') { try { playSpellFx('精神共鳴', t); } catch(e){} }

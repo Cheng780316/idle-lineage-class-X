@@ -705,7 +705,7 @@ DB.items.god_elf_obsession.d += ' 武器特性：弓箭連射（100%）。';
 DB.items.wpn_gaia_rage.d += ' 武器特性：弓箭連射（100%）。';
 Object.keys(DB.items).forEach(function(id) {
     let d = DB.items[id];
-    if (d && d.mentalResonance && !(d.d || '').includes('精神共鳴')) d.d = (d.d || '') + ' 武器特性：精神共鳴（20%追加50%傷害並恢復最大MP 2%，同目標冷卻1秒）。';
+    if (d && d.mentalResonance && !(d.d || '').includes('精神共鳴')) d.d = (d.d || '') + ' 武器特性：精神共鳴（20%追加75%傷害並恢復最大MP 2%，同目標冷卻1秒）。';
 });
 DB.items.god_dark_dantes.d += ' 武器特性：雙刀雙擊（50%）。';
 DB.items.god_warrior_fear.d += ' 武器特性：單手斧粉碎與鈍擊。';

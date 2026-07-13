@@ -1440,12 +1440,12 @@ function qiguPlayerAttack(target, wpn) {
     if (target.st && target.st.mrhalf > 0) target.st.mrhalf = 0;
     mobWake(target);
     logCombat(`<span class="font-bold" style="color:#c4b5fd;text-shadow:0 0 6px #8b5cf6;">【幻術士】</span>奇古獸對 <span class="${getMobColor(target.lv)}">${target.n}</span> 造成 ${dmg} 點魔法傷害。`, 'magic');
-    // 🔮 所有奇古獸共通「精神共鳴」：20% 追加本次傷害50%並恢復最大MP 2%；同目標冷卻1秒
+    // 🔮 所有奇古獸共通「精神共鳴」：20% 追加本次傷害75%並恢復最大MP 2%；同目標冷卻1秒
     if (wpn.mentalResonance && target.curHp > 0) {
         let _now = state.ticks || 0, _last = target._qiguMentalTick;
         if ((_last == null || _now - _last >= 10) && Math.random() < 0.20) {
             target._qiguMentalTick = _now;
-            let _rd = Math.max(1, Math.floor(dmg * 0.50)), _mp = Math.max(1, Math.floor((player.mmp || 1) * 0.02));
+            let _rd = Math.max(1, Math.floor(dmg * 0.75)), _mp = Math.max(1, Math.floor((player.mmp || 1) * 0.02));
             target.curHp -= _rd; target.justHit = 'magic'; mobWake(target);
             player.mp = Math.min(player.mmp, player.mp + _mp);
             if (typeof playSpellFx === 'function') { try { playSpellFx('精神共鳴', target); } catch(e){} }
