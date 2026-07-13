@@ -1010,8 +1010,8 @@ function _allyProcWeaponSpellHit(ally, t, sp, en) {
     let d = ally.d || {};
     let _godTier = !!(ally.eq && ally.eq.wpn && DB.items[ally.eq.wpn.id] && DB.items[ally.eq.wpn.id].godWeapon);
     let base = roll(sp.dice[0], sp.dice[1] + (_godTier ? 2 : 0)) + (sp.flat || 0);   // 神話武器 PVE 基礎魔法提高一階：骰面+2
-    let core = base * (sp.ignoreMagicPower ? 1 : (1 + 3 * (d.magicDmg || 0) / 16));   // 神話武器 PVE「憤怒」多數依官方規則不受持有者 INT／SP 影響
-    let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
+    let core = base * weaponSpellPowerMult(d, sp);   // 與玩家一致：泰坦之怒吃 STR＋近傷，其餘吃既有魔傷設定
+    let effMr = weaponSpellEffectiveMr(t, sp);   // 與玩家一致：支援黑暗隕石 MR 穿透
     let mrFactor = mrMult(effMr);
     let _cm = elementCounterMult(sp.ele, t.e);   // ⚔️ 屬性剋制倍率（取代舊 +6 固定加值）
     let dd = Math.floor(core * mrFactor) - (t.dr || 0);
@@ -1058,7 +1058,7 @@ function allyProcFreeMagicSkill(ally, t, skId, en, areaHit) {
     let mrFactor = mrMult(effMr);
     let isCrit = Math.random() * 100 < (d.magicCrit || 0);
     let tier = sk.tier || 1;
-    let spCoef = (1 + (3 * (d.magicDmg || 0) / 16));   // 🔧 武器特效：不吃法師技能階級係數(1+tier/3)（與 mageMult 一同移除）
+    let spCoef = (1 + (3 * (d.magicDmg || 0) / 16)) * (sk.procUseTierCoef ? (1 + tier / 3) : 1);   // 致命落雷吃六階×3；其他武器特效維持不吃階級係數
     let mageDmgMult = 1.0;   // 🔧 傭兵武器免費施法(冰之女王魔杖等)為武器特效，不再吃法師「法術階級加成」(1.5+階/20)
     let critMult = isCrit ? (1 + (d.magicCritDmg || 0) / 100) : 1.0;
     let dmgArray = sk.multiDmg || (sk.dmgDice ? [[sk.dmgDice[0], sk.dmgDice[1]]] : []);

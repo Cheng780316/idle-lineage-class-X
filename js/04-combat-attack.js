@@ -492,7 +492,7 @@ function procFreeMagicSkill(t, skId, en, areaHit) {
     let mrFactor = mrMult(effMr);
     let isCrit = Math.random() * 100 < player.d.magicCrit;
     let tier = sk.tier || 1;
-    let spCoef = (1 + (3 * player.d.magicDmg / 16));   // 🔧 武器特效：不吃法師技能階級係數(1+tier/3)（與 mageMult 一同移除）
+    let spCoef = (1 + (3 * player.d.magicDmg / 16)) * (sk.procUseTierCoef ? (1 + tier / 3) : 1);   // 致命落雷吃六階×3；其他武器特效維持不吃階級係數
     let mageDmgMult = 1.0;   // 🔧 武器觸發特效不再吃法師「法術階級加成」(1.5+階/20)；該加成僅限法師自己消耗 MP 施放的法術
     let critMult = isCrit ? (1 + player.d.magicCritDmg / 100) : 1.0;
     let dmgArray = sk.multiDmg || (sk.dmgDice ? [[sk.dmgDice[0], sk.dmgDice[1]]] : []);
@@ -587,13 +587,25 @@ function allyDollDamageReduced(ally, dmg) {
     }
     return dmg;
 }
+// 武器附魔的能力倍率：一般魔法吃魔法傷害；泰坦之怒改由 STR 與近戰傷害共同增幅。
+// meleeScale 公式刻意採較平緩曲線，避免近戰傷害本身已含 STR 後再次過度放大。
+function weaponSpellPowerMult(stats, sp) {
+    stats = stats || {};
+    if (sp && sp.meleeScale) return 1 + (stats.str || 0) / 40 + (stats.meleeDmg || 0) / 30;
+    return (sp && sp.ignoreMagicPower) ? 1 : (1 + 3 * (stats.magicDmg || 0) / 16);
+}
+function weaponSpellEffectiveMr(t, sp) {
+    let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
+    let pen = Math.max(0, Math.min(95, (sp && sp.mrPenPct) || 0));
+    return effMr * (1 - pen / 100);
+}
 // 單體：對 t 計算並套用一次附魔施放傷害（不負責 render；回傳是否擊殺）。aoe 由 procWeaponSpell 統一在外層迴圈處理。
 function _procWeaponSpellHit(t, sp, en) {
     if (!t || t.curHp <= 0) return false;
     let _godTier = !!(player.eq.wpn && DB.items[player.eq.wpn.id] && DB.items[player.eq.wpn.id].godWeapon);
     let base = roll(sp.dice[0], sp.dice[1] + (_godTier ? 2 : 0)) + (sp.flat || 0);   // 神話武器 PVE 基礎魔法提高一階：骰面+2（D18→D20、D20→D22）
-    let core = base * (sp.ignoreMagicPower ? 1 : (1 + 3 * (player.d.magicDmg || 0) / 16));   // 神話武器 PVE「憤怒」多數依官方規則不受持有者 INT／SP 影響
-    let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
+    let core = base * weaponSpellPowerMult(player.d, sp);   // 泰坦之怒吃 STR＋近傷；其餘依既有魔傷／神話忽略魔傷設定
+    let effMr = weaponSpellEffectiveMr(t, sp);   // 海柏利昂·黑暗隕石可由 mrPenPct 穿透部分 MR
     let mrFactor = mrMult(effMr);
     let _cm = elementCounterMult(sp.ele, t.e);   // ⚔️ 屬性剋制倍率 ×1.4(剋)/×0.6(被剋)/×1
     let d = Math.floor(core * mrFactor) - (t.dr || 0);
