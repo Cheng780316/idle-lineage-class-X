@@ -479,12 +479,12 @@ const GOD_WEAPON_CRAFT_RECIPES = [
 function godWeaponCraftSources(r) { return r.sources || [{ id: r.src, n: r.srcName }]; }
 function findGodWeaponCraftSource(r) {
     for (let opt of godWeaponCraftSources(r)) {
-        let src = (player.inv || []).find(i => i.id === opt.id && (i.en || 0) === 15 && !i.lock);
+        let src = (player.inv || []).find(i => i.id === opt.id && (i.en || 0) === 15 && i.bless === true && !i.lock);
         if (src) return src;
     }
     try { for (let opt of godWeaponCraftSources(r)) {
         let wh = loadWarehouse();
-        let whSrc = (wh.items || []).find(i => i.id === opt.id && (i.en || 0) === 15 && !i.lock);
+        let whSrc = (wh.items || []).find(i => i.id === opt.id && (i.en || 0) === 15 && i.bless === true && !i.lock);
         if (whSrc) return Object.assign({}, whSrc, { _whSource: true });
     } } catch (e) {}
     return null;
@@ -493,15 +493,15 @@ function buildGodWeaponCraftHTML() {
     let hearts = invCountId('heart_halphas'), gold = invCountId('gold');
     let matsOk = hearts >= 50 && gold >= 1000000000;
     let html = `<div class="text-amber-300 font-bold text-base mt-5 mb-2 px-1 border-t border-amber-800 pt-4">⚒️ 神話武器製作</div>
-        <div class="text-xs text-slate-400 mb-3">每把需要指定的 +15 武器、哈爾巴斯之心×50、金幣10億；基底武器可放在背包或共用倉庫，鎖定及已裝備的武器不會被消耗。</div>`;
+        <div class="text-xs text-slate-400 mb-3">每把需要指定的祝福的 +15 武器、哈爾巴斯之心×50、金幣10億；基底武器可放在背包或共用倉庫，鎖定及已裝備的武器不會被消耗。製作完成的神話武器必定為祝福的。</div>`;
     GOD_WEAPON_CRAFT_RECIPES.forEach((r, idx) => {
         let d = DB.items[r.result], src = findGodWeaponCraftSource(r), canMake = matsOk && !!src;
         let srcNames = godWeaponCraftSources(r).map(s => s.n).join(' 或 ');
         let reqHtml = craftReqHtml(GOD_WEAPON_CRAFT_MATS)
-            + `<span class="text-slate-500 mx-2 leading-none">+</span><span class="text-sm font-bold leading-none ${src ? 'text-green-400' : 'text-red-400'}">+15 ${srcNames} ×1</span>`;
+            + `<span class="text-slate-500 mx-2 leading-none">+</span><span class="text-sm font-bold leading-none ${src ? 'text-green-400' : 'text-red-400'}">祝福的 +15 ${srcNames} ×1</span>`;
         html += `<div class="list-item bg-slate-800 rounded mb-2 border border-amber-900 p-3 flex items-center justify-between gap-3">
             <div class="flex items-center gap-4 min-w-0 flex-1"><div class="w-12 h-12 bg-slate-900 rounded border border-slate-600 flex items-center justify-center shrink-0 tip-host"><img src="${getIconUrl(d)}" onerror="this.style.display='none';" class="w-10 h-10 object-contain pointer-events-none"></div>
-            <div class="flex flex-col items-start gap-1.5"><span class="${getItemColor({ id: r.result })} font-bold text-lg leading-none truncate">${d.n}</span><div class="flex items-center gap-2 flex-wrap"><span class="text-slate-400 text-sm">需求：</span>${reqHtml}</div></div></div>
+            <div class="flex flex-col items-start gap-1.5"><span class="font-bold text-lg leading-none truncate"><span class="c-blessed">祝福的 </span><span class="${getItemColor({ id: r.result })}">${d.n}</span></span><div class="flex items-center gap-2 flex-wrap"><span class="text-slate-400 text-sm">需求：</span>${reqHtml}</div></div></div>
             <button class="btn ${canMake ? 'bg-amber-700 hover:bg-amber-600 border-amber-500' : 'bg-slate-700 border-slate-600 opacity-60'} py-2 px-6 font-bold shadow" ${canMake ? '' : 'disabled'} onclick="doGodWeaponCraft(${idx})">製作</button>
         </div>`;
     });
@@ -511,7 +511,7 @@ function doGodWeaponCraft(idx) {
     let r = GOD_WEAPON_CRAFT_RECIPES[idx];
     if (!r) return;
     let src = findGodWeaponCraftSource(r), lack = [], srcNames = godWeaponCraftSources(r).map(s => s.n).join(' 或 ');
-    if (!src) lack.push(`+15 ${srcNames} ×1`);
+    if (!src) lack.push(`祝福的 +15 ${srcNames} ×1`);
     if (invCountId('heart_halphas') < 50) lack.push(`哈爾巴斯之心 ${50 - invCountId('heart_halphas')}`);
     if (invCountId('gold') < 1000000000) lack.push(`金幣 ${1000000000 - invCountId('gold')}`);
     if (lack.length) { logSys(`<span class="text-red-400 font-bold">材料不足，無法製作神話武器。</span><span class="text-red-300">（尚缺：${lack.join('、')}）</span>`); return; }
@@ -520,10 +520,10 @@ function doGodWeaponCraft(idx) {
     if (src._whSource) whRemoveStackByUid(src.uid, 1);
     else if ((src.cnt || 1) > 1) src.cnt -= 1;
     else player.inv = player.inv.filter(i => i.uid !== src.uid);
-    let inst = { id: r.result, uid: uid(), cnt: 1, en: 0, attr: false, bless: false, anc: false, seteff: false, lock: false };
+    let inst = { id: r.result, uid: uid(), cnt: 1, en: 0, attr: false, bless: true, anc: false, seteff: false, lock: false };
     player.inv.push(inst);
     if (typeof registerEquipObtained === 'function') registerEquipObtained(inst.id);
-    logSys(`<span class="text-amber-300 font-bold">神龍鐵匠赫爾完成神話鍛造！</span> 獲得 <span class="${getItemColor(inst)} font-bold">${DB.items[inst.id].n}</span>。`);
+    logSys(`<span class="text-amber-300 font-bold">神龍鐵匠赫爾完成神話鍛造！</span> 獲得 <span class="font-bold">${getItemFullName(inst)}</span>。`);
     updateUI(); renderTabs(true); saveGame();
     renderUniversalCraft(document.getElementById('interaction-content'), 'npc_halphas_smith');
 }
