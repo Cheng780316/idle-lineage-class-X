@@ -1410,8 +1410,10 @@ function qiguPlayerAttack(target, wpn) {
     if (target.curHp === target.hp && target.beh === '被動') target._delayTicks = 30;   // 命中滿血被動怪：3秒延遲（同魔法攻擊）
     if (wpn && wpn.procInstakill) { let _pk = wpn.procInstakill; let _thp = target.hp || 1; if ((!_pk.maxLv || target.lv <= _pk.maxLv) && tryInstakill(target, { p: _pk.p, tag: _pk.tag || null }, wpn.n, mapState.targetIdx)) { if (_pk.healPct) { player.hp = Math.min(player.mhp, player.hp + Math.max(1, Math.floor(_thp * _pk.healPct))); updateUI(); } return; } }   // 🏺 遺物 曼陀羅之靈：奇古獸即死 proc（playerAttack 的 procInstakill 早退在 qigu 分支前→此處補上·傭兵版走 allyWeaponProcs 已含）；🐍 阿茲特獻祭亡靈 healPct：即死恢復被消滅敵人 HP%
     if (player.d.instakillFull && target.curHp === target.hp && tryInstakill(target, { p: player.d.instakillFull, tag: null }, '隱蔽的死亡草葉', mapState.targetIdx)) return;   // 🏺 遺物 隱蔽的死亡草葉：奇古獸普攻命中滿血怪即死（斗篷 req:all·幻術士亦可穿）
-    let _qEn = capWpnEn((player.eq.wpn && player.eq.wpn.en) || 0);
-    let dice = ((target.s === 'L') ? wpn.dmgL : wpn.dmgS) + _qEn * (wpn.qiguDmgPerEn || 0);
+    let _qEn = capEn((player.eq.wpn && player.eq.wpn.en) || 0, wpn);
+    let dice = ((target.s === 'L') ? wpn.dmgL : wpn.dmgS)
+             + enhanceWpnBonus(_qEn).dmg                         // 天堂原始武器強化：每階傷害 +1
+             + _qEn * (wpn.qiguDmgPerEn || 0);                  // 特定奇古獸專屬額外成長
     let core = roll(1, dice) * (1 + (d.magicDmg || 0) / 16);
     let raw = core + (d.extraMp || 0) + (d.extraDmg || 0);
     let effMr = (target.st && target.st.mrhalf > 0) ? (target.mr / 2) : target.mr;

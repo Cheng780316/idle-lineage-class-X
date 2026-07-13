@@ -359,8 +359,10 @@ function allyQiguAttack(ally, t, wpn) {
         let _thp = t.hp || 1;   // 🐍 v3.1.76 獻祭 healPct：先取被消滅敵人最大HP（鏡像玩家 js/04）
         if ((!_pk.maxLv || t.lv <= _pk.maxLv) && (!_pk.hpBelow || t.curHp <= Math.max(1, Math.floor((t.hp || 1) * _pk.hpBelow)))) { let _ri = mapState.mobs.findIndex(m => m && m.uid === t.uid); if (_ri !== -1 && tryInstakill(t, { p: _pk.p, tag: _pk.tag || null }, `【協力·${ally._allyName}】${wpn.n}`, _ri)) { if (_pk.healPct) ally.curHp = Math.min(ally.mhp || 1, (ally.curHp || 0) + Math.max(1, Math.floor(_thp * _pk.healPct))); return; } }   // 🏺 v3.1.80 hpBelow：僅對 HP 低於 N% 目標觸發（鏡像玩家）
     }
-    let _qEn = capWpnEn((ally.eq.wpn && ally.eq.wpn.en) || 0);
-    let dice = ((t.s === 'L') ? wpn.dmgL : wpn.dmgS) + _qEn * (wpn.qiguDmgPerEn || 0);
+    let _qEn = capEn((ally.eq.wpn && ally.eq.wpn.en) || 0, wpn);
+    let dice = ((t.s === 'L') ? wpn.dmgL : wpn.dmgS)
+             + enhanceWpnBonus(_qEn).dmg                         // 天堂原始武器強化：每階傷害 +1
+             + _qEn * (wpn.qiguDmgPerEn || 0);                  // 特定奇古獸專屬額外成長
     let core = roll(1, dice) * (1 + (d.magicDmg || 0) / 16);
     let raw = core + (d.extraMp || 0) + (d.extraDmg || 0);
     let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;

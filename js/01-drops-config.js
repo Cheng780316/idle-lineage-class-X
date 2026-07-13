@@ -1765,16 +1765,11 @@ function sanitizeState() {
     if (Array.isArray(player.inv)) player.inv.forEach(clampEn);
     if (player.eq) for (let k in player.eq) clampEn(player.eq[k]);
 }
-// 武器強化 → { dmg:額外傷害, hit:額外命中 }
-//  +0~+10：每階 額外傷害+1、額外命中+1（線性）。
-//  +11~+20：取消額外傷害加成（額外傷害維持在 +10 的量＝10）；額外命中沿用「累積」（在 +10 之上再加下表）；
-//           傷害成長改由「最終傷害倍率」提供（enhanceWpnFinalMult，非累加、取該階段數值）。
-const WPN_EN_HIT_OVER10 = { 11:1, 12:2, 13:4, 14:6, 15:8, 16:11, 17:14, 18:17, 19:21, 20:25 };   // +11~+20 額外命中（超過 +10 的「累加」量；每階增量 1,1,2,2,2,3,3,3,4,4 逐級累加 → 總命中 +11/+12/+14/+16/+18/+21/+24/+27/+31/+35）
+// 武器原始強化 → 每階固定「傷害 +1、命中 +1」，至全域武器上限 +15 全程線性。
+// 武器自己的額外成長另由 enDmgExtra / qiguDmgPerEn 等欄位疊加，不能取代這個原始加成。
 function enhanceWpnBonus(en) {
-    en = Math.max(0, Number(en) || 0);
-    let base = Math.min(en, 10);                                                            // +10 以內：每階 +1
-    let hitOver = (en > 10) ? (WPN_EN_HIT_OVER10[Math.min(en, 20)] || 0) : 0;               // +11~+20：額外命中累積
-    return { dmg: Math.min(en, 20), hit: base + hitOver };                                  // 🔧 額外傷害每階+1、全程延伸到+20（原+10封頂取消）；額外命中+1~+10後依表續加（最高總+35@+20）
+    en = Math.min(ENHANCE_CAP.wpn, Math.max(0, Number(en) || 0));
+    return { dmg: en, hit: en };
 }
 // 武器強化 → 最終傷害倍率（一般物理攻擊）；+1~+20「取該階段數值」（非累加），+0 為 1.0
 // 基準曲線（最高檔）：+1 ×1.02（平緩）→ +10 ×1.37 → +20 ×2.50（爆發）；總數值 100→250 對應的倍率（總數值/100）。

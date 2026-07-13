@@ -683,6 +683,9 @@ const WEAPON_TAGS = {
 DB.items.god_knight_judgment.eff = 'cleave';          // 雙手劍：切割
 DB.items.god_elf_obsession.rapidfire = 100;           // 弓：連射必定發動
 DB.items.wpn_gaia_rage.rapidfire = 100;               // 大地女神的激怒：連射必定發動
+// 神話武器只能由席琳神殿赫爾以哈爾巴斯之心專用強化，最高 +10；一般強化介面仍保持禁用。
+['god_royal_flash','god_knight_judgment','god_elf_obsession','god_mage_eva','god_dark_dantes','god_illusion_theia','god_dragon_aurakia','god_warrior_fear']
+    .forEach(function(id) { if (DB.items[id]) DB.items[id].maxEn = 10; });
 // 🏛️ 暫時測試：可羅蘭斯製作的 9 把武器安定值提高為 +15（底層資料保留安定 6，方便之後恢復）。
 ['wpn_emperor_blade','wpn_windblade_dagger','wpn_redshadow_dual','wpn_beastking_claw','wpn_holycrystal_wand','wpn_gaia_rage','wpn_hyperion_despair','wpn_cronos_fear','wpn_titan_rage']
     .forEach(function(id) { if (DB.items[id]) DB.items[id].safe = 15; });
@@ -736,12 +739,17 @@ function buildItemDescHTML(item) {
              + (desc ? `<br>${desc}` : '');
     }
     if(d.type === 'wpn') {
-        let _wpnEn = ((Number(item.en) || 0) > 0 && (!d.noEnhance || d.godWeapon)) ? capWpnEn(item.en) : 0;
+        let _wpnEn = ((Number(item.en) || 0) > 0 && (!d.noEnhance || d.godWeapon)) ? capEn(item.en, d) : 0;
         let _wpnEnBonus = enhanceWpnBonus(_wpnEn);
-        let _wpnDmgTotal = d.qigu ? (_wpnEn * (d.qiguDmgPerEn || 0)) : (_wpnEnBonus.dmg + _wpnEn * (d.enDmgExtra || 0));
-        let _wpnHitTotal = _wpnEnBonus.hit + Math.floor(_wpnEn / 2) * (d.enHitEvery2 || 0);
-        let _wpnDmgSuffix = _wpnDmgTotal > 0 ? `+${_wpnDmgTotal}` : '';
-        desc += `<br><span class="text-orange-300">小型傷害: ${d.dmgS}${_wpnDmgSuffix} / 大型傷害: ${d.dmgL}${_wpnDmgSuffix}</span>`;
+        let _wpnSpecialDmg = _wpnEn * (d.qigu ? (d.qiguDmgPerEn || 0) : (d.enDmgExtra || 0));
+        let _wpnDmgTotal = _wpnEnBonus.dmg + _wpnSpecialDmg;
+        let _wpnHitTotal = d.qigu ? 0 : (_wpnEnBonus.hit + Math.floor(_wpnEn / 2) * (d.enHitEvery2 || 0));   // 奇古獸必中，不顯示無作用的物理命中
+        if (_wpnDmgTotal > 0) {
+            desc += `<br><span class="text-orange-300">小型傷害: ${(d.dmgS || 0) + _wpnDmgTotal}（${d.dmgS}+${_wpnDmgTotal}） / 大型傷害: ${(d.dmgL || 0) + _wpnDmgTotal}（${d.dmgL}+${_wpnDmgTotal}）</span>`;
+            desc += `<br><span class="text-amber-300">強化傷害 +${_wpnDmgTotal}（原始強化 +${_wpnEnBonus.dmg}${_wpnSpecialDmg ? `、武器專屬 +${_wpnSpecialDmg}` : ''}）</span>`;
+        } else {
+            desc += `<br><span class="text-orange-300">小型傷害: ${d.dmgS} / 大型傷害: ${d.dmgL}</span>`;
+        }
         
         // 🌟 依照你的規則：根據 ranged: true 決定前綴
         let isRanged = (d.ranged === true);
@@ -749,11 +757,15 @@ function buildItemDescHTML(item) {
         let dmgLabel = isRanged ? "遠距離傷害" : "近距離傷害";
 
         // 顯示命中與傷害
-        if(d.hit || _wpnHitTotal) desc += ` / ${hitLabel}: ${formatBonus(d.hit || 0)}${_wpnHitTotal > 0 ? `+${_wpnHitTotal}` : ''}`;
+        if(d.hit || _wpnHitTotal) {
+            let _hitSum = (d.hit || 0) + _wpnHitTotal;
+            desc += ` / ${hitLabel}: ${formatBonus(_hitSum)}`;
+            if (_wpnHitTotal > 0) desc += `（基礎 ${formatBonus(d.hit || 0)}、強化 ${formatBonus(_wpnHitTotal)}）`;
+        }
         if(d.dmgBonus !== undefined) desc += ` / ${dmgLabel}: ${formatBonus(d.dmgBonus)}`; // 強化傷害已接在小型／大型傷害後方，避免重複顯示
         
         if(d.mdmg) desc += ` / 魔法傷害: ${formatBonus(d.mdmg)}`;
-        if (_wpnEn > 0 && (d.enMeleeCrit || d.enRangedCrit || d.enMagicCrit || d.enMagicCritFrom7 || d.enMagicDmg || d.enMagicDmgEvery2 || d.enMagicHit || d.enMagicHitEvery2)) {
+        if (_wpnEn > 0 && (d.enMeleeCrit || d.enRangedCrit || d.enMagicCrit || d.enMagicCritFrom7 || d.enMagicDmg || d.enMagicDmgEvery2 || d.enMagicHit || d.enMagicHitEvery2 || d.skillHitPerEn || d.skillHitPerEnFrom7 || d.procRatePerEn)) {
             let _grow = [];
             if (d.enMeleeCrit) _grow.push(`近距離爆擊 +${_wpnEn * d.enMeleeCrit}%`);
             if (d.enRangedCrit) _grow.push(`遠距離爆擊 +${_wpnEn * d.enRangedCrit}%`);
@@ -761,6 +773,9 @@ function buildItemDescHTML(item) {
             if (d.enMagicCritFrom7) _grow.push(`魔法爆擊 +${Math.min(d.enMagicCritMax || 99, Math.max(0, _wpnEn - 6) * d.enMagicCritFrom7)}%`);
             if (d.enMagicDmg || d.enMagicDmgEvery2) _grow.push(`魔法傷害 +${_wpnEn * (d.enMagicDmg || 0) + Math.floor(_wpnEn / 2) * (d.enMagicDmgEvery2 || 0)}`);
             if (d.enMagicHit || d.enMagicHitEvery2) _grow.push(`魔法命中 +${_wpnEn * (d.enMagicHit || 0) + Math.floor(_wpnEn / 2) * (d.enMagicHitEvery2 || 0)}`);
+            if (d.skillHitPerEn) _grow.push(`破壞命中 +${_wpnEn * d.skillHitPerEn}`);
+            if (d.skillHitPerEnFrom7) _grow.push(`秘技命中 +${Math.min(d.skillHitPerEnMax || 99, Math.max(0, _wpnEn - 6) * d.skillHitPerEnFrom7)}`);
+            if (d.procRatePerEn && (d.spellProc || d.procSkill || d.meleeHitSpell)) _grow.push(`武器魔法發動率 ${Math.max(0, Math.min(100, (d.procRateBase || 1) + _wpnEn * d.procRatePerEn))}%`);
             if (_grow.length) desc += `<br><span class="text-amber-300">強化額外能力：${_grow.join('、')}</span>`;
         }
         // ⚔️ 攻擊速度依「職業性別×武器種類」查表顯示（以目前角色為準；戰士雙持另依雙斧速度）
@@ -1029,7 +1044,8 @@ function buildItemDescHTML(item) {
 
     // 🔧 安定值 / 無法強化（武器/防具/飾品）
     if (d.type === 'wpn' || d.type === 'arm' || d.type === 'acc') {
-        if (d.noEnhance) desc += `<br><span class="text-rose-300 font-bold">無法強化</span>`;
+        if (d.godWeapon) desc += `<br><span class="text-violet-300 font-bold">神武強化上限: +${d.maxEn || 10}（席琳神殿・赫爾）</span>`;
+        else if (d.noEnhance) desc += `<br><span class="text-rose-300 font-bold">無法強化</span>`;
         else desc += `<br><span class="text-slate-400">安定值: ${d.safe || 0}</span>`;
     }
 
