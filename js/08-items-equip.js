@@ -899,7 +899,7 @@ function doEnhance(targetUid, isEq = true) {
         target = singleItem; 
     }
     
-    let success = false, destroy = false, nochange = false;
+    let success = false, destroy = false, nochange = false, protectedDrop = false;
     // 防呆：強化值正規化為有效數字。若 en 為 undefined/NaN，(undefined < safe) 會是 false 而誤入失敗/爆裝分支，
     //        導致看似 +0 的武器仍可能消失。此處統一視為 0，確保 +0(含未初始化 en)在安定值內必定成功、不會爆裝。
     target.en = Number(target.en) || 0;
@@ -913,13 +913,26 @@ function doEnhance(targetUid, isEq = true) {
     else if (_oc === 'break') destroy = true;
     else nochange = true;   // 武器 +9 起 1/6 無事：卷軸已消耗、強化值不變
 
+    // 🛡️ 裝備保護卷軸：任何未成功結果都不會摧毀裝備。
+    // 普通版失敗強化值-1；祝福版失敗強化值不變。
+    let _scrollDef = DB.items[scroll.id] || {};
+    if (_scrollDef.protectScroll && !success) {
+        destroy = false;
+        nochange = true;
+        if (!_scrollDef.isB) {
+            target.en = Math.max(-1, target.en - 1);
+            protectedDrop = true;
+        }
+    }
+
     let fn = getItemFullName(target);
     if (success) {
-        let add = (DB.items[scroll.id] && DB.items[scroll.id].isB) ? blessEnhanceGain(target.en) : 1;   // 🌟 祝福卷：+2 以下(含負值) +1~+3、+3~+5 +1~+2、+6 起等同一般卷 +1（純機率）
+        let add = (_scrollDef.isB && !_scrollDef.protectScroll) ? blessEnhanceGain(target.en) : 1;   // 🌟 一般祝福強化卷可跳級；祝福裝備保護卷成功固定+1
         target.en = Math.min(_cap, target.en + add);   // 🔧 祝福卷軸跳級不超過上限
         let prefix = (target.en > (d.safe||0)) ? "持續" : "";
         let _enTxt = '+' + capEn(target.en, d);   // 🔧 顯示 +N（夾擠至強化上限）
-        logSys(`<span class="text-yellow-400 font-bold">${_enTxt} ${d.n} ${prefix}發出銀色的光芒。</span>`);
+        let _light = (_scrollDef.protectScroll && _scrollDef.isB) ? '黃色' : '銀色';
+        logSys(`<span class="text-yellow-400 font-bold">${_enTxt} ${d.n} ${prefix}發出${_light}的光芒。</span>`);
     } else if (destroy) {
         logSys(`<span class="text-red-500 font-bold">${fn} 強烈的發出銀色的光芒就消失了。</span>`);
         if (isEq) {
@@ -927,6 +940,9 @@ function doEnhance(targetUid, isEq = true) {
         } else {
             player.inv = player.inv.filter(i => i.uid !== target.uid); // 碎掉背包裝備
         }
+    } else if (_scrollDef.protectScroll) {
+        if (protectedDrop) logSys(`<span class="text-orange-300 font-bold">${fn} 強化失敗，受到裝備保護卷軸保護而沒有消失，強化值降為 ${target.en < 0 ? target.en : '+' + target.en}。</span>`);
+        else logSys(`<span class="text-yellow-300 font-bold">${fn} 發出黃色的光芒；強化失敗，但受到祝福保護，強化值維持不變。</span>`);
     } else {
         logSys(`<span class="text-slate-400">${fn} 一瞬間發出銀色的光芒。</span>`);
     }

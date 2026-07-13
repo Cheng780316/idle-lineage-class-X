@@ -1155,6 +1155,8 @@ function showEnhanceOptions(uid, isEq) {
     let d = DB.items[item.id];
     
     let scrollNorm, scrollBless, scrollCurse;
+    let scrollProtect = player.inv.find(i => i.id === 'scroll_equip_protect');
+    let scrollProtectBless = player.inv.find(i => i.id === 'scroll_equip_protect_b');
     let scrollNormId = ''; // 🌟 紀錄該裝備對應的一般卷軸 ID
     let scrollCurseId = ''; // 詛咒卷軸 ID（武器/盔甲）
 
@@ -1176,7 +1178,7 @@ function showEnhanceOptions(uid, isEq) {
     }
     
     // 飾品特殊處理：若有卷軸直接點爆，不用選
-    if (d.type === 'acc') {
+    if (d.type === 'acc' && !scrollProtect && !scrollProtectBless) {
         if (!scrollNorm) {
             logSys(`<span class="text-red-400 font-bold">強化卷軸不足。</span>`);
             return;
@@ -1187,7 +1189,7 @@ function showEnhanceOptions(uid, isEq) {
     }
     
     // 武器/防具：如果一般／祝福／詛咒卷軸全都沒有，直接跳錯
-    if (!scrollNorm && !scrollBless && !scrollCurse) {
+    if (!scrollNorm && !scrollBless && !scrollCurse && !scrollProtect && !scrollProtectBless) {
         logSys(`<span class="text-red-400 font-bold">強化卷軸不足。</span>`);
         return;
     }
@@ -1206,6 +1208,12 @@ function showEnhanceOptions(uid, isEq) {
     }
     if (scrollCurse) {
         act += `<button class="col-span-2 w-full btn border-red-800 bg-red-950 hover:bg-red-900 py-3 text-base font-bold c-cursed shadow" onclick="executeCurseDeEnhance('${item.uid}', ${isEq}, '${scrollCurseId}')">使用 ${DB.items[scrollCurse.id].n} (擁有: ${scrollCurse.cnt})｜強化值 -1</button>`;
+    }
+    if (scrollProtect) {
+        act += `<button class="col-span-2 w-full btn border-cyan-700 bg-slate-800 hover:bg-cyan-950 py-3 text-base font-bold text-cyan-200 shadow" onclick="executeEnhance('${scrollProtect.uid}', '${item.uid}', ${isEq})">使用 ${DB.items[scrollProtect.id].n} (擁有: ${scrollProtect.cnt})｜失敗不消失、強化 -1</button>`;
+    }
+    if (scrollProtectBless) {
+        act += `<button class="col-span-2 w-full btn border-yellow-500 bg-yellow-950 hover:bg-yellow-900 py-3 text-base font-bold text-yellow-300 shadow" onclick="executeEnhance('${scrollProtectBless.uid}', '${item.uid}', ${isEq})">使用 ${DB.items[scrollProtectBless.id].n} (擁有: ${scrollProtectBless.cnt})｜失敗不消失、強化不變</button>`;
     }
     
     // 🌟 一鍵強化到指定值：右側可選目標強化值（預設＝安定值），逐級嘗試，過程中任一階失敗即視為失敗（爆裝）

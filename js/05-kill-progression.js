@@ -261,6 +261,12 @@ function killMob(idx) {
         logSys('<span class="text-amber-300 font-bold">✦ 你從強敵的殘骸中拾起了「精通之證」——回威頓村找漢吧。</span>');
     }
 
+    // 🛡️ 裝備保護卷軸：所有具獎勵的頭目低機率掉落（一般模式 0.1%；經典模式依既有掉落倍率調整）。
+    if (!_kbNoReward && mob.boss && (mob.exp || 0) > 0 && Math.random() < 0.001 * classicDropMult()) {
+        gainItem('scroll_equip_protect', 1);
+        logSys('<span class="text-cyan-200 font-bold">✦ 頭目稀有掉落：裝備保護卷軸！</span>');
+    }
+
     // === 🔥 50級試煉條件掉落 ===
     if (player.cls === 'knight' && player.trialStage === 1 && mob.n === '黑暗妖精將軍' && !player.inv.some(i => i.id === 'item_dantes_letter') && Math.random() < 0.01) { gainItem('item_dantes_letter', 1); logSys('<span class="text-amber-300 font-bold">✦ 你取得了 丹特斯的召書。</span>'); }
     if (player.cls === 'elf' && player.trialStage === 1 && mob.n === '巨大兵蟻' && !player.inv.some(i => i.id === 'item_ancient_book') && Math.random() < 0.01) { gainItem('item_ancient_book', 1); logSys('<span class="text-amber-300 font-bold">✦ 你取得了 古代黑妖之秘笈。</span>'); }
