@@ -30,9 +30,15 @@ function abnormalMagicHit(m, maxHv, hitOff) {
 function applyMobStatus(m, st, skillName) {
     if(!m.st) m.st = newMobStatus();
     if(BOSS_IMMUNE.includes(st.kind) && m.boss) return false;
+    // 紅影雙刀：精靈命中 +5，且每強化 +1 破壞命中；只套用於破壞盔甲。
+    let _statusHitOff = st.hitOff || 0;
+    if (skillName === '破壞盔甲' && player && player.eq && player.eq.wpn) {
+        let _statusWpn = DB.items[player.eq.wpn.id];
+        if (_statusWpn) _statusHitOff += (_statusWpn.spiritHit || 0) + (player.eq.wpn.en || 0) * (_statusWpn.skillHitPerEn || 0);
+    }
     // 異常狀態魔法命中（玩家對怪物）：見 abnormalMagicHit；st.hitOff＝命中加值（🏛️ 真．冥皇執行劍 衝擊之暈 +4≈命中率+20%）
     // ⚡ st.force：跳過魔抗命中判定，由呼叫端自行擲固定機率（雷神之鎚電光衝擊／伊娃的責罵水之矛的 5% 固定附加）；BOSS 免疫仍上方先擋
-    if(!st.force && !abnormalMagicHit(m, undefined, st.hitOff)) {
+    if(!st.force && !abnormalMagicHit(m, undefined, _statusHitOff)) {
         logCombat(`<span class="${getMobColor(m.lv)}">${m.n}</span> 抵抗了${skillName || '異常狀態'}。`, 'miss');
         return false;
     }
