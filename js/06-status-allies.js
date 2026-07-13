@@ -30,7 +30,7 @@ function abnormalMagicHit(m, maxHv, hitOff) {
 function applyMobStatus(m, st, skillName) {
     if(!m.st) m.st = newMobStatus();
     if(BOSS_IMMUNE.includes(st.kind) && m.boss) return false;
-    // 紅影雙刀：精靈命中 +5，且每強化 +1 破壞命中；只套用於破壞盔甲。
+    // 黑妖傳說武器：紅影雙刀固定精靈命中＋強化破壞命中；獸王鋼爪套用強化破壞命中。僅作用於破壞盔甲。
     let _statusHitOff = st.hitOff || 0;
     if (skillName === '破壞盔甲' && player && player.eq && player.eq.wpn) {
         let _statusWpn = DB.items[player.eq.wpn.id];
