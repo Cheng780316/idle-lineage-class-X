@@ -302,25 +302,25 @@ function _playGodWeaponDecor(style, ax, ay, targetRect, layer) {
 // 神話武器正式動態素材：24 幀 × 65ms＝1.56 秒透明 Animated WebP。
 // 只替換畫面，武器傷害／發動率仍走原戰鬥公式。
 const GOD_WEAPON_ANIM_FX = {
-    '殷海薩的憤怒':     { src:'assets/effects/god-weapons/ainshasad.webp?v=20260713-24f',         h:1.60, anchorY:0.69, duration:1560 },
-    '格蘭肯的憤怒':     { src:'assets/effects/god-weapons/grankain_judgment.webp?v=20260713-24f', h:1.53, anchorY:0.66, duration:1560 },
-    '沙哈的憤怒':       { src:'assets/effects/god-weapons/sayha.webp?v=20260713-24f-sayha-pos2',  h:1.40, anchorY:0.50, duration:1560, motion:'ground' },
-    '伊娃的憤怒':       { src:'assets/effects/god-weapons/eva.webp?v=20260713-24f',               h:1.55, anchorY:0.68, duration:1560 },
-    '丹特斯的憤怒':     { src:'assets/effects/god-weapons/dantes.webp?v=20260713-24f',            h:1.51, anchorY:0.56, duration:1560, motion:'ground' },
-    '泰亞的憤怒':       { src:'assets/effects/god-weapons/theia.webp?v=20260713-24f',             h:1.57, anchorY:0.68, duration:1560 },
-    '奧拉奇亞的憤怒':   { src:'assets/effects/god-weapons/aurakia.webp?v=20260713-24f',           h:1.71, anchorY:0.72, duration:1560 },
-    '格蘭肯的恐怖之怒': { src:'assets/effects/god-weapons/grankain_fear.webp?v=20260713-24f',     h:1.62, anchorY:0.63, duration:1560 }
+    '殷海薩的憤怒':     { src:'assets/effects/god-weapons/ainshasad.webp?v=20260713-24f',         h:1.60, anchorY:0.69, duration:1560, settle:0.06 },
+    '格蘭肯的憤怒':     { src:'assets/effects/god-weapons/grankain_judgment.webp?v=20260713-24f', h:1.53, anchorY:0.66, duration:1560, settle:0.14 },
+    '沙哈的憤怒':       { src:'assets/effects/god-weapons/sayha.webp?v=20260713-24f-sayha-pos2',  h:1.40, anchorY:0.50, duration:1560, motion:'ground', settle:0.22 },
+    '伊娃的憤怒':       { src:'assets/effects/god-weapons/eva.webp?v=20260713-24f',               h:1.55, anchorY:0.68, duration:1560, settle:0.10 },
+    '丹特斯的憤怒':     { src:'assets/effects/god-weapons/dantes.webp?v=20260713-24f',            h:1.51, anchorY:0.56, duration:1560, motion:'ground', settle:0.03 },
+    '泰亞的憤怒':       { src:'assets/effects/god-weapons/theia.webp?v=20260713-24f',             h:1.57, anchorY:0.68, duration:1560, settle:0.20 },
+    '奧拉奇亞的憤怒':   { src:'assets/effects/god-weapons/aurakia.webp?v=20260713-24f',           h:1.71, anchorY:0.72, duration:1560, settle:0.11 },
+    '格蘭肯的恐怖之怒': { src:'assets/effects/god-weapons/grankain_fear.webp?v=20260713-24f',     h:1.62, anchorY:0.63, duration:1560, settle:0.19 }
 };
 // 可羅蘭斯傳說武器「+6 以上」正式動態素材：16 幀 × 80ms＝1.28 秒。
 const LEGEND_WEAPON_ANIM_FX = {
-    '風之力':     { src:'assets/effects/legend-plus6/windblade.webp?v=20260713-16f',          h:1.65, anchorY:0.70, duration:1280 },
-    '審判衝擊':   { src:'assets/effects/legend-plus6/emperor-blade.webp?v=20260713-16f',      h:1.75, anchorY:0.68, duration:1280 },
-    '大地射擊':   { src:'assets/effects/legend-plus6/gaia-rage.webp?v=20260713-16f',          h:1.40, anchorY:0.55, duration:1280, motion:'ground' },
+    '風之力':     { src:'assets/effects/legend-plus6/windblade.webp?v=20260713-16f',          h:1.65, anchorY:0.70, duration:1280, settle:0.12 },
+    '審判衝擊':   { src:'assets/effects/legend-plus6/emperor-blade.webp?v=20260713-16f',      h:1.75, anchorY:0.68, duration:1280, settle:0.18 },
+    '大地射擊':   { src:'assets/effects/legend-plus6/gaia-rage.webp?v=20260713-16f',          h:1.40, anchorY:0.55, duration:1280, motion:'ground', settle:0.10 },
     '致命落雷':   { src:'assets/effects/legend-plus6/holycrystal-wand.webp?v=20260713-16f',  h:1.75, anchorY:0.70, duration:1280 },
-    '迅捷斬擊':   { src:'assets/effects/legend-plus6/redshadow-dual.webp?v=20260713-16f',    h:1.30, anchorY:0.55, duration:1280, motion:'ground' },
+    '迅捷斬擊':   { src:'assets/effects/legend-plus6/redshadow-dual.webp?v=20260713-16f',    h:1.30, anchorY:0.55, duration:1280, motion:'ground', settle:0.23 },
     '黑暗隕石':   { src:'assets/effects/legend-plus6/hyperion-despair.webp?v=20260713-16f', h:1.55, anchorY:0.58, duration:1280 },
-    '致命一擊':   { src:'assets/effects/legend-plus6/cronos-fear.webp?v=20260713-16f',       h:1.45, anchorY:0.58, duration:1280, motion:'ground' },
-    '泰坦之怒':   { src:'assets/effects/legend-plus6/titan-rage.webp?v=20260713-16f',        h:1.35, anchorY:0.55, duration:1280, motion:'ground' }
+    '致命一擊':   { src:'assets/effects/legend-plus6/cronos-fear.webp?v=20260713-16f',       h:1.45, anchorY:0.58, duration:1280, motion:'ground', settle:0.14 },
+    '泰坦之怒':   { src:'assets/effects/legend-plus6/titan-rage.webp?v=20260713-16f',        h:1.35, anchorY:0.55, duration:1280, motion:'ground', settle:0.14 }
 };
 let _godWeaponAnimActive = {};
 function playGodWeaponAnimatedFx(skn, mob) {
@@ -346,14 +346,15 @@ function playGodWeaponAnimatedFx(skn, mob) {
         // 神話／傳說武器特效一律由怪物上方落下，在命中位置收束；
         // 避免素材內的擴張幀看起來像由地面往上飄。
         try {
-            let frames;
+            let frames, settlePx = h * (cfg.settle || 0);
             if (cfg.motion === 'ground') {
                 // 地面／近身型：魔法陣留在腳下，主特效由怪物身體向外展開。
                 frames = [
                     { transform: 'translate3d(0,0,0) scale(.92)', opacity: 0, offset: 0 },
                     { transform: 'translate3d(0,0,0) scale(1)', opacity: 1, offset: 0.16 },
-                    { transform: 'translate3d(0,0,0) scale(1)', opacity: 1, offset: 0.88 },
-                    { transform: 'translate3d(0,0,0) scale(1)', opacity: 0, offset: 1 }
+                    { transform: 'translate3d(0,0,0) scale(1)', opacity: 1, offset: 0.68 },
+                    { transform: 'translate3d(0,' + (settlePx * 0.65) + 'px,0) scale(1)', opacity: 0.78, offset: 0.84 },
+                    { transform: 'translate3d(0,' + settlePx + 'px,0) scale(1)', opacity: 0, offset: 1 }
                 ];
             } else {
                 let fallPx = Math.max(14, r.height * 0.34);
@@ -361,8 +362,9 @@ function playGodWeaponAnimatedFx(skn, mob) {
                     { transform: 'translate3d(0,' + (-fallPx) + 'px,0) scale(.96)', opacity: 0, offset: 0 },
                     { transform: 'translate3d(0,' + (-fallPx * 0.16) + 'px,0) scale(1)', opacity: 1, offset: 0.18 },
                     { transform: 'translate3d(0,0,0) scale(1)', opacity: 1, offset: 0.27 },
-                    { transform: 'translate3d(0,0,0) scale(1)', opacity: 1, offset: 0.88 },
-                    { transform: 'translate3d(0,0,0) scale(1)', opacity: 0, offset: 1 }
+                    { transform: 'translate3d(0,0,0) scale(1)', opacity: 1, offset: 0.68 },
+                    { transform: 'translate3d(0,' + (settlePx * 0.65) + 'px,0) scale(1)', opacity: 0.78, offset: 0.84 },
+                    { transform: 'translate3d(0,' + settlePx + 'px,0) scale(1)', opacity: 0, offset: 1 }
                 ];
             }
             el.animate(frames, { duration: cfg.duration, easing: 'linear', fill: 'forwards' });
