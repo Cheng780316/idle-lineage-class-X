@@ -264,7 +264,12 @@ function _expReqOldV1(lv) {
     if (lv >= 49)  return 36065092;
     return EXP_T[lv];
 }
-function getExpGainMult(lv) { return lv >= 100 ? 0 : 1; }   // ⚠️v2.6.40 取消高等經驗遞減（恆全額）；滿等(100)仍不獲得。遞減效果改由 getExpReq 提高需求承擔。
+function runtimeRewardMult(kind) {
+    let rates = (typeof window !== 'undefined') ? window.fableDesktopRates : null;
+    let value = rates ? Number(rates[kind]) : 1;
+    return Number.isFinite(value) && value > 0 ? value : 1;
+}
+function getExpGainMult(lv) { return lv >= 100 ? 0 : 1; }   // ⚠️v2.6.40 取消高等經驗遞減（恆全額）；滿等(100)仍不獲得。EXE 獎勵倍率另由 runtimeRewardMult 套用。
 
 const DB = {
         items: {
