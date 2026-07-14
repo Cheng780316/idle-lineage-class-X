@@ -22,6 +22,7 @@
     "files": [
       "index.html",
       "assets/**/*",
+      "!assets/app-icon-transparent.png",
       "css/**/*",
       "js/**/*",
       "public/**/*",
@@ -29,6 +30,7 @@
       "package.json"
     ],
     "win": {
+      "icon": "assets/app-icon.ico",
       "target": "portable",
       "artifactName": "放置天堂-蛇神降世-${version}.exe"
     }
