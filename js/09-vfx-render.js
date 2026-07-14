@@ -39,6 +39,8 @@ function _fxBandRefH(fallbackH) {
     return fallbackH;
 }
 const SPELL_FX = {
+    // 🔮 奇古獸精神共鳴：紫色靈魂能量在目標身上凝聚、上升後消散。
+    '精神共鳴': { dir:'靈魂昇華', prefix:'3935-0', n:19, fps:18, blend:'screen', h:0.90, ax:0.50, ay:0.62 },
     '光箭': { dir:'光箭', dirPrefix:'167-', dirs:4, n:4, fps:12, blend:'screen', proj:true, nw:32, nh:40, ax:0.50, ay:0.50 },
     '冰矛圍籬': { dir:'冰矛圍籬', dirPrefix:'756-', dirs:8, n:4, fps:12, blend:'screen', proj:true, nw:49, nh:44, ax:0.50, ay:0.50 },
     '冰箭': { dir:'冰箭', dirPrefix:'1797-', dirs:8, n:4, fps:12, blend:'screen', proj:true, nw:15, nh:21, ax:0.50, ay:0.50 },
@@ -2168,12 +2170,11 @@ function playQiguAttackSprite(actor) {
         if (!st || !st.el || !st.el.isConnected || !st.imgs || !st.imgs.bd) return;
         let r = st.imgs.bd.getBoundingClientRect(); if (!r.width || !r.height) return;
         let layer = _vfxLayer(); if (!layer) return;
-        // 原始動畫的能量彈橫跨完整 300×250 畫布；角色軸心約在 x=102、腳底 y=236。
-        // 依角色立繪高度縮放，但用角色軸心對齊，避免寬畫布置中後角色本體偏移。
+        // 透明動畫只保留奇古獸揮動的魔力手臂、下揮光弧與落地光芒。
+        // 沿用原始 300×250 畫布的施法軸心，讓特效疊在人物上播放而不取代人物。
         let h = Math.max(138, r.height * 1.34), w = h * (300 / 250);
-        let token = Date.now() + Math.random(); st._qiguFxToken = token;
         let el = document.createElement('img');
-        el.src = 'assets/effects/qigu-attack.webp'; el.alt = '';
+        el.src = 'assets/effects/qigu-attack.webp?v=20260715-effectonly2'; el.alt = '';
         el.className = 'vfx-qigu-attack';
         el.style.position = 'fixed'; el.style.pointerEvents = 'none';
         el.style.width = w + 'px'; el.style.height = h + 'px';
@@ -2182,14 +2183,7 @@ function playQiguAttackSprite(actor) {
         el.style.objectFit = 'contain'; el.style.imageRendering = 'pixelated';
         el.style.zIndex = '31';
         layer.appendChild(el);
-        st.el.style.opacity = '0';
-        setTimeout(() => {
-            try { el.remove(); } catch (_) {}
-            if (st._qiguFxToken === token) {
-                st._qiguFxToken = null;
-                if (st.el && st.el.isConnected) st.el.style.opacity = '';
-            }
-        }, 620);
+        setTimeout(() => { try { el.remove(); } catch (_) {} }, 500);
     } catch (e) {}
 }
 
@@ -2234,14 +2228,18 @@ function playTripleRingFx(actor) {
         if (!st || !st.el || !st.el.isConnected || !st.imgs || !st.imgs.bd) return;
         let r = st.imgs.bd.getBoundingClientRect(); if (!r.width || !r.height) return;
         let layer = _vfxLayer(); if (!layer) return;
+        // size 代表原本光圈的視覺寬度；新版素材在原圖外補了透明安全邊界，
+        // 因此外框需按 320/278 放大，才能維持遊戲內原有大小並完整顯示光線端點。
         let size = Math.max(62, Math.min(82, r.height * 0.68));
+        let canvasW = size * (320 / 278);
+        let canvasH = canvasW * (300 / 320);
         let el = document.createElement('img');
-        el.src = 'assets/effects/triple-ring.webp'; el.alt = '';
+        el.src = 'assets/effects/triple-ring.webp?v=20260715-topfix2'; el.alt = '';
         el.className = 'vfx-triple-ring';
         el.style.position = 'fixed'; el.style.pointerEvents = 'none';
-        el.style.width = size + 'px'; el.style.height = (size * 202 / 222) + 'px';
-        el.style.left = (r.left + r.width * 0.5 - size * 0.5) + 'px';
-        el.style.top = (r.top - size * 0.30) + 'px';
+        el.style.width = canvasW + 'px'; el.style.height = canvasH + 'px';
+        el.style.left = (r.left + r.width * 0.5 - canvasW * 0.5) + 'px';
+        el.style.top = (r.top - size * 0.30 - size * 0.085) + 'px';
         el.style.objectFit = 'contain'; el.style.zIndex = '31';
         layer.appendChild(el);
         setTimeout(() => { try { el.remove(); } catch (_) {} }, 430);

@@ -64,7 +64,7 @@
         '犰狳': [['scroll_armor',0.5]],
         '魔熊': [['acc_bear_ring',0.001],['scroll_weapon',0.5],['scroll_armor',0.5],['bk_bless_wpn',0.1],['bk_slow',0.5]],
         '歐姆民兵': [['scroll_weapon',0.5],['bk_bless_wpn',0.1],['bk_slow',0.5]],
-        '闇精靈王': [['scroll_weapon',0.5],['scroll_armor',0.5],['bk_bless_wpn',0.1],['bk_berserk',0.1],['bk_soul_up',0.001],['bk_abs_barrier',0.001],['bk_elf_blazewpn',0.05],['bk_dark_stealth',1],['bk_dark_poison',1],['bk_dark_mrup',1],['bk_dark_burn',1],['bk_dark_double',0.1],['bk_dark_fang',0.1],['bk_dark_crit',0.5],['mat_rough_stone',5],['wpn_qigu_resonance',0.001]],
+        '闇精靈王': [['scroll_weapon',0.5],['scroll_armor',0.5],['bk_bless_wpn',0.1],['bk_berserk',0.1],['bk_soul_up',0.001],['bk_abs_barrier',0.001],['bk_elf_blazewpn',0.05],['bk_dark_stealth',1],['bk_dark_poison',1],['bk_dark_mrup',1],['bk_dark_burn',1],['bk_dark_double',0.1],['bk_dark_fang',0.1],['bk_dark_crit',0.5],['mat_rough_stone',5],['wpn_qigu_resonance',0.1]],
         '金屬蜈蚣': [['amr_centipede',0.5], ['mat_black_blood', 2]],
         '馴獸師': [['item_tiger_feed',10], ['clk_wolf',0.5],['scroll_weapon',0.5],['scroll_armor',0.3],['bk_dark_poison',1],['bk_dark_mrup',1],['bk_dark_burn',1],['bk_dark_poisonres',1],['bk_dark_dex',1],['bk_dark_double',0.1]],
         // ===== 🔥 50級試煉擴充：古代巨人之墓 =====
@@ -266,7 +266,7 @@
         '羅孚妖魔': [['arm_69', 0.2], ['arm_63',3], ['new_item_149',1], ['new_item_157',5], ['item_orc_amulet',0.01], ['wpn_osis_hammer',0.0005]],
         '艾爾摩士兵': [['wpn_4',1], ['wpn_halberd',0.5], ['wpn_14',1], ['arm_66',3], ['arm_68',2], ['bot_short',2], ['glv_glove',0.5], ['scroll_armor',2], ['scroll_acc',0.01], ['wpn_frost_spear',0.05], ['wpn_crimson_spear',0.05]],   // 🆕 酷寒之矛 0.05%、深紅長矛 0.05%
         '艾爾摩將軍': [['wpn_greatsword',0.1], ['wpn_2hsword',0.5], ['arm_60',1], ['arm_65',1], ['arm_90',1], ['glv_glove',0.5], ['scroll_weapon',1], ['scroll_armor',2], ['scroll_acc',0.01], ['bk_shock_stun',0.05], ['bk_reduction_armor',0.01], ['bk_spike_armor',0.001], ['item_elmore_heart',1]],
-        '艾爾摩法師': [['wpn_witchwand',1], ['scroll_weapon',1], ['bk_full_heal',0.01], ['bk_ice_spike',0.5], ['bk_bless_wpn',0.005], ['wpn_qigu_meditate',0.0001], ['bk_mana_drain',0.1]],   // 🆕 魔力奪取 0.1%
+        '艾爾摩法師': [['wpn_witchwand',1], ['scroll_weapon',1], ['bk_full_heal',0.01], ['bk_ice_spike',0.5], ['bk_bless_wpn',0.005], ['wpn_qigu_meditate',0.1], ['bk_mana_drain',0.1]],   // 🆕 魔力奪取 0.1%
         '莫妮亞': [['arm_87',1], ['scroll_weapon',1], ['scroll_armor',1.5], ['bk_slow',0.5], ['bk_heal2',0.5], ['bk_holy_light',0.1], ['scroll_poly',1]],
         '萊肯': [['wpn_battleaxe',3], ['wpn_halberd',0.5], ['arm_65',1], ['arm_66',1], ['arm_105',2], ['arm_90',1], ['new_item_151',5], ['bk_dex_up',0.05], ['bk_vampire',0.1], ['bk_slow',0.1], ['new_item_195',1]],
         '蘑菇': [['new_item_166',10]],
@@ -350,7 +350,7 @@
         // ===== 🗼 傲慢之塔 51~60 樓 =====
         '受詛咒的妖魔殭屍': [['bk_berserk',0.2], ['item_pride_scroll_61',2], ['mat_steel_chunk',10]],
         '受詛咒的艾爾摩士兵': [['acc_demonbane',0.03], ['bk_berserk',0.3], ['item_pride_scroll_61',2]],
-        '受詛咒的艾爾摩法師': [['scroll_acc',0.001],['acc_demonbane',0.03], ['item_pride_scroll_61',2], ['wpn_qigu_meditate',0.01]],
+        '受詛咒的艾爾摩法師': [['scroll_acc',0.001],['acc_demonbane',0.03], ['item_pride_scroll_61',2], ['wpn_qigu_meditate',0.1]],
         '受詛咒的艾爾摩將軍': [['acc_demonbane',0.03], ['bk_shock_stun',0.02], ['bk_reduction_armor',0.1], ['bk_spike_armor',0.01], ['item_pride_scroll_61',2]],
         '不死的木乃伊王': [['hlm_mummy_crown',0.1], ['rng_water',0.2], ['rng_earth',1], ['rng_wind',0.3], ['rng_fire',0.1], ['scroll_weapon',30], ['scroll_armor',30], ['bk_sleep_mist',0.2], ['bk_elf_groundtrap',5], ['bk_elf_earthshield',3], ['bk_elf_steelguard',1], ['item_pride_scroll_61',30], ['item_pride_sealed_61',1], ['wpn_mapler_punish',0.01]],
         // ===== 🗼 傲慢之塔 61~70 樓 =====

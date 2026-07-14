@@ -725,6 +725,12 @@ DB.items.god_royal_flash.d += ' 武器特性：單手劍反擊。';
 DB.items.god_knight_judgment.d += ' 武器特性：雙手劍切割。';
 DB.items.god_elf_obsession.d += ' 武器特性：弓箭連射（100%）。';
 DB.items.wpn_gaia_rage.d += ' 武器特性：弓箭連射（100%）。';
+// 🔮 所有奇古獸共通「精神共鳴」。以 qigu 類型統一套用，確保新舊武器、
+// 遺物奇古獸與後續新增武器不會因漏寫個別欄位而失去特效。
+Object.keys(DB.items).forEach(function(id) {
+    let d = DB.items[id];
+    if (d && d.type === 'wpn' && d.qigu) d.mentalResonance = true;
+});
 Object.keys(DB.items).forEach(function(id) {
     let d = DB.items[id];
     if (d && d.mentalResonance && !(d.d || '').includes('精神共鳴')) d.d = (d.d || '') + ' 武器特性：精神共鳴（20%追加75%傷害並恢復最大MP 2%，同目標冷卻1秒）。';
@@ -1008,6 +1014,7 @@ function buildItemDescHTML(item) {
         if (d.redSpecter)           _eff.push('紅惡靈逆襲（4%＋每強化1%，造成水魔傷並吸取10%HP）');   // 👹 隱藏的魔族武器
         if (d.blueSpecter)          _eff.push('藍惡靈奪魔（4%＋每強化1%，恢復3D6 MP）');   // 👹 隱藏的魔族武器
         if (d.rapidfire)            _eff.push('連射 ' + d.rapidfire + '%（追加1～3箭，每箭30%傷害）');
+        if (d.mentalResonance)      _eff.push('精神共鳴（20%追加75%傷害、恢復最大MP 2%，同目標冷卻1秒）');
         if (d.block)                _eff.push('格檔 ' + d.block + '%（重擊時依此機率減半傷害；一般攻擊為上述機率的30%）');
         if (d.immStone)             _eff.push('免疫石化');
         if (d.immPoison)            _eff.push('免疫中毒');

@@ -370,6 +370,25 @@ function applyMercPrefs(ally) {
         if (pref._autoBuff && typeof pref._autoBuff === 'object') ally._autoBuff = JSON.parse(JSON.stringify(pref._autoBuff));
     } catch (e) {}
 }
+// 🤝 傭兵自動同步只追蹤會影響戰力/操作的來源欄位，避免來源角色僅金幣、背包或戰鬥狀態變動時也反覆重建。
+function _mercSourceStamp(p) {
+    if (!p || typeof p !== 'object') return '';
+    let core = [p.enSeed || '', p.name || '', p.cls || '', p.lv || 1, p.bonus || 0, !!p.classicMode,
+        p.avatar || '', p.base || {}, p.alloc || {}, p.panacea || {}, p.eq || {}, p.skills || [],
+        p.grantedSkills || [], p.mastery || '', p.blessings || {}, p.config || {}];
+    let s = JSON.stringify(core), h = 2166136261;
+    for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+    return s.length.toString(36) + ':' + (h >>> 0).toString(36);
+}
+function _mercSourceData(slotN) {
+    try {
+        let raw = _saveUnwrap(_lzGet('lineage_idle_save_' + String(slotN))).payload;
+        if (!raw) return null;
+        let p = JSON.parse(raw).p;
+        if (!p || !p.cls) return null;
+        return { raw: raw, p: p, stamp: _mercSourceStamp(p) };
+    } catch (e) { return null; }
+}
 // 掃描出戰傭兵：來源存檔位已換成「不同 enSeed 的新角色」→ 自動解散（記憶舊設定·結算待領經驗）。
 //   規則：傭兵與該存檔位當前角色 enSeed 皆存在且不同 → 換角 → 解散；任一無 enSeed 則無法判定·保留（避免舊存檔誤判）。
 function purgeReplacedAllies() {
@@ -393,9 +412,9 @@ function purgeReplacedAllies() {
         }
     } catch (e) {}
 }
-function buildAlly(slotN) {
+function buildAlly(slotN, sourceRaw) {
     slotN = String(slotN);
-    let raw = _saveUnwrap(_lzGet('lineage_idle_save_' + slotN)).payload;   // 🛡️ 先解存檔簽章（招募傭兵讀別的存檔位；不驗章、僅取 payload）
+    let raw = sourceRaw || _saveUnwrap(_lzGet('lineage_idle_save_' + slotN)).payload;   // 🛡️ 先解存檔簽章（招募傭兵讀別的存檔位；不驗章、僅取 payload）
     if (!raw) return null;
     let p; try { p = JSON.parse(raw).p; } catch(e) { return null; }
     if (!p || !p.cls) return null;
@@ -435,8 +454,79 @@ function buildAlly(slotN) {
     ally.mp = ally.mmp;   // 召喚時滿魔
     { let _w = (ally.eq && ally.eq.wpn) ? DB.items[ally.eq.wpn.id] : null; ally._rapidfire = (_w && _w.isBow && _w.rapidfire) ? _w.rapidfire : 0; }   // 妖精弓：記錄連射發動機率
     applyMercPrefs(ally);   // 🤝 v3.4.23 同一角色（enSeed）先前的喝水＋技能設定記憶→套回（首次招募無記憶則沿用來源快照預設）
+    ally._sourceStamp = _mercSourceStamp(p);   // 🤝 每60秒自動同步用；只記短雜湊，不把來源存檔全文塞進傭兵快照
     return ally;
 }
+const MERC_AUTO_SYNC_MS = 60000;
+let _mercAutoSyncBusy = false;
+function _mercCloneRuntime(v) { try { return JSON.parse(JSON.stringify(v)); } catch (e) { return null; } }
+function _mercValidateSyncedSkills(ally) {
+    let learned = Array.isArray(ally.skills) ? ally.skills : [];
+    ['_atkSkill', '_healSkill', '_convertSkill'].forEach(k => { if (ally[k] && !learned.includes(ally[k])) ally[k] = ''; });
+    if (ally._autoBuff && typeof ally._autoBuff === 'object') Object.keys(ally._autoBuff).forEach(sid => { if (!learned.includes(sid)) delete ally._autoBuff[sid]; });
+}
+// 🤝 每60秒僅比對來源戰力雜湊；有變更才免費、無縫重建。保留傭兵偏好、受雇經驗、HP/MP比例、倒地狀態、增益/異常與各種戰鬥冷卻。
+function mercAutoSyncAllies() {
+    if (_mercAutoSyncBusy || typeof player === 'undefined' || !player || !player.allies || !player.allies.length) return;
+    _mercAutoSyncBusy = true;
+    try {
+        let next = [], synced = [], removed = [];
+        player.allies.forEach(cur => {
+            if (!cur) return;
+            let src = _mercSourceData(cur._slot);
+            if (!src) {
+                cur._sourceMissingChecks = (cur._sourceMissingChecks || 0) + 1;
+                if (cur._sourceMissingChecks < 2) { next.push(cur); return; }   // 避免跨視窗寫檔瞬間讀不到便誤解散
+                snapshotMercPrefs(cur); _settleAllyExp(cur, 'dismiss');
+                removed.push(cur._allyName || ('存檔 ' + cur._slot));
+                return;
+            }
+            cur._sourceMissingChecks = 0;
+            if (cur.enSeed && src.p.enSeed && cur.enSeed !== src.p.enSeed) {
+                snapshotMercPrefs(cur); _settleAllyExp(cur, 'dismiss');
+                removed.push(cur._allyName || ('存檔 ' + cur._slot));
+                return;
+            }
+            if (cur._sourceStamp && cur._sourceStamp === src.stamp) { next.push(cur); return; }
+            snapshotMercPrefs(cur);
+            let fresh = buildAlly(cur._slot, src.raw);
+            if (!fresh) { next.push(cur); return; }
+
+            let hpPct = (cur.mhp || 0) > 0 ? Math.max(0, Math.min(1, (cur.curHp || 0) / cur.mhp)) : 1;
+            let mpPct = (cur.mmp || 0) > 0 ? Math.max(0, Math.min(1, (cur.mp || 0) / cur.mmp)) : 1;
+            if ((cur.lv || 1) >= (fresh.lv || 1)) { fresh.lv = cur.lv || 1; fresh.exp = cur.exp || 0; }
+            fresh._expGained = cur._expGained || 0;
+            fresh.buffs = _mercCloneRuntime(cur.buffs) || {};
+            fresh.statuses = _mercCloneRuntime(cur.statuses) || {};
+            fresh.hots = _mercCloneRuntime(cur.hots) || [];
+            fresh.summon = _mercCloneRuntime(cur.summon);
+            if (cur._illuSummons) fresh._illuSummons = _mercCloneRuntime(cur._illuSummons);
+            MERC_PREF_FIELDS.forEach(k => { if (cur[k] !== undefined) fresh[k] = cur[k]; });
+            fresh._autoBuff = _mercCloneRuntime(cur._autoBuff) || {};
+            Object.keys(cur).forEach(k => {
+                if (/^_.*(?:Cd|Until|Ticks)$/.test(k) || k === '_stunCycle' || k === '_faceTgtUid') fresh[k] = _mercCloneRuntime(cur[k]);
+            });
+            fresh._downed = !!cur._downed;
+            fresh._reviveCd = cur._reviveCd || 0;
+            _mercValidateSyncedSkills(fresh);
+            try { _allyLevelRecompute(fresh); } catch (e) {}
+            fresh.curHp = fresh._downed ? 0 : Math.max(1, Math.min(fresh.mhp || 1, Math.floor((fresh.mhp || 1) * hpPct)));
+            fresh.mp = Math.max(0, Math.min(fresh.mmp || 0, Math.floor((fresh.mmp || 0) * mpPct)));
+            fresh._sourceStamp = src.stamp;
+            fresh._sourceMissingChecks = 0;
+            snapshotMercPrefs(fresh);
+            next.push(fresh); synced.push(fresh._allyName || ('存檔 ' + fresh._slot));
+        });
+        player.allies = next;
+        if (synced.length) logSys(`<span class="text-sky-300">協力傭兵 ${synced.join('、')} 已自動同步來源角色的最新等級、能力、裝備與技能。</span>`);
+        if (removed.length) {
+            logSys(`<span class="text-amber-300">協力傭兵 ${removed.join('、')} 的來源角色已刪除或更換，已自動解散（累積經驗記入待領帳本）。</span>`);
+            try { saveGame(); } catch (e) {}
+        }
+        if (synced.length || removed.length) { try { updateUI(); renderSquadPanel(); } catch (e) {} }
+    } finally { _mercAutoSyncBusy = false; }
+}
+setInterval(mercAutoSyncAllies, MERC_AUTO_SYNC_MS);
 // 協力角色攻擊一次（自包含，直接用 ally 的真實衍生值；法師走魔法、其餘走物理）
 // 🔧 對不死/狼人加成（傭兵版，比照玩家 getPhysicalDmg）：武器帶 unBonus/unDice/精靈套裝、且目標為不死(un)或狼人(isWolf) → 額外 +1D20 固定傷害
 function allyUnbonusBonus(ally, t) {
@@ -2719,7 +2809,7 @@ function renderAllyNPC(div) {
         </div>`;
     }).join('');
     div.innerHTML = `<div class="flex flex-col gap-3 p-1">
-        <div class="text-slate-300 text-sm leading-relaxed">招募其他存檔位的角色一起作戰，<b class="text-amber-300">費用＝該角色等級 × 10000 金幣</b>。協力傭兵戰鬥中不會陣亡，<b class="text-emerald-300">你死亡並回城／原地復活後仍會留在身邊，可使用各傭兵旁的「解散」或「⚠ 全員退出」（費用不退還）</b>；存讀檔不會使其消失。法師以魔法、妖精以弓/三重矢、騎士以物理（含看破/殺戮）出手。<br><span class="text-slate-400">提示：點「重新招募」可隨時結算傭兵累積經驗（記入待領帳本）並以最新存檔更新戰力快照；點「解散」只會解除該名傭兵並結算其累積經驗。重新招募費用依等級為原價的 1/10（Lv1）~ 1/5（Lv50）~ 1/2（Lv100）曲線遞增。</span></div>
+        <div class="text-slate-300 text-sm leading-relaxed">招募其他存檔位的角色一起作戰，<b class="text-amber-300">費用＝該角色等級 × 10000 金幣</b>。協力傭兵戰鬥中不會陣亡，<b class="text-emerald-300">你死亡並回城／原地復活後仍會留在身邊，可使用各傭兵旁的「解散」或「⚠ 全員退出」（費用不退還）</b>；存讀檔不會使其消失。法師以魔法、妖精以弓/三重矢、騎士以物理（含看破/殺戮）出手。<br><span class="text-slate-400">來源角色存檔後，出戰傭兵每 60 秒免費檢查並自動同步最新等級、能力、裝備與技能；喝水、技能選擇、累積經驗及戰鬥狀態會保留。點「重新招募」仍可立即結算傭兵累積經驗並立刻重建快照；點「解散」只會解除該名傭兵並結算經驗。</span></div>
         <div class="flex items-center justify-between gap-2">
             <div class="text-sm">你的金幣：<span class="text-yellow-400 font-bold">${(player.gold||0).toLocaleString()}</span></div>
             ${(player.allies||[]).length ? `<button onclick="dismissAllAllies()" class="btn py-1 px-3 text-xs font-bold bg-red-950 border-red-700 text-red-200" title="解除目前全部協力傭兵（含異常卡住、找不到對應存檔的傭兵）">⚠ 全員退出（${(player.allies||[]).length}）</button>` : ''}
