@@ -528,10 +528,8 @@
         #battle-view .mob-img-inner.mob-anim .mob-anim-weapon2 { position: absolute !important; left: 50%; bottom: 0; transform: translateX(-50%); pointer-events: none; mix-blend-mode: screen; }
         /* 🌑 v3.0.24 灰白剪影怪(影魔/象牙塔影魔·天堂 silhouette gfx1571)→半透明黑影：brightness(0) 把淺灰白 spr 全轉黑(保留 alpha 軟邊)、opacity 半透明煙感。掛父層→受擊 keyframe 的 brightness 亮度被此層歸零(不閃回灰)、img 的 translateX 晃動照常。 */
         #battle-view .mob-img-inner.mob-shadow-tint { filter: brightness(0); opacity: .62; }
-        /* 🙈 怪物名字預設隱藏，滑鼠游標移到「怪物圖片」上才顯示（:has 偵測圖片區 hover；img 為 pointer-events:none→hover 落在 .mob-img-wrap；保留名稱列空間避免版面跳動）。.name-show＝JS 依 _hoverMobUid 套用→跨重繪持續顯示(每 tick 換 innerHTML 時 :hover 會瞬失效，靠它穩住不閃) */
-        #battle-view .mob-name { opacity: 0; transition: opacity 0.12s ease; }
-        #battle-view .mob-target:has(.mob-img-wrap:hover) .mob-name,
-        #battle-view .mob-target.name-show .mob-name { opacity: 1; }
+        /* 🏷️ 怪物名稱改為戰鬥中常駐顯示；名稱列原本已固定保留高度，因此不會改變怪物站位或造成版面跳動。 */
+        #battle-view .mob-name { opacity: 1; }
         /* 🏷️ 怪物名字固定白色＋黑邊、永不因受擊/狀態變色或閃動（受擊特效只套在怪物圖片 img 上·名字是獨立元素不受影響）。!important 覆蓋任何等差色/脈動 */
         #battle-view .mob-name, #battle-view .mob-name span { color: #fff !important; text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000, 0 0 3px #000 !important; animation: none !important; }
         #battle-view .mob-name span.mob-name-boss { color: #ff2222 !important; }   /* 👑 頭目名稱固定鮮紅(非頭目維持白)；黑邊 text-shadow 與 animation:none 沿用上行白鎖規則→紅字黑邊、受擊不變色。優先序(1,0,2,1)>白鎖(1,0,1,1) */
