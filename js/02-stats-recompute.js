@@ -36,7 +36,7 @@ function recomputeStats() {
     d.resFire = 0; d.resWater = 0; d.resEarth = 0; d.resWind = 0;
     d.immStone = false;      // 免疫石化（紅騎士盾牌）
     d.immPoison = false;     // 免疫中毒/猛毒/麻痺（潔尼斯戒指）
-    d.magicDrNonEle = 0;     // 無屬性魔法傷害減免 %（紅騎士盾牌）
+    d.resNone = 0;           // 🛡️ v3.3.29 無屬性抗性（取代舊「無屬性魔法傷害減少%」magicDrNonEle）：只作用於魔法傷害·減免公式同屬性抗性(effResistPct)
 
     // ===== Phase 1：先把所有「屬性(STR/DEX/INT/CON/WIS)」來源加總完畢 =====
     // 【修正】裝備與增益提供的屬性，必須在換算戰鬥數值「之前」全部計入，
@@ -224,7 +224,7 @@ function recomputeStats() {
     if (p.eq.wpn) {
         let w = DB.items[p.eq.wpn.id];
         let isRanged = !!w.ranged;
-        let _enW = enhanceWpnBonus(capEn(p.eq.wpn.en, w));   // 武器原始強化固定加成（依各武器自身上限截斷）
+        let _enW = enhanceWpnBonus(p.eq.wpn.en);   // 🔧 武器強化固定加成（傷害每階+1延伸到+20、命中+1~+10後依表續加）
         // 武器自身固定傷害/命中：只加武器本身的攻擊類型（近戰武器→近距離、遠程武器→遠距離）
         if (isRanged) { d.rangedDmg += (w.dmgBonus||0); d.rangedHit += (w.hit||0); }
         else { d.meleeDmg += (w.dmgBonus||0); d.meleeHit += (w.hit||0); }
@@ -248,10 +248,10 @@ function recomputeStats() {
         if(w.mhp) p.mhp += w.mhp;   // 🏛️ 武器 HP 上限加成（古代黑暗妖精之劍 HP+50；同步修正深紅長矛既有 HP+50 失效）
         if(w.mmp) p.mmp += w.mmp;   // 🏛️ 武器 MP 上限加成（聖晶魔杖 MP+50；防具/飾品 mmp 走另一迴圈·武器需此處）
         if(w.extraMp) d.extraMp += w.extraMp;   // 🏺 武器固定額外魔法點數（遺物 殭屍的小腿骨 +7；防具/飾品 extraMp 走另一迴圈·武器需此處）
+        if(p.eq.wpn.id === 'wpn_giltas_wand' && p._giltasWandFuryUntil > state.ticks) d.extraMp += 10;   // 🪄 吉爾塔斯魔杖：任意擊殺後 10 秒內額外魔法點數 +10（玩家／傭兵共用重算管線）
         if(w.dr) d.dr += w.dr;   // 🏺 武器固定傷害減免（遺物 有彈性的肋骨 +2；防具/飾品 dr 走另一迴圈·武器需此處）
         if(w.extraDmg) d.extraDmg += w.extraDmg;   // 🏺 武器固定傷害（遺物 鼠人的烤肉叉/水靈的琴弦 固定傷害+N；防具/飾品 extraDmg 走另一迴圈·武器需此處）
         if(w.mcrit) d.meleeCrit += w.mcrit;   // 🏺 武器近距離爆擊率加成（遺物 蟹人的巨鉗 +5%）
-        if(w.meleeCrit) d.meleeCrit += w.meleeCrit;   // 武器資料使用完整欄名的近距離爆擊率
         if(w.mcritDmg) d.meleeCritDmg += w.mcritDmg;   // 🏺 武器近距離爆擊傷害% 加成（遺物 歐姆裝甲兵的超重鎚 +10%）
         if(w.rcrit) d.rangedCrit += w.rcrit;   // 🏺 武器遠距離爆擊率% 加成（遺物 神射手的重弦弓 +3%）
         if(w.rangedCrit) d.rangedCrit += w.rangedCrit;   // 武器資料使用完整欄名的遠距離爆擊率
@@ -270,7 +270,7 @@ function recomputeStats() {
         if(w.atkSpdPct) d.atkSpdPct += w.atkSpdPct;   // 🏺 武器攻速%（遺物 阿魯巴的加速棍棒 +20／牛頭怪的殘暴巨斧 +25；防具/飾品 atkSpdPct 走另一迴圈·武器需此處·v3.1.33 稽核修）
         if(w.mr) d.mr += w.mr;   // 🐍 武器 MR（提卡爾庫庫爾坎之矛/蛇神的倒勾獠牙 MR+5；防具/飾品 mr 走另一迴圈·武器需此處·v3.1.76 稽核高#2）
         if(w.fullHpMpHalf) d.fullHpMpHalf = true;   // 🏺 v3.1.80 巫師的黑暗魔導書：滿血時技能消耗 MP 減半（getMpCost 讀取）
-        let _wEn = capEn(p.eq.wpn.en, w);   // 所有隨強化提升的能力依該武器上限截斷
+        let _wEn = capWpnEn(p.eq.wpn.en);   // 🔧 超過 +20 一律以 +20 計算所有隨強化提升的能力
         if(w.mpROverSafe && _wEn > (w.safe || 0)) d.mpR += (_wEn - (w.safe || 0)) * w.mpROverSafe;   // 突破安定值：每超過1階，MP自然恢復量 +mpROverSafe
         if(w.extraMpPerEn)  d.extraMp  += _wEn * w.extraMpPerEn;    // 每強化+1 → 額外魔法點數
         if(w.meleeHitPerEn) d.meleeHit += _wEn * w.meleeHitPerEn;   // 每強化+1 → 近距離命中
@@ -338,7 +338,7 @@ d.mr += (baseMr + bonusMr);
         if(ed.extraAtk)  d.equipExtraAtk += ed.extraAtk;      // 🐉 裝備額外一般攻擊次數（龍鱗臂甲 +1）
         if(ed.immStone) d.immStone = true;                    // 紅騎士盾牌：免疫石化
         if(ed.immPoison) d.immPoison = true;                  // 潔尼斯戒指：免疫中毒/猛毒/麻痺
-        if(ed.magicDrNonEle) d.magicDrNonEle += ed.magicDrNonEle; // 紅騎士盾牌：無屬性魔法減傷
+        if(ed.resNone) d.resNone += ed.resNone;               // 🛡️ v3.3.29 無屬性抗性（紅騎士盾牌/反射之盾/阿茲特的反光石·只對魔法）
         if(ed.dr) d.dr += ed.dr;   // 🛡️ 防具/飾品固定傷害減免（信念之盾 +2、巴風特盔甲 +2）
         if(ed.hitstunReduce) d.hitstunReduce += ed.hitstunReduce;   // 🏺 不動的鋼鐵堅壁：受傷硬直 -0.5 秒（-5 tick）→先累加·於變身速度覆蓋後統一扣（v3.1.30 審查修：原本直接扣會被 POLY_TIERS 的 d.hitstun=pf.stun 蓋掉）
         if(ed.crushDr) d.crushDr += ed.crushDr;        // 🏺 遺物 妖魔的兜襠布：受到重擊時傷害減少 crushDr%（於 js/04 受擊路徑套用）
@@ -424,6 +424,9 @@ d.mr += (baseMr + bonusMr);
     if(setCheck['icequeen_charm'] >= 3) { d.ac -= 5; p.mhp += 100; d.mpR += 4; d.resWater += 20; }   // ❄️👸 冰之女王魅力套裝（公主限定）：AC-5、HP+100、MP自然恢復+4、水屬性抗性+20（力量+2/魅力+2 已於 Phase 1 前提前套用）
     if(setCheck['frost'] >= 3) { d.ac -= 5; p.mhp += 100; d.hpR += 8; d.mpR += 4; d.mr += 15; d.resWater += 20; }   // ❄️ 寒冰套裝（王族／龍騎士）：AC-5、HP+100、HP自然恢復+8、MP自然恢復+4、MR+15、水屬性抗性+20（體質+3 已於 Phase 1 前提前套用）
     if(setCheck['bluepirate'] >= 4) { d.ac -= 1; p.mhp += 10; }   // 🏴‍☠️ 藍海賊套裝（頭巾＋皮盔甲＋手套＋長靴）：AC-1、HP+10（智力+1 已於 Phase 1 前提前套用）
+    if(setCheck['emperor'] >= 5) { d.ac -= 20; p.mhp += 100; p.mmp += 20; d.hpR += 10; d.atkSpdPct += 30; d.meleeDmg += 5; d.rangedDmg += 5; }   // 🌑 v3.3.33 真‧冥皇套裝（披風/鎧甲/面甲/護手/鋼靴 5 件·黑暗妖精聖地.md）：防禦-20、HP+100、MP+20、HP自然恢復+10、攻速額外+30%（atkSpdPct 管線·與加速/勇敢藥水乘算堆疊）、額外傷害+5（近/遠皆加）
+    // 🌑 v3.4.0 受詛咒的真．冥皇執行劍：裝備時變身 死亡騎士（走 _setPoly 管線＝卸下即消失·速度覆蓋沿 POLY_TIERS 死亡騎士；套裝變身優先於本劍故加 !p._setPoly 守衛）
+    if(!p._setPoly && p.eq && p.eq.wpn && p.eq.wpn.id === 'wpn_cursed_emperor_blade') { let _ceb = findPolyForm('死亡騎士'); if(_ceb) p._setPoly = makePolyState(_ceb.form, _ceb.color); }
 
     // ===== 🔮 席琳套裝效果：⚠️v3.1.68 改「席琳遺骸」計件——只掃 8 格遺骸欄（SHERINE_REMAINS·欄位鍵=物品id）=====
     // 每格遺骸必附一種席琳詞綴(seteff)，相同組名的遺骸格數達 2/3/5 → 發動效果（門檻/效果不變）。
@@ -804,6 +807,7 @@ function hasTeleportRing() {
 }
 // 傳送：清空當前怪物並重置生怪排程；forceBoss=true 時讓下一次生怪必定為 BOSS
 function doTeleport(forceBoss) {
+    if (typeof giltasKeepOnLeave === 'function') giltasKeepOnLeave();   // 🌑 v3.4.16 受詛咒聖地內瞬移＝清空重生怪物（吉爾塔斯消失重生）→ 視同離開戰鬥·先做 HP 保留判定（消耗完整的召喚球＋提示·helper 自帶地圖 gate）
     if (typeof playTeleportFx === 'function') { try { playTeleportFx(); } catch (e) {} }   // 🌀 v3.0.102 傳送術特效＋玩家 sprite 暫隱（傳送術技能/手動+自動瞬移卷軸皆經此）
     saveSiegeBossHp();   // 傳送前保存攻城塔/門血量
     mapState.mobs = [null, null, null, null, null];
@@ -828,14 +832,14 @@ function enterHiddenArea(hiddenId) {
     changeMap(true);   // force：繞過權限/鑰匙/受控限制；changeMap 讀 #map-select.value=hiddenId 進入並記入 lastBattleMap（供村莊「出發」一鍵返回）
     logCombat(`<span class="font-bold" style="color:#e879f9;text-shadow:0 0 8px #c026d3;">空間的裂隙在你眼前展開，你踏入了 ${HIDDEN_AREA_NAMES[hiddenId] || '隱藏狩獵區域'}。</span>`, 'magic');
 }
-// 🌀 順移按鈕：已學傳送術且 MP 足夠→傳送術；否則消耗瞬間移動卷軸；皆無則提示
+// 🌀 順移按鈕：v3.4.21 改為優先消耗 瞬間移動卷軸；沒有卷軸才判定手動施放傳送術（MP 足夠時）；皆無則提示
 function playerTeleport() {
+    let _it = player.inv.find(i => i.id === 'scroll_teleport' && (i.cnt || 1) >= 1);
+    if (_it) { state._manualTpUntil = (state.ticks || 0) + 50; useItem(_it.uid, false); return; }   // 🕒 手動瞬移後 5 秒內抑制自動瞬移/自動購買
     if (player.skills && player.skills.includes('sk_teleport')) {
         let _sk = DB.skills.sk_teleport;
         if (player.mp >= player.d.getMpCost(_sk.mp, _sk.tier)) { state._manualTpUntil = (state.ticks || 0) + 50; manualCast('sk_teleport'); return; }   // 🕒 手動瞬移後 5 秒內抑制自動瞬移/自動購買
     }
-    let _it = player.inv.find(i => i.id === 'scroll_teleport' && (i.cnt || 1) >= 1);
-    if (_it) { state._manualTpUntil = (state.ticks || 0) + 50; useItem(_it.uid, false); return; }   // 🕒 手動瞬移後 5 秒內抑制自動瞬移/自動購買
     logSys('<span class="text-slate-400">你尚未學會傳送術，也沒有瞬間移動卷軸。</span>');
 }
 

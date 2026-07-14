@@ -359,15 +359,15 @@ function useItem(u, silent = false) {
             if (!silent) logSys(`無法使用 ${d.n}，職業不符。`);
             return;
         }
-        if (d.type === 'pot' && d.val != null) {
-            if (!d.noPotionDelay && player.cds.pot > 0) return;
+        if (item.id.includes('potion_heal') || item.id === 'potion_strong' || item.id === 'potion_ult') {
+            if (player.cds.pot > 0) return;
             let h = Math.floor(potionHealBase(d) * (1 + (getConPotionPct(player.d.con) + dollFieldVal('potionBonus') + (player._miscPotionBonus || 0)) / 100));   // 🍶 藥水基準改隨機區間 valMin~valMax（紅10~20/橙30~50/白60~80）；🪆 魔法娃娃 potionBonus%（吸血鬼）；🧰 道具收集冊 材料/其他全收集：藥水恢復%
             if (hasMastery('k_survive')) h = Math.floor(h * 1.25);   // 🏅 生存精通：治癒藥水恢復 +25%
             if (hasMastery('k_tough') && player.hp < player.mhp * 0.4) h = Math.floor(h * 1.5);   // ⚔️ 堅韌精通：HP<40% 時藥水治癒量 +50%
             if (hasMastery('k_dragonblood')) h = Math.floor(h * 1.15);   // 🐉 龍血精通：治癒藥水恢復 +15%
             if (player.hp < player.mhp * 0.2) { try { for (let _k in player.eq) { let _e = player.eq[_k]; if (_e && DB.items[_e.id] && DB.items[_e.id].lowHpPotionX2) { h = h * 2; break; } } } catch (e) {} }   // 🏺 v3.2.17 聖伯納的急救酒桶：HP<20% 時治癒藥水恢復量 ×2
             player.hp = Math.min(player.mhp, player.hp + h);
-            if (!d.noPotionDelay) player.cds.pot = 1;
+            player.cds.pot = 1;
             if(!silent) logSys(`飲用 ${d.n}，恢復 ${h} HP。`);
         } else if (item.id === 'new_item_141') {
             // 安特的水果：只能手動使用，恢復 44~107 HP（自動使用會帶 silent=true，直接略過不消耗）
@@ -702,11 +702,6 @@ function equipItem(item) {
         logSys(`<span class="text-amber-300">「${d.n}」帶有「唯一」標記，身上最多只能裝備 1 個。</span>`);
         return;
     }
-    // ✨ 神級武器唯一限制：主手／副手合計只能裝備一把神級武器。
-    if (d.godWeapon && Object.values(player.eq).some(e => e && e !== item && DB.items[e.id] && DB.items[e.id].godWeapon)) {
-        logSys('<span class="text-violet-300 font-bold">每名角色同時只能裝備一把神級武器。</span>');
-        return;
-    }
 
     if (slot === 'ring') {
         if(!player.eq.ring1) slot = 'ring1';
@@ -750,6 +745,19 @@ function equipItem(item) {
         if (isEquipCursed('wpn')) { logSys('<span class="text-red-400 font-bold">被詛咒的雙手武器無法卸下，無法裝備盾牌！</span>'); return; }
         returnEquipToInv('wpn');
         logSys(`裝備盾牌，已卸下雙手武器。`);
+    }
+    // ⚔️ v3.4.21 副手位置互斥：戰士副手武器（迅猛雙斧 offwpn）與 盾牌／臂甲 共用副手位置，只能擇一裝備
+    if (slot === 'offwpn' && player.eq.shield) {   // 裝副手武器 → 卸下盾牌/臂甲
+        if (isEquipCursed('shield')) { logSys('<span class="text-red-400 font-bold">被詛咒的副手裝備無法卸下，無法持用副手武器！</span>'); return; }
+        let _sd = DB.items[player.eq.shield.id];
+        let _snm = (_sd && _sd.armguard) ? '臂甲' : '盾牌';
+        returnEquipToInv('shield');
+        logSys(`副手改持武器，已卸下${_snm}。`);
+    } else if (slot === 'shield' && player.eq.offwpn) {   // 裝盾牌/臂甲 → 卸下副手武器
+        if (isEquipCursed('offwpn')) { logSys('<span class="text-red-400 font-bold">被詛咒的副手武器無法卸下，無法裝備' + (d.armguard ? '臂甲' : '盾牌') + '！</span>'); return; }
+        let _on = DB.items[player.eq.offwpn.id];
+        returnEquipToInv('offwpn');
+        logSys(`副手改裝${d.armguard ? '臂甲' : '盾牌'}，已卸下副手武器${_on ? ' ' + _on.n : ''}。`);
     }
 
     let invItem = player.inv.find(i => i.uid === item.uid);
@@ -912,7 +920,7 @@ function doEnhance(targetUid, isEq = true) {
         target = singleItem; 
     }
     
-    let success = false, destroy = false, nochange = false, protectedDrop = false;
+    let success = false, destroy = false, nochange = false;
     // 防呆：強化值正規化為有效數字。若 en 為 undefined/NaN，(undefined < safe) 會是 false 而誤入失敗/爆裝分支，
     //        導致看似 +0 的武器仍可能消失。此處統一視為 0，確保 +0(含未初始化 en)在安定值內必定成功、不會爆裝。
     target.en = Number(target.en) || 0;
@@ -1206,6 +1214,12 @@ function _updateUIImpl() {
     document.getElementById('bar-exp').style.width = `${Math.min(100, pct)}%`;
     try { if (typeof renderSquadPanel === 'function') renderSquadPanel(); } catch (e) {}   // 🤝 協力傭兵隊伍面板：每幀同步血/魔/經驗條（名單變動才重建結構）
 
+    // 經典能力資訊欄上半部：等級、體力、魔力、防禦。
+    { let _el = document.getElementById('dt-level'); if (_el) _el.innerText = player.lv;
+      _el = document.getElementById('dt-hp'); if (_el) _el.innerText = `${Math.floor(player.hp)}/${Math.floor(player.mhp)}`;
+      _el = document.getElementById('dt-mp'); if (_el) _el.innerText = `${Math.floor(player.mp)}/${Math.floor(player.mmp)}`;
+      _el = document.getElementById('dt-ac'); if (_el) _el.innerText = player.d.ac; }
+
     if (_respec) {   // 🕯️ 回憶蠟燭配點重置中：六大屬性顯示「Lv1 基礎 + 草稿配點」（確認後才真正套用）
         let _b = createBase[player.cls];
         ['str','dex','con','int','wis','cha'].forEach(s => { let el = document.getElementById('dt-'+s); if (el) el.innerText = _b[s] + _respec.draft[s]; });
@@ -1225,10 +1239,12 @@ function _updateUIImpl() {
     document.getElementById('dt-mdmg').innerText = sign(player.d.meleeDmg + _ed);
     document.getElementById('dt-mhit').innerText = sign(player.d.meleeHit + _eh);
     document.getElementById('dt-mcrit-p').innerText = `${player.d.meleeCrit}%`;
+    { let _el = document.getElementById('dt-mcritdmg'); if (_el) _el.innerText = `${player.d.meleeCritDmg || 0}%`; }
     // 遠距離
     document.getElementById('dt-rdmg').innerText = sign(player.d.rangedDmg + _ed);
     document.getElementById('dt-rhit').innerText = sign(player.d.rangedHit + _eh);
     document.getElementById('dt-rcrit').innerText = `${player.d.rangedCrit}%`;
+    { let _el = document.getElementById('dt-rcritdmg'); if (_el) _el.innerText = `${player.d.rangedCritDmg || 0}%`; }
     // 額外（已折入近/遠距離，列固定隱藏）
     document.getElementById('dt-edmg').innerText = sign(_ed);
     document.getElementById('dt-ehit').innerText = sign(_eh);
@@ -1242,12 +1258,20 @@ function _updateUIImpl() {
     document.getElementById('dt-sp').innerText = sign(player.d.extraMp);
     document.getElementById('dt-mhit-mag').innerText = sign(player.d.magicHit);
     document.getElementById('dt-mcrit').innerText = `${player.d.magicCrit}%`;
+    { let _el = document.getElementById('dt-mgcritdmg'); if (_el) _el.innerText = `${player.d.magicCritDmg || 0}%`; }
     document.getElementById('dt-mpreduce').innerText = `${player.d.mpReduce}%`;
 	if(document.getElementById('dt-mpr')) document.getElementById('dt-mpr').innerText = formatBonus(player.d.mpR);
 	if(document.getElementById('dt-hpr')) document.getElementById('dt-hpr').innerText = formatBonus(player.d.hpR || 0);
     document.getElementById('dt-er').innerText = `${effResistPct(player.d.er)}%`;   // 🔧 顯示有效迴避率（>50 每+5才+1%）
     document.getElementById('dt-dr').innerText = player.d.dr;
     document.getElementById('dt-spd').innerText = `${player.d.aspd.toFixed(2)}s`;
+    { let _potionPct = (typeof getConPotionPct === 'function' ? getConPotionPct(player.d.con || 0) : 0);
+      try { _potionPct += (typeof dollFieldVal === 'function' ? dollFieldVal('potionBonus') : 0) + (player._miscPotionBonus || 0); } catch (e) {}
+      let _el = document.getElementById('dt-potion'); if (_el) _el.innerText = `${_potionPct}%`;
+      _el = document.getElementById('dt-movespeed'); if (_el) _el.innerText = `${100 + (player.d.moveSpeedPct || 0)}%`;
+      _el = document.getElementById('dt-mpkill'); if (_el) _el.innerText = (typeof getWisMpOnKill === 'function' ? getWisMpOnKill(player.d.wis || 0) : 0);
+      _el = document.getElementById('dt-mr'); if (_el) _el.innerText = player.d.mr || 0;
+      _el = document.getElementById('dt-resnone'); if (_el) _el.innerText = `${effResistPct(player.d.resNone || 0)}%`; }
     if(document.getElementById('dt-resfire')) {
         document.getElementById('dt-resfire').innerText  = `${effResistPct(player.d.resFire  || 0)}%`;   // 🔧 顯示有效減傷%（>50 每+5才+1%）
         document.getElementById('dt-reswater').innerText = `${effResistPct(player.d.resWater || 0)}%`;
@@ -1263,10 +1287,11 @@ function _updateUIImpl() {
         let _ptsLeft = _respecOn ? respecPtsLeft() : (player.bonus || 0);
         document.querySelectorAll('.alloc-plus').forEach(el => el.classList.toggle('hidden', !_editing));
         document.querySelectorAll('.alloc-minus').forEach(el => el.classList.toggle('hidden', !_respecOn));   // 只有蠟燭重置可退點
+        let _tabStats = document.getElementById('tab-stats'); if (_tabStats) _tabStats.classList.toggle('is-respec', _respecOn);
         let _bar = document.getElementById('alloc-edit-bar');
         if (_bar) {
-            _bar.classList.toggle('hidden', !_editing);
-            let _lbl = document.getElementById('alloc-bar-label'); if (_lbl) _lbl.textContent = (_respecOn ? '剩餘配點：' : '升級點數：') + _ptsLeft;
+            _bar.classList.toggle('hidden', !_respecOn);   // 配點框只在使用回憶蠟燭時顯示；一般升級點僅顯示屬性旁的＋按鈕
+            let _lbl = document.getElementById('alloc-bar-label'); if (_lbl) { _lbl.textContent = _ptsLeft; _lbl.title = `剩餘配點：${_ptsLeft}`; }
             let _hint = document.getElementById('alloc-bar-hint'); if (_hint) _hint.classList.toggle('hidden', !_respecOn);
             let _cf = document.getElementById('alloc-confirm-btn'); if (_cf) _cf.classList.toggle('hidden', !_respecOn);
             let _cc = document.getElementById('alloc-cancel-btn'); if (_cc) _cc.classList.toggle('hidden', !_respecOn);
