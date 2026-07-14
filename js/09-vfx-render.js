@@ -2173,6 +2173,10 @@ function playQiguAttackSprite(actor) {
         let isPlayer = actor === player;
         let st = isPlayer ? _pmState : (actor && actor._slot != null ? _allySpriteStates[String(actor._slot)] : null);
         if (!st || !st.el || !st.el.isConnected || !st.imgs || !st.imgs.bd) return;
+        // 變身／加速後攻擊間隔可能短於完整動畫的 400ms；同一角色只允許一套動畫，
+        // 防止前後多套影格重疊，畫面長時間只剩最後兩格的底部藍色光球。
+        if (st._qiguFxEl && st._qiguFxEl.isConnected) return;
+        st._qiguFxEl = null;
         let r = st.imgs.bd.getBoundingClientRect(); if (!r.width || !r.height) return;
         let layer = _vfxLayer(); if (!layer) return;
         // 幽藍手臂橫移、下揮、落地後消散；逐張換圖保證每次從第 1 格開始。
@@ -2187,11 +2191,16 @@ function playQiguAttackSprite(actor) {
         el.style.objectFit = 'contain'; el.style.imageRendering = 'pixelated';
         el.style.zIndex = '31';
         layer.appendChild(el);
+        st._qiguFxEl = el;
+        let finish = () => {
+            try { el.remove(); } catch (_) {}
+            if (st._qiguFxEl === el) st._qiguFxEl = null;
+        };
         let frame = 0;
         let nextFrame = () => {
             if (!el.isConnected) return;
             frame++;
-            if (frame >= QIGU_ATTACK_FRAME_SRC.length) { el.remove(); return; }
+            if (frame >= QIGU_ATTACK_FRAME_SRC.length) { finish(); return; }
             el.src = QIGU_ATTACK_FRAME_SRC[frame];
             setTimeout(nextFrame, QIGU_ATTACK_FRAME_DUR[frame]);
         };
