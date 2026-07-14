@@ -39,8 +39,8 @@ function _fxBandRefH(fallbackH) {
     return fallbackH;
 }
 const SPELL_FX = {
-    // 🔮 奇古獸精神共鳴：紫色靈魂能量在目標身上凝聚、上升後消散。
-    '精神共鳴': { dir:'靈魂昇華', prefix:'3935-0', n:19, fps:18, blend:'screen', h:0.90, ax:0.50, ay:0.62 },
+    // 🔮 奇古獸精神共鳴第二版：精神之眼成形、符文聚合，再由目標身體向外釋放共鳴波。
+    '精神共鳴': { dir:'精神共鳴', prefix:'mental-resonance-v2', n:20, fps:16.67, blend:'screen', h:1.10, ax:0.50, ay:0.50 },
     '光箭': { dir:'光箭', dirPrefix:'167-', dirs:4, n:4, fps:12, blend:'screen', proj:true, nw:32, nh:40, ax:0.50, ay:0.50 },
     '冰矛圍籬': { dir:'冰矛圍籬', dirPrefix:'756-', dirs:8, n:4, fps:12, blend:'screen', proj:true, nw:49, nh:44, ax:0.50, ay:0.50 },
     '冰箭': { dir:'冰箭', dirPrefix:'1797-', dirs:8, n:4, fps:12, blend:'screen', proj:true, nw:15, nh:21, ax:0.50, ay:0.50 },
