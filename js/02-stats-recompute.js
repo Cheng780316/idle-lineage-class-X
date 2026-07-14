@@ -469,7 +469,7 @@ d.mr += (baseMr + bonusMr);
     if (_shN('暗影') >= 2) { d.extraDmg += 7; }   // 🔧 暗影 2/5：額外傷害+7
     p._setShadow3 = _shN('暗影') >= 3;            // 🔧 暗影 3/5：觸發迴避時恢復 2% HP（迴避處套用）
     p._setShadow5 = _shN('暗影') >= 5;            // 🔧 暗影 5/5：雙擊額外攻擊傷害加倍（×2·procCombo/allyComboAttack 套用）
-    // 🔮 幻覺：2件 魔傷命中回「Lv/10」MP；3件 輔助技耗MP-50%；5件 敵人受非自動攻擊魔法傷害再受一次同傷（不再觸發套裝效果）
+    // 🔮 幻覺：立方、冰雪颶風/火牢 DoT、魔爆、spellProc/procSkill 等免費觸發魔法有效；2件每次法術事件僅回一次MP（AOE不逐目標回）；一般傷害法術、共鳴、反射無效；玩家與傭兵規則相同
     p._setIllusion2 = _shN('幻覺') >= 2;
     p._setIllusion3 = _shN('幻覺') >= 3;
     p._setIllusion5 = _shN('幻覺') >= 5;
