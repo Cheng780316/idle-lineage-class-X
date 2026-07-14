@@ -37,7 +37,7 @@ const SPECIAL_AREA_BG = {   // 特殊地圖：逐張對應背景
     windwood: 'assets/area/沙漠.jpg',   // 🏜️ 風木（野外·共用沙漠背景）
     windwood_dungeon: 'assets/area/地監.jpg',   // 🏰 風木地監（攻城獲勝後開放的城堡狩獵區）：fallback＝地監.jpg；優先用同名 風木地監.jpg（下方 applyAreaBackground 對 windwood_dungeon 特例啟用同名探測：存在才切換、不存在維持地監.jpg）
     gludio: 'assets/area/城鎮周邊.jpg', kent: 'assets/area/城鎮周邊.jpg', giran: 'assets/area/城鎮周邊.jpg',   // 🏙️ 古魯丁/肯特/奇岩（野外·城鎮周邊·≠村莊周邊）
-    training: 'assets/area/村莊周邊.jpg',   // 🆕 新兵修鍊場（套 area-fit·與其餘野外共用村莊周邊背景）
+    training: 'assets/area/村莊周邊.jpg', silver_knight_test: 'assets/area/村莊周邊.jpg',   // 🧪 新兵修鍊場／稻草人測試場共用村莊周邊背景
     dream_island: 'assets/area/夢幻之島.jpg',   // 🆕 夢幻之島（套 area-fit·專屬背景）
     zone_02: 'assets/area/歐瑞.jpg', zone_03: 'assets/area/歐瑞.jpg', zone_05: 'assets/area/歐瑞.jpg',   // 🗺️ 歐瑞/歐瑞雪原/國境要塞（野外·共用歐瑞背景）
     zone_04: 'assets/area/艾爾摩.jpg',   // ⚔️ 艾爾摩激戰地（野外·專屬背景）

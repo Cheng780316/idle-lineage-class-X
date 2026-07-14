@@ -183,6 +183,12 @@ function partyExpBonusPct() {
 function killMob(idx) {
     let mob = mapState.mobs[idx];
     if (!mob || mob._dead) return;        // 冪等保護：同一隻怪只結算一次獎勵
+    if (mob.immortal) {                   // 🧪 測試稻草人：致死時回滿，不播放死亡、不發放任何獎勵
+        mob.curHp = mob.hp;
+        mob._dead = false;
+        renderMobs();
+        return;
+    }
     mob._dead = true;
     try { vfxKill(mob); } catch(e){}   // ✨ VFX：擊殺粒子爆裂（趁格子 DOM 仍在、重繪前）
     try { playMobKill(mob); } catch(e){}   // 🔊 音效：怪物死亡（依怪名對應專屬死亡音，查無→通用擊殺音）
