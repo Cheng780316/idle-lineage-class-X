@@ -31,8 +31,8 @@
     <title>放置天堂 - 吉爾塔斯降臨</title>
     <link rel="icon" type="image/png" href="assets/favicon.png">   <!-- 🖼️ 瀏覽器分頁圖示(favicon)：把你的圖放到 assets/favicon.png 即生效；可改 href 路徑或副檔名(.ico/.svg) -->
 
-    <link rel="stylesheet" href="css/style.css?v=20260714-v3.4.21-x1">
-    <link rel="stylesheet" href="css/floating-ui.css?v=20260714-v3.4.21-x1">
+    <link rel="stylesheet" href="css/style.css?v=20260714-v3.4.25-x2">
+    <link rel="stylesheet" href="css/floating-ui.css?v=20260714-v3.4.25-x2">
     <link rel="stylesheet" href="css/tailwind-built.css"><!-- 🔧 預編譯 Tailwind（取代執行期 JIT tailwind.js）：只含實際用到的 class，省 407KB runtime + 移除持續掃描 DOM 的成本。置於 style.css 之後以保留原 cascade（utility 平手時勝過自訂 class，與舊 JIT 注入順序一致） -->
 </head>
 <body class="h-screen w-screen overflow-hidden">
@@ -328,14 +328,9 @@
             </div>
 
             <div id="tab-content-panel" class="panel flex-1 flex flex-col overflow-hidden relative">
-                <!-- 能力：400×900 經典資訊欄底圖；配點框只在回憶蠟燭流程顯示 -->
+                <!-- 能力：400×825 經典資訊欄底圖；配點框只在回憶蠟燭流程顯示 -->
                 <div id="tab-stats" class="ability-window-tab h-full">
                     <div class="ability-window-shell">
-                        <span id="dt-level" class="ability-summary-value ability-summary-level">1</span>
-                        <span id="dt-hp" class="ability-summary-value ability-summary-hp">0/0</span>
-                        <span id="dt-mp" class="ability-summary-value ability-summary-mp">0/0</span>
-                        <span id="dt-ac" class="ability-summary-value ability-summary-ac">0</span>
-
                         <div class="ability-primary-control ability-primary-str"><button class="alloc-minus hidden" onclick="adjAlloc('str',-1)" aria-label="力量減一">−</button><span id="dt-str">0</span><button class="alloc-plus hidden" onclick="adjAlloc('str',1)" aria-label="力量加一">＋</button></div>
                         <div class="ability-primary-control ability-primary-dex"><button class="alloc-minus hidden" onclick="adjAlloc('dex',-1)" aria-label="敏捷減一">−</button><span id="dt-dex">0</span><button class="alloc-plus hidden" onclick="adjAlloc('dex',1)" aria-label="敏捷加一">＋</button></div>
                         <div class="ability-primary-control ability-primary-con"><button class="alloc-minus hidden" onclick="adjAlloc('con',-1)" aria-label="體質減一">−</button><span id="dt-con">0</span><button class="alloc-plus hidden" onclick="adjAlloc('con',1)" aria-label="體質加一">＋</button></div>
@@ -372,10 +367,10 @@
                             <div><span>魔法防禦</span><strong id="dt-mr">0</strong></div>
                             <div class="ability-detail-spacer" aria-hidden="true"></div>
                             <div><span>無屬性抗性</span><strong id="dt-resnone">0%</strong></div>
-                            <div><span>火屬性抗性</span><strong id="dt-resfire">0%</strong></div>
-                            <div><span>水屬性抗性</span><strong id="dt-reswater">0%</strong></div>
-                            <div><span>風屬性抗性</span><strong id="dt-reswind">0%</strong></div>
-                            <div><span>地屬性抗性</span><strong id="dt-researth">0%</strong></div>
+                            <div class="ability-res-fire"><span>火屬性抗性</span><strong id="dt-resfire">0%</strong></div>
+                            <div class="ability-res-water"><span>水屬性抗性</span><strong id="dt-reswater">0%</strong></div>
+                            <div class="ability-res-wind"><span>風屬性抗性</span><strong id="dt-reswind">0%</strong></div>
+                            <div class="ability-res-earth"><span>地屬性抗性</span><strong id="dt-researth">0%</strong></div>
                         </div>
 
                         <div class="ability-hidden-values" aria-hidden="true"><span id="dt-edmg">0</span><span id="dt-ehit">0</span></div>
@@ -549,21 +544,21 @@
     })();
     </script>
 
-    <script src="js/00-data.js?v=20260714-v3.4.21-x1"></script>
-<script src="js/01-drops-config.js?v=20260714-v3.4.21-x1"></script>
-<script src="js/02-stats-recompute.js?v=20260714-v3.4.21-x1"></script>
-    <script src="js/03-combat-core.js?v=20260714-v3.4.21-x1"></script>
-    <script src="js/04-combat-attack.js?v=20260714-v3.4.21-x1"></script>
-<script src="js/05-kill-progression.js?v=20260714-v3.4.21-x1"></script>
-    <script src="js/06-status-allies.js?v=20260714-v3.4.21-x1"></script>
-    <script src="js/07-skills-cast.js?v=20260714-v3.4.21-x1"></script>
-<script src="js/08-items-equip.js?v=20260714-v3.4.21-x1"></script>
-<script src="js/09-vfx-render.js?v=20260714-v3.4.21-x1"></script>
-<script src="js/10-ui-tabs.js?v=20260714-v3.4.21-x1"></script>
-<script src="js/11-world-map.js?v=20260714-v3.4.21-x1"></script>
-<script src="js/12-npc-quests.js?v=v3.2.70-whtombs"></script>
-<script src="js/13-shop-save.js?v=20260714-v3.4.21-x1"></script>
-<script src="js/14-craft-pandora.js?v=20260714-v3.4.21-x1"></script>
+    <script src="js/00-data.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/01-drops-config.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/02-stats-recompute.js?v=20260714-v3.4.25-x2"></script>
+    <script src="js/03-combat-core.js?v=20260714-v3.4.25-x2"></script>
+    <script src="js/04-combat-attack.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/05-kill-progression.js?v=20260714-v3.4.25-x2"></script>
+    <script src="js/06-status-allies.js?v=20260714-v3.4.25-x2"></script>
+    <script src="js/07-skills-cast.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/08-items-equip.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/09-vfx-render.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/10-ui-tabs.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/11-world-map.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/12-npc-quests.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/13-shop-save.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/14-craft-pandora.js?v=20260714-v3.4.25-x2"></script>
 <script src="js/15-cards.js?v=v3.2.64-8dircodex"></script>
 <script src="js/16-equip-book.js?v=20260713-mythic-enhance-v1"></script>
 <script src="js/18-misc-book.js?v=v3.2.13-bless-cleanup"></script>
@@ -571,7 +566,7 @@
 <script src="js/19-equipment-window.js?v=20260714-v3.4.21-x1"></script>
 <script src="js/20-warehouse-window.js?v=20260702a"></script>
 <script src="js/21-relic-book.js?v=v3.1.7"></script>
-    <script src="js/23-summons.js?v=20260714-v3.4.21-x1"></script>
-    <script src="js/22-pets.js?v=20260714-v3.4.21-x1"></script>
+    <script src="js/23-summons.js?v=20260714-v3.4.25-x2"></script>
+    <script src="js/22-pets.js?v=20260714-v3.4.25-x2"></script>
 </body>
 </html>

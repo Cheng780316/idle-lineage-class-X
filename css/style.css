@@ -11,7 +11,7 @@
     user-select: none;
 }
 
-/* ===== 經典角色能力資訊欄（assets/ui/能力.png，400×900）===== */
+/* ===== 經典角色能力資訊欄（assets/ui/能力.png，400×825）===== */
 #tab-stats.ability-window-tab {
     padding:0 !important;
     gap:0 !important;
@@ -24,36 +24,16 @@
 .ability-window-shell {
     position:relative;
     flex:0 0 auto;
-    height:100%;
-    max-width:100%;
-    aspect-ratio:4 / 9;
+    width:100%;
+    max-width:400px;
+    height:auto;
+    aspect-ratio:400 / 825;
     container-type:inline-size;
     overflow:hidden;
     background:url('../assets/ui/能力.png') center/100% 100% no-repeat;
     color:#e8e4dc;
     user-select:none;
 }
-.ability-summary-value {
-    position:absolute;
-    left:46.5%;
-    width:36.5%;
-    height:3.2%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#ddd9cf;
-    font:600 3.15cqw/1 Arial,"Microsoft JhengHei",sans-serif;
-    font-variant-numeric:tabular-nums;
-    font-feature-settings:"tnum" 1;
-    letter-spacing:0;
-    text-shadow:0 1px 2px #000;
-    white-space:nowrap;
-}
-.ability-summary-level{top:9.35%}
-.ability-summary-hp{top:13.05%;color:#e0a0a0}
-.ability-summary-mp{top:16.55%;color:#aebee9}
-.ability-summary-ac{top:20.05%}
-
 .ability-primary-control {
     position:absolute;
     z-index:5;
@@ -88,16 +68,16 @@
 .ability-primary-control button:hover{border-color:#d5b76d;filter:brightness(1.2)}
 .ability-primary-str,.ability-primary-dex,.ability-primary-con{left:23%}
 .ability-primary-int,.ability-primary-wis,.ability-primary-cha{left:59%}
-.ability-primary-str,.ability-primary-int{top:28.95%}
-.ability-primary-dex,.ability-primary-wis{top:31%}
-.ability-primary-con,.ability-primary-cha{top:33.1%}
+.ability-primary-str,.ability-primary-int{top:8.2%}
+.ability-primary-dex,.ability-primary-wis{top:11.3%}
+.ability-primary-con,.ability-primary-cha{top:14.4%}
 .ability-primary-str{color:#df9b9b}.ability-primary-dex{color:#a9d3c4}.ability-primary-con{color:#d6b18d}
 .ability-primary-int{color:#aebfe9}.ability-primary-wis{color:#c0a9d9}.ability-primary-cha{color:#d7a5be}
 
 .ability-detail-column {
     position:absolute;
-    top:42.65%;
-    height:30.45%;
+    top:24.05%;
+    height:45.75%;
     display:grid;
     grid-template-rows:repeat(15,minmax(0,1fr));
     align-content:stretch;
@@ -109,26 +89,26 @@
 .ability-detail-right{left:56.5%;width:37%}
 .ability-detail-column > div{display:grid;grid-template-columns:74% 26%;align-items:center;min-height:0;white-space:nowrap}
 .ability-detail-column > .ability-detail-spacer{display:block;pointer-events:none}
-.ability-detail-column > div:nth-child(5n+2),
-.ability-detail-column > div:nth-child(5n+3),
-.ability-detail-column > div:nth-child(5n+4),
-.ability-detail-column > div:nth-child(5n+5){transform:translateY(-.32cqw)}
 .ability-detail-column span{padding-left:5%;overflow:hidden;text-overflow:clip}
 .ability-detail-column strong{display:flex;align-items:center;justify-content:flex-end;height:100%;padding-right:8%;box-sizing:border-box;color:#ded9cc;font:600 2.72cqw/1 Arial,sans-serif;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;letter-spacing:0}
+.ability-res-fire span{color:#e77d76}
+.ability-res-water span{color:#79a9e8}
+.ability-res-wind span{color:#79c58b}
+.ability-res-earth span{color:#d4ad5d}
 .ability-hidden-values{display:none}
 
 .ability-buffs {
     position:absolute;
     z-index:4;
     left:6.5%;
-    top:75.7%;
+    top:71.1%;
     width:87%;
-    height:20.8%;
+    height:25.7%;
     padding:2.2% 2.5%;
     overflow:auto;
     box-sizing:border-box;
     color:#d9d3c5;
-    font:500 2.45cqw/1.5 "Microsoft JhengHei",Arial,sans-serif;
+    font:600 3.2cqw/1.55 "Microsoft JhengHei",Arial,sans-serif;
     text-shadow:0 1px 2px #000;
     user-select:text;
     word-break:normal;
@@ -140,7 +120,7 @@
 .ability-respec-points {
     position:absolute;
     left:46%;
-    top:31.55%;
+    top:12.35%;
     width:9%;
     height:3.05%;
     display:flex;
@@ -1036,8 +1016,9 @@
 #login-art-stage { position:relative; width:min(100vw,calc(100vh * 4 / 3)); aspect-ratio:4 / 3; flex:0 0 auto; overflow:hidden; background:#050505; box-shadow:0 0 45px #000; }
 #login-bg-image { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; user-select:none; }
 #login-anim-image { position:absolute; left:0; top:63.75%; width:78.28125%; height:36.25%; object-fit:fill; pointer-events:none; user-select:none; }
-#login-title-layer { position:absolute; z-index:3; left:3.1%; top:14%; width:30.8%; color:#f7df91; text-shadow:0 2px 4px #000,0 0 6px #000; }
-#login-title-layer h1 { margin:0 0 2.5%; font-size:clamp(14px,2.05vw,31px); line-height:1.15; color:#f5d46c; }
+#login-title-layer { position:absolute; z-index:3; left:3.1%; top:14%; width:30.8%; color:#f7df91; text-shadow:0 2px 4px #000,0 0 6px #000; container-type:inline-size; }
+/* 🔤 v3.4.22 標題字級改用 cqw（跟隨標題框寬度）而非 vw：修正「寬而矮視窗下框縮小但字仍撐到 vw 上限→標題超框」；並整體略縮 */
+#login-title-layer h1 { margin:0 0 2.5%; font-size:clamp(13px,8cqw,30px); line-height:1.15; color:#f5d46c; }
 #login-title-layer p { margin:0; font-size:clamp(9px,1.05vw,16px); color:#e7d7b5; }
 #main-menu { position:absolute; z-index:4; left:50.4%; top:48.5%; width:25%; margin:0 !important; display:flex; flex-direction:column; align-items:stretch; gap:clamp(10px,1.45vw,22px) !important; }
 #main-menu.hidden { display:none !important; }

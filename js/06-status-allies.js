@@ -337,6 +337,62 @@ function allyName(a) {
     if (a.name) return a.name;
     return ({ knight: '騎士', mage: '法師', elf: '妖精', dark: '黑暗妖精', illusion: '幻術士', dragon: '龍騎士', warrior: '戰士', royal: '王族' })[a.cls] || a.cls || ('存檔' + (a._slot || ''));
 }
+// ===== 🤝 v3.4.23 傭兵設定記憶（喝水＋技能）＋來源存檔換角自動解散 =====
+// 讀某存檔位「當前角色」的 enSeed（唯一角色識別）：無存檔/無 enSeed（極舊檔）→ ''
+function _slotCharEnSeed(slotN) {
+    try {
+        let raw = _saveUnwrap(_lzGet('lineage_idle_save_' + String(slotN))).payload;
+        if (!raw) return '';
+        let p = JSON.parse(raw).p;
+        return (p && p.enSeed) || '';
+    } catch (e) { return ''; }
+}
+// 傭兵可記憶的「喝水＋技能設定」欄位（跨解散/重新招募沿用；戰力快照仍每次重建，只有這些偏好還原）
+const MERC_PREF_FIELDS = ['_atkSkill', '_healSkill', '_convertSkill', '_healHpPct', '_potHpPct', '_hpSkillPct', '_castMpPct', '_hpSafePct'];
+// 解散/重新招募前呼叫：把該傭兵當前設定存入 player.mercPrefs（鍵＝enSeed·同一角色再次招募即還原）
+function snapshotMercPrefs(ally) {
+    try {
+        if (!ally || !ally.enSeed) return;   // 無 enSeed（極舊快照）→ 無法可靠識別同一角色·不記憶
+        if (!player.mercPrefs || typeof player.mercPrefs !== 'object') player.mercPrefs = {};
+        let pref = {};
+        MERC_PREF_FIELDS.forEach(f => { if (ally[f] !== undefined && ally[f] !== null) pref[f] = ally[f]; });
+        pref._autoBuff = (ally._autoBuff && typeof ally._autoBuff === 'object') ? JSON.parse(JSON.stringify(ally._autoBuff)) : {};   // 逐兵「自動維持」勾選
+        player.mercPrefs[ally.enSeed] = pref;
+    } catch (e) {}
+}
+// buildAlly 尾呼叫：若有同一角色（enSeed）的記憶設定→套回（喝水門檻＋攻擊/治癒/轉換下拉＋各門檻＋自動維持勾選）
+function applyMercPrefs(ally) {
+    try {
+        if (!ally || !ally.enSeed || !player.mercPrefs) return;
+        let pref = player.mercPrefs[ally.enSeed];
+        if (!pref || typeof pref !== 'object') return;
+        MERC_PREF_FIELDS.forEach(f => { if (pref[f] !== undefined) ally[f] = pref[f]; });
+        if (pref._autoBuff && typeof pref._autoBuff === 'object') ally._autoBuff = JSON.parse(JSON.stringify(pref._autoBuff));
+    } catch (e) {}
+}
+// 掃描出戰傭兵：來源存檔位已換成「不同 enSeed 的新角色」→ 自動解散（記憶舊設定·結算待領經驗）。
+//   規則：傭兵與該存檔位當前角色 enSeed 皆存在且不同 → 換角 → 解散；任一無 enSeed 則無法判定·保留（避免舊存檔誤判）。
+function purgeReplacedAllies() {
+    try {
+        if (!player.allies || !player.allies.length) return;
+        let removed = [];
+        player.allies = player.allies.filter(a => {
+            if (!a) return false;
+            if (!a.enSeed) return true;                       // 傭兵快照無 enSeed → 不判定
+            let curSeed = _slotCharEnSeed(a._slot);
+            if (!curSeed) return true;                        // 存檔位空/角色無 enSeed → 交由既有「來源不存在」流程處理
+            if (curSeed === a.enSeed) return true;            // 同一角色 → 保留
+            snapshotMercPrefs(a);                             // 換成新角色 → 記憶舊角色設定後解散
+            _settleAllyExp(a, 'dismiss');
+            removed.push(a._allyName || ('存檔 ' + a._slot));
+            return false;
+        });
+        if (removed.length) {
+            logSys(`<span class="text-amber-300">協力傭兵 ${removed.join('、')} 的來源存檔已建立新角色，已自動解散（累積經驗記入待領帳本）。</span>`);
+            try { saveGame(); } catch (e) {}
+        }
+    } catch (e) {}
+}
 function buildAlly(slotN) {
     slotN = String(slotN);
     let raw = _saveUnwrap(_lzGet('lineage_idle_save_' + slotN)).payload;   // 🛡️ 先解存檔簽章（招募傭兵讀別的存檔位；不驗章、僅取 payload）
@@ -378,6 +434,7 @@ function buildAlly(slotN) {
     ally._healHpPct = 70;   // 🤝 治癒施放 HP% 門檻預設（可於隊伍面板改）
     ally.mp = ally.mmp;   // 召喚時滿魔
     { let _w = (ally.eq && ally.eq.wpn) ? DB.items[ally.eq.wpn.id] : null; ally._rapidfire = (_w && _w.isBow && _w.rapidfire) ? _w.rapidfire : 0; }   // 妖精弓：記錄連射發動機率
+    applyMercPrefs(ally);   // 🤝 v3.4.23 同一角色（enSeed）先前的喝水＋技能設定記憶→套回（首次招募無記憶則沿用來源快照預設）
     return ally;
 }
 // 協力角色攻擊一次（自包含，直接用 ally 的真實衍生值；法師走魔法、其餘走物理）
@@ -2415,6 +2472,17 @@ function rehireAlly(slotN) {
     slotN = String(slotN);
     let cur = (player.allies || []).find(a => a && a._slot === slotN);
     if (!cur) return;
+    snapshotMercPrefs(cur);   // 🤝 v3.4.23 重新招募前記住現有喝水＋技能設定（同一角色重建後由 buildAlly 還原）
+    // 🤝 v3.4.23 來源存檔位已換成新角色（enSeed 不同）→ 不重建、直接解散（不收費·設定已記憶·結算待領經驗）
+    { let _curSeed = _slotCharEnSeed(slotN);
+      if (cur.enSeed && _curSeed && _curSeed !== cur.enSeed) {
+        let m0 = _settleAllyExp(cur, 'dismiss');
+        player.allies = player.allies.filter(a => a && a._slot !== slotN);
+        logSys(`<span class="text-amber-300">存檔 ${slotN} 已建立新角色，原傭兵 ${cur._allyName} 已解散（未收費）。</span>${m0 ? ' ' + m0 : ''}`);
+        saveGame(); updateUI();
+        let _c0 = document.getElementById('interaction-content'); if (_c0) renderAllyNPC(_c0);
+        return;
+      } }
     let sum = slotSummary(slotN);
     if (!sum) {   // 來源存檔已不存在 → 無法重建，結算後解散（不收費）
         let m0 = _settleAllyExp(cur, 'dismiss');
@@ -2568,6 +2636,7 @@ function toggleAlly(slotN) {
     if (!player.allies) player.allies = [];
     if (isAllyActive(slotN)) {
         let _dis = player.allies.find(a => a && a._slot === slotN);
+        if (_dis) snapshotMercPrefs(_dis);   // 🤝 v3.4.23 解散前記住喝水＋技能設定，供同一角色再次招募時還原
         let _expMsg = _dis ? _settleAllyExp(_dis, 'dismiss') : '';   // 🤝 v2.6.68 解雇＝記一筆待領經驗（帳本制·不直接改寫來源存檔）
         player.allies = player.allies.filter(a => a && a._slot !== slotN);
         logSys(`協力傭兵（存檔 ${slotN}）已解散（招募費用不退還）。${_expMsg}`);
@@ -2655,7 +2724,7 @@ function dismissAllAllies() {
     let n = (player.allies || []).length;
     if (!n) { logSys('<span class="text-slate-400">目前沒有上場的協力傭兵。</span>'); return; }
     if (!confirm(`確定要解除全部 ${n} 名協力傭兵嗎？\n（招募費用不退還，累積經驗會記入待領帳本，各角色下次載入或回村時領取）`)) return;
-    (player.allies || []).forEach(a => { let m = _settleAllyExp(a, 'dismiss'); if (m) logSys(m); });   // 🤝 v2.6.68 各自記一筆待領經驗（帳本制·不直接改寫來源存檔）
+    (player.allies || []).forEach(a => { snapshotMercPrefs(a); let m = _settleAllyExp(a, 'dismiss'); if (m) logSys(m); });   // 🤝 v3.4.23 先記住各傭兵設定 + v2.6.68 各自記一筆待領經驗（帳本制·不直接改寫來源存檔）
     player.allies = [];
     logSys(`<span class="text-amber-300">已解除全部協力傭兵（共 ${n} 名）。</span>`);
     saveGame(); updateUI();

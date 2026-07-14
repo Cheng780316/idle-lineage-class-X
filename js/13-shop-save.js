@@ -1505,6 +1505,7 @@ function loadGame() {
         // 計時器統一由 startGameTimers() 註冊（內含去重），含每 5 分鐘自動存檔。
         startGameTimers();
         logSys(`===== 歡迎回來 =====`);
+        try { if (typeof purgeReplacedAllies === 'function') purgeReplacedAllies(); } catch (e) {}   // 🤝 v3.4.23 載入後掃描：出戰傭兵的來源存檔位若已換成新角色（enSeed 不同）→ 自動解散
     }
 }
 

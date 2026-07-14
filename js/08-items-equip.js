@@ -1214,12 +1214,6 @@ function _updateUIImpl() {
     document.getElementById('bar-exp').style.width = `${Math.min(100, pct)}%`;
     try { if (typeof renderSquadPanel === 'function') renderSquadPanel(); } catch (e) {}   // 🤝 協力傭兵隊伍面板：每幀同步血/魔/經驗條（名單變動才重建結構）
 
-    // 經典能力資訊欄上半部：等級、體力、魔力、防禦。
-    { let _el = document.getElementById('dt-level'); if (_el) _el.innerText = player.lv;
-      _el = document.getElementById('dt-hp'); if (_el) _el.innerText = `${Math.floor(player.hp)}/${Math.floor(player.mhp)}`;
-      _el = document.getElementById('dt-mp'); if (_el) _el.innerText = `${Math.floor(player.mp)}/${Math.floor(player.mmp)}`;
-      _el = document.getElementById('dt-ac'); if (_el) _el.innerText = player.d.ac; }
-
     if (_respec) {   // 🕯️ 回憶蠟燭配點重置中：六大屬性顯示「Lv1 基礎 + 草稿配點」（確認後才真正套用）
         let _b = createBase[player.cls];
         ['str','dex','con','int','wis','cha'].forEach(s => { let el = document.getElementById('dt-'+s); if (el) el.innerText = _b[s] + _respec.draft[s]; });
