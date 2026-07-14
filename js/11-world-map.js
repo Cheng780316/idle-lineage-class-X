@@ -1601,7 +1601,7 @@ function interactNPC(npcId, townId) {
         renderJoelCraft(contentDiv, npc.id);
     } else if (npc.id === 'npc_runde' || npc.id === 'npc_kang' || npc.id === 'npc_brudica') {   // 🔧 黑暗妖精限定試煉（仿瑞奇/甘特，而非製作）
         renderDarkTrial(contentDiv, npc.id);
-    } else if (['npc_nalien', 'npc_rekne', 'npc_narupa', 'npc_elfqueen', 'npc_elf', 'npc_ent', 'npc_pan', 'npc_moliya', 'npc_hector', 'npc_herbert', 'npc_lumiel', 'npc_ibelbin', 'npc_tas', 'npc_robinson', 'npc_kupu', 'npc_lentis', 'npc_upni', 'npc_bamut', 'npc_flame_shadow', 'npc_imp', 'npc_flame_smith', 'npc_norse', 'npc_keluya', 'npc_dytite', 'npc_bartel', 'npc_pir', 'npc_zeus_golem', 'npc_rabiani', 'npc_david', 'npc_flame_aide', 'npc_kororanz', 'npc_sebas', 'npc_mystic_mage', 'npc_atelier'].includes(npc.id)) {
+    } else if (['npc_nalien', 'npc_rekne', 'npc_narupa', 'npc_elfqueen', 'npc_elf', 'npc_ent', 'npc_pan', 'npc_moliya', 'npc_hector', 'npc_herbert', 'npc_lumiel', 'npc_ibelbin', 'npc_tas', 'npc_robinson', 'npc_kupu', 'npc_lentis', 'npc_upni', 'npc_bamut', 'npc_flame_shadow', 'npc_imp', 'npc_flame_smith', 'npc_norse', 'npc_keluya', 'npc_dytite', 'npc_bartel', 'npc_pir', 'npc_zeus_golem', 'npc_rabiani', 'npc_david', 'npc_flame_aide', 'npc_kororanz', 'npc_sebas', 'npc_mystic_mage', 'npc_atelier', 'npc_halphas_smith'].includes(npc.id)) {
         renderUniversalCraft(contentDiv, npc.id);
     } else if (npc.id === 'npc_dantes_lord') {   // 🌑 真‧冥皇丹特斯：聖地入口三選項
         renderDantesGate(contentDiv);
@@ -1725,7 +1725,7 @@ const NPC_SPR_FIXED = {
     // 🆕 v3.3.7 指定名稱 NPC 專屬外型（用戶提供 Downloads/NPC/<名>·避免與通用池撞臉）：
     npc_kupu: '1839', npc_rabiani: '1307', npc_runde: '2813', npc_kang: '2794', npc_brudica: '2829',
     npc_skvati: '2801', npc_saedia: '2820', npc_shenien: '6899', npc_bartel: '6757', npc_sphere: '6690',
-    npc_dantes_lord: '5454', npc_atelier: '1768',   // 🌑 v3.3.33 長老會議廳：真‧冥皇丹特斯＝骸骨王座／亞提利歐＝矮人鐵匠（用戶指定·同炎魔鐵匠外型 1768）
+    npc_dantes_lord: '5454', npc_atelier: '1768', npc_halphas_smith: '1768',   // 🌑 長老會議廳亞提利歐／席琳神殿赫爾＝矮人鐵匠外型 1768
     // 魔物追蹤三兄弟共用 cray；港口/寵物保管等亦可指定
     npc_obel: '1049', npc_hert: '1049', npc_diren: '1049'
 };
@@ -1823,8 +1823,8 @@ const TOWN_NPC_SPOTS = {
     town_ivory_tower: [[20, 60], [35, 31], [38, 55], [78, 50], [76, 28], [62, 32], [52, 58], [89, 76]],
     // 🌑 長老會議廳(環形議場·v3.3.33)：真‧冥皇丹特斯=上方大門前階台(骸骨王座坐像)｜亞提利歐=中央星紋右側石板
     town_elder_council: [[50, 38], [63, 60]],
-    // 席琳神殿(圓形劇場遺跡)：席琳=劇場圓台中央(祈禱)｜伊奧=十字路星紋｜菈克希絲=左上拱門前；避開四處水池
-    town_sherine: [[67, 48], [42, 64], [16, 33]],
+    // 席琳神殿(圓形劇場遺跡)：席琳=劇場圓台中央(祈禱)｜伊奧=十字路星紋｜菈克希絲=左上拱門前｜赫爾=右下開闊石板；避開四處水池
+    town_sherine: [[67, 48], [42, 64], [16, 33], [57, 72]],
     // 沉默洞穴(黑妖地城)：史克瓦提=左圓頂殿門廊｜雷亞斯=右上樓閣門前｜賽帝亞=大階梯底｜庫普=廣場左｜可羅蘭斯=左下禮拜堂前｜倫得=中央星紋｜康=右下高台走道｜布魯迪卡=廣場右；避開水晶簇/吊橋
     town_silent: [[19, 44], [72, 37], [36, 35], [40, 58], [35, 80], [52, 50], [78, 68], [63, 60]],
     // 貝希摩斯(熔岩要塞)：倉管=左閘門房｜森帕爾=大階梯底｜皮爾=右走道方尖碑旁｜普洛凱爾=中央紋章
