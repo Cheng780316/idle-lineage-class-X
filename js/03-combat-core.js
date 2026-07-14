@@ -155,6 +155,14 @@ function applyPlayerHitstun() {
 function tick() {
     if(!state.running || player.dead) return;
     state.ticks++;
+    // 🪄 吉爾塔斯魔杖：擊殺增益到期即重算，避免額外魔法點數停留在衍生能力中。
+    let _giltasWandExpired = [];
+    if (player._giltasWandFuryUntil && state.ticks >= player._giltasWandFuryUntil) { player._giltasWandFuryUntil = 0; _giltasWandExpired.push(player); }
+    if (player.allies && player.allies.length) player.allies.forEach(a => { if (a && a._giltasWandFuryUntil && state.ticks >= a._giltasWandFuryUntil) { a._giltasWandFuryUntil = 0; _giltasWandExpired.push(a); } });
+    if (_giltasWandExpired.length) {
+        if (_giltasWandExpired.includes(player)) calcStats();
+        _giltasWandExpired.forEach(a => { if (a !== player && typeof _allyLevelRecompute === 'function') _allyLevelRecompute(a); });
+    }
     _combatSrc = null;   // ⚔️ 戰鬥日誌來源：每 tick 起始重置（玩家攻擊/施法/DoT 等預設依顏色type推定；友方派發點會各自設定）
     _dpsAllyTurn = false; let _dpsPlayerSnap = _dpsSnap();   // 🎯 DPS：玩家階段起點快照（至怪物行動前的所有掉血＝玩家輸出·含自動施法/持續增益）
     castleGuardTick();   // 🏰 城堡護衛：回血/力竭恢復/城堡擁有結束自動解散
@@ -303,7 +311,14 @@ function tick() {
                     delay = Math.max(1, delay);
                 }
                 if(mapState.spawnAt[i] == null) mapState.spawnAt[i] = nowT + delay; // 空格剛出現：排程 delay 後（一般／純BOSS房／軍王之室皆 5 秒）
-                if(nowT >= mapState.spawnAt[i]) { spawnMob(i); mapState.spawnAt[i] = null; }
+                if(nowT >= mapState.spawnAt[i]) {
+                    // 🌑 v3.4.18 聖地/崩壞廳 BOSS 復活收費：首次生成免費（入場費已付），之後每次復活扣 1 入場道具；沒道具→傳送出去、停止本輪出怪
+                    if(isPureBossMap && i === 1 && typeof SANCT_RESPAWN_COST !== 'undefined' && SANCT_RESPAWN_COST[mapState.current]) {
+                        if(mapState._sanctBossSpawned) { if(!sanctBossRespawnCharge()) { mapState.spawnAt[i] = null; break; } }   // 復活：扣道具/無道具傳送出去
+                        else mapState._sanctBossSpawned = true;                                                                   // 首次生成免費
+                    }
+                    spawnMob(i); mapState.spawnAt[i] = null;
+                }
             }
         }
     }
@@ -399,7 +414,7 @@ function tick() {
         if(m.curHp <= 0) continue;   // 反擊使該怪在自己回合內死亡 → 跳過後續魔法施放
         if(m.st && (m.st.vacuum > 0 || m.st.magicseal > 0)) continue; // 真空 / 魔法封印：無法施放技能
         if(!m._magCd) m._magCd = {};
-        ['mag','mag2','mag3'].forEach(mk => {
+        ['mag','mag2','mag3','mag4'].forEach(mk => {   // 🌑 v3.3.33 mag4：吉爾塔斯第四技（血壁空間）
             if(!m[mk]) return;
             // 檢查發動機率
             if(m[mk].chance !== undefined) {
@@ -523,7 +538,28 @@ const KING_ROOMS = {
     // 🐍 提卡爾 庫庫爾坎祭壇：雙BOSS（杰弗雷庫雄＋雌），入場與再臨各消耗 1 把提卡爾庫庫爾坎祭壇鑰匙
     tikal_altar:        { dual: true, bosses: ['tikal_boss_m', 'tikal_boss_f'], key: 'item_tikal_altar_key', name: '提卡爾 庫庫爾坎祭壇' }
 };
-const PURE_BOSS_MAPS = ['antaras_lair', 'fafurion_lair', 'valakas_lair', 'king_baranka_room', 'law_king_room', 'necro_king_room', 'assassin_king_room', 'thebes_temple', 'tikal_altar'];
+const PURE_BOSS_MAPS = ['antaras_lair', 'fafurion_lair', 'valakas_lair', 'king_baranka_room', 'law_king_room', 'necro_king_room', 'assassin_king_room', 'thebes_temple', 'tikal_altar', 'cursed_dark_elf_sanctuary', 'collapsed_elder_council_hall'];   // 🌑 v3.3.33 受詛咒的黑暗妖精聖地(吉爾塔斯)／崩壞的長老會議廳(冥皇丹特斯)＝龍窟式單BOSS房（只生中央·死後5秒重生·由長老會議廳NPC進入）
+// 🌑 v3.4.18 聖地/崩壞廳 BOSS「復活收費」：擊敗頭目後每次復活扣 1 入場道具（首次生成免費·入場費已付於 sanctuaryEnter）；沒道具→傳送出去。map→入場道具 id。
+const SANCT_RESPAWN_COST = { cursed_dark_elf_sanctuary: 'item_dk_book', collapsed_elder_council_hall: 'item_giltas_seal' };
+//   回傳 true=已扣道具可生成、false=沒道具已強制傳送出去(呼叫端勿再 spawn)。首次生成免費由呼叫端 mapState._sanctBossSpawned 旗標把關(sanctuaryEnter 進場時重置為 false·此旗標隨 mapState 入存檔→save/load 不可刷)。
+function sanctBossRespawnCharge() {
+    let cost = SANCT_RESPAWN_COST[mapState.current];
+    if(!cost) return true;
+    let d0 = DB.items[cost];
+    let bossName = (mapState.current === 'collapsed_elder_council_hall') ? '冥皇丹特斯' : '吉爾塔斯';
+    let ci = player.inv.findIndex(x => x && x.id === cost && (x.cnt || 1) >= 1);
+    if(ci < 0) {   // 沒道具→強制傳送出去（回上一個安全區＝長老會議廳入口·force 繞過受控限制）
+        logSys(`<span class="text-amber-300">你身上已沒有 ${d0 ? d0.n : cost} 可再獻祭——${bossName} 的封印之力將你逐出了此地。</span>`);
+        if(typeof setMapSelectors === 'function' && typeof getLastTown === 'function') setMapSelectors(getLastTown());
+        if(typeof changeMap === 'function') changeMap(true);
+        return false;
+    }
+    let it = player.inv[ci];
+    if((it.cnt || 1) > 1) it.cnt -= 1; else player.inv.splice(ci, 1);
+    logSys(`<span class="text-cyan-300">你獻祭了 1 個 ${d0 ? d0.n : cost}，${bossName} 再度降臨……</span>`);
+    try { renderTabs(true); saveGame(); } catch(e){}
+    return true;
+}
 const BOSS_BIG_MAPS = ['antaras_lair', 'fafurion_lair', 'valakas_lair'];   // 👑 方案B放大版面只套用這3個龍窟(不含底比斯祭壇等其餘純BOSS房)
 
 // 🆕 後排雙格：一般狩獵地圖在原本三格(前排)之外，再追加兩格「後排」小怪→場上最多同時 5 隻。
@@ -722,8 +758,16 @@ function spawnMob(idx) {
         if(base.n === _sc.gate && player.siege.gateHp > 0) mapState.mobs[idx].curHp = Math.min(mapState.mobs[idx].hp, player.siege.gateHp);
         if(base.n === _sc.tower && player.siege.towerHp > 0) mapState.mobs[idx].curHp = Math.min(mapState.mobs[idx].hp, player.siege.towerHp);
     }
+    // 🌑 v3.3.33 吉爾塔斯 HP 保留（黑暗妖精聖地.md）：戰敗時持完整的召喚球→js/05 revive 消耗 1 顆並記錄 player.giltasKeep；
+    //    下次進入受詛咒聖地首次生成時還原 HP（一次性·還原即清除→之後離開再進＝全新吉爾塔斯）
+    if(mobId === 'sanct_giltas' && player.giltasKeep && player.giltasKeep.hp > 0) {
+        mapState.mobs[idx].curHp = Math.min(mapState.mobs[idx].hp, player.giltasKeep.hp);
+        player.giltasKeep = null;
+        logSys('<span class="text-red-300">完整的召喚球之力仍束縛著吉爾塔斯——牠的傷勢沒有癒合！</span>');
+    }
 
     applySherineGrace(idx);   // 🔮 席琳的恩賜：1% 機率場上一隻一般怪變恩賜怪（與時空裂痕共用 applySherineGrace）
+    if (base.boss && typeof vfxBossEntrance === 'function') { try { vfxBossEntrance(mapState.mobs[idx]); } catch (e) {} }   // 🐉 v3.4.6 四大龍＋吉爾塔斯／冥皇丹特斯出場：酷炫特效＋螢幕震動（cosmetic·函式內部只吃這 6 名·吃 __vfxOff/補跑）
     renderMobs();
 }
 
@@ -861,6 +905,8 @@ function getPhysicalDmg(diceStr, target, wpn, arrowData, forceHeavy, forceHit, f
     }
     // 🏺 v3.1.80 傑克的彈弓：對「巨人」種族加成 +1D20（與 unBonus 同模型·獨立於不死/狼人加成·裝箭矢時亦生效）
     if (wpn && wpn.giantBonus && target.race === '巨人') fixed += roll(1, 20);
+    // 🗡️ v3.4.0 吉爾塔斯之劍：擊殺敵人後 10 秒內額外傷害 +10（killMob 寫 _giltasFuryUntil·刷新制）
+    if (player._giltasFuryUntil > state.ticks && _swingId === 'wpn_giltas_sword') fixed += 10;
 
     let _outDmg = inner + fixed;
     if (graze) _outDmg = Math.max(1, Math.floor(_outDmg * 0.5));   // 擦傷：最終傷害剩 50%
@@ -919,15 +965,6 @@ function consumeArrow() {
     let arrowId = player.eq.arrow.id;
     if (arrowId !== 'wpn_shaha_arrow' && !(DB.items[arrowId] && DB.items[arrowId].noConsume)) {   // 🏝️ 沙哈之箭：彈藥無限，不扣減；🏺 遺物 改造便利箭筒(noConsume)：視同箭矢但不消耗
         player.eq.arrow.cnt--;
-        if (player.eq.arrow.cnt <= 1) {
-            let autoBuyCheckbox = document.getElementById('set-auto-buy-arrow');
-            let cost = shopPrice(200);
-            if (autoBuyCheckbox && autoBuyCheckbox.checked && player.gold >= cost) {
-                player.gold -= cost;
-                player.eq.arrow.cnt += 1000;
-                logSys(`銀箭剩餘 1 根，自動花費 ${cost} 金幣購買了 1000 根銀箭。`);
-            }
-        }
         if (player.eq.arrow.cnt <= 0) {
             player.eq.arrow = null; // 耗盡時清空欄位
         }
@@ -1203,11 +1240,11 @@ function applyPlayerWeakExpose(target) {
     target.weakExpose = Math.min(weakExposeMaxLayers(), before + 1);
 }
 // 🏅 鎖刃精通：目標每有 1 層弱點曝光，對其最終傷害 +10%（最高 5 層 +50%）
-function weakExposeDmgMult(m) { return (hasMastery('k_chainblade') && m && m.weakExpose > 0) ? (1 + 0.08 * Math.min(5, m.weakExpose)) : 1; }
+function weakExposeDmgMult(m) { return (hasMastery('k_chainblade') && m && m.weakExpose > 0) ? (1 + 0.1 * Math.min(5, m.weakExpose)) : 1; }
 // 🐉 龍血精通：所有技能 HP 消耗減半
 function effHpCost(sk) {
     if (sk && sk.hpCost && player && player._setDragonblood3 && player.buffs) player.buffs.sk_set_dragonscion = 100;   // 🐉 龍血3/5：施放HP消耗技→獲得「龍裔」10秒（受傷-15%·由減傷乘算鏈讀此 buff）
-    return Math.ceil((sk.hpCost || 0) * (hasMastery('k_dragonblood') ? 0.4 : 1));
+    return Math.ceil((sk.hpCost || 0) * (hasMastery('k_dragonblood') ? 0.5 : 1));
 }
 // 🐉 龍鱗臂甲 額外攻擊：每攻擊週期追加 d.equipExtraAtk 次全傷害一般近戰攻擊（各自命中判定；不遞迴再觸發額外攻擊）
 function dragonExtraAttackProc(target) {
@@ -1272,7 +1309,7 @@ function effTwoHanded(d, id) {
     return isTwoHandedWpn(d);
 }
 // ⚔️ 反彈精通：忍耐(泰坦)系觸發閾值（k_rebound→HP 80% 以下，否則 40%）
-function titanThreshold() { return (player.cls === 'warrior' && hasMastery('k_rebound')) ? 0.6 : 0.4; }
+function titanThreshold() { return (player.cls === 'warrior' && hasMastery('k_rebound')) ? 0.8 : 0.4; }
 // ⚔️ 迅猛雙斧：為戰士、已學迅猛雙斧、且主手可雙持(單手鈍器／巨斧精通的雙手鈍器)時，可於 offwpn 欄再持一把
 function dualWieldOffhandOk() {
     return player.cls === 'warrior' && player.skills.includes('sk_warrior_dualaxe')
@@ -1310,8 +1347,6 @@ function syncDualWield() {
 // ⚔️ 反彈精通：觸發忍耐被動時，額外對攻擊者發動一次普通攻擊（副手有雙持武器則主副手各一次）
 function reboundExtraAttack(mob) {
     if (!mob || mob.curHp <= 0 || mob._dead) return;
-    if ((player._reboundMasteryCd || 0) > state.ticks) return;
-    player._reboundMasteryCd = state.ticks + 30;   // 反彈精通追打每 3 秒最多一次；原本反射效果不受影響
     let wpn = player.eq.wpn ? DB.items[player.eq.wpn.id] : null;
     if (wpn && !wpn.isBow && !wpn.ranged) {
         let dice = mob.s === 'L' ? wpn.dmgL : wpn.dmgS;
@@ -1399,7 +1434,7 @@ function waterVitalHeal(heal) {
 // 🔮 幻術士 魔力精通：消耗 MP 時，所有有 MP 的傭兵恢復消耗量 10% 的 MP
 function manaMasteryRefund(spent) {
     if (!spent || spent <= 0) return;
-    let give = Math.max(1, Math.floor(spent * 0.15));
+    let give = Math.max(1, Math.floor(spent * 0.10));
     if (player.allies) player.allies.forEach(a => { if (a && (a.mmp || 0) > 0) a.mp = Math.min(a.mmp, (a.mp || 0) + give); });
 }
 // 🔮 是否為魔杖/法杖類武器（沿用 js/10 同一套名稱判定，排除黃金權杖＝王族單手劍）：
@@ -1421,16 +1456,13 @@ function qiguPlayerAttack(target, wpn) {
     if (target.curHp === target.hp && target.beh === '被動') target._delayTicks = 30;   // 命中滿血被動怪：3秒延遲（同魔法攻擊）
     if (wpn && wpn.procInstakill) { let _pk = wpn.procInstakill; let _thp = target.hp || 1; if ((!_pk.maxLv || target.lv <= _pk.maxLv) && tryInstakill(target, { p: _pk.p, tag: _pk.tag || null }, wpn.n, mapState.targetIdx)) { if (_pk.healPct) { player.hp = Math.min(player.mhp, player.hp + Math.max(1, Math.floor(_thp * _pk.healPct))); updateUI(); } return; } }   // 🏺 遺物 曼陀羅之靈：奇古獸即死 proc（playerAttack 的 procInstakill 早退在 qigu 分支前→此處補上·傭兵版走 allyWeaponProcs 已含）；🐍 阿茲特獻祭亡靈 healPct：即死恢復被消滅敵人 HP%
     if (player.d.instakillFull && target.curHp === target.hp && tryInstakill(target, { p: player.d.instakillFull, tag: null }, '隱蔽的死亡草葉', mapState.targetIdx)) return;   // 🏺 遺物 隱蔽的死亡草葉：奇古獸普攻命中滿血怪即死（斗篷 req:all·幻術士亦可穿）
-    let _qEn = capEn((player.eq.wpn && player.eq.wpn.en) || 0, wpn);
-    let dice = ((target.s === 'L') ? wpn.dmgL : wpn.dmgS)
-             + enhanceWpnBonus(_qEn).dmg                         // 天堂原始武器強化：每階傷害 +1
-             + _qEn * (wpn.qiguDmgPerEn || 0);                  // 特定奇古獸專屬額外成長
+    let dice = (target.s === 'L') ? wpn.dmgL : wpn.dmgS;
     let core = roll(1, dice) * (1 + (d.magicDmg || 0) / 16);
     let raw = core + (d.extraMp || 0) + (d.extraDmg || 0);
     let effMr = (target.st && target.st.mrhalf > 0) ? (target.mr / 2) : target.mr;
     if (target.st && (target.st.confuse > 0 || target.st.panic > 0)) effMr = Math.max(0, effMr - 10);   // 🔮 混亂/恐慌：MR-10（下限0，與其他魔法路徑 mrMult(Math.max(0,...)) 一致）
-    let qiguMastery = (player.mastery === 'i_qigu' && wpn.qigu);
-    let dmg = Math.max(1, Math.floor(raw * mrMult(qiguMastery ? effMr * 0.3 : effMr)));   // 奇古獸精通：穿透 70% MR
+    let ignoreMr = (player.mastery === 'i_qigu' && wpn.qigu);   // 🔮 奇古獸精通：裝備奇古獸時無視魔抗
+    let dmg = Math.max(1, Math.floor(raw * (ignoreMr ? 1 : mrMult(effMr))));
     let ele = 'none';
     { let _qa = player.eq.wpn && getAttrAffix(player.eq.wpn.attr); if (_qa) ele = _qa.ele; }   // 🔥 getAttrAffix：相容舊12代碼
     dmg = Math.max(1, Math.floor(dmg * elementCounterMult(ele, target.e)));   // ⚔️ 屬性剋制 ×1.4(剋)/×0.6(被剋)（取代舊 +6）
@@ -1441,19 +1473,8 @@ function qiguPlayerAttack(target, wpn) {
     target.justHit = (ele !== 'none') ? ele : 'magic';
     if (target.st && target.st.mrhalf > 0) target.st.mrhalf = 0;
     mobWake(target);
+    if (typeof reflectWallOnDamage === 'function') reflectWallOnDamage(target, dmg, 'magic', null);   // 🌑 v3.4.14 血壁空間：奇古獸普攻主擊＝魔法反射（玩家傭兵一致）
     logCombat(`<span class="font-bold" style="color:#c4b5fd;text-shadow:0 0 6px #8b5cf6;">【幻術士】</span>奇古獸對 <span class="${getMobColor(target.lv)}">${target.n}</span> 造成 ${dmg} 點魔法傷害。`, 'magic');
-    // 🔮 所有奇古獸共通「精神共鳴」：20% 追加本次傷害50%並恢復最大MP 1%；同目標冷卻1秒
-    if (wpn.mentalResonance && target.curHp > 0) {
-        let _now = state.ticks || 0, _last = target._qiguMentalTick;
-        if ((_last == null || _now - _last >= 10) && Math.random() < 0.20) {
-            target._qiguMentalTick = _now;
-            let _rd = Math.max(1, Math.floor(dmg * 0.50)), _mp = Math.max(1, Math.floor((player.mmp || 1) * 0.01));
-            target.curHp -= _rd; target.justHit = 'magic'; mobWake(target);
-            player.mp = Math.min(player.mmp, player.mp + _mp);
-            if (typeof playSpellFx === 'function') { try { playSpellFx('精神共鳴', target); } catch(e){} }
-            logCombat(`<span class="font-bold" style="color:#e9d5ff;text-shadow:0 0 7px #9333ea;">【精神共鳴】</span>對 <span class="${getMobColor(target.lv)}">${target.n}</span> 追加 ${_rd} 點魔法傷害，恢復 ${_mp} 點 MP。`, 'player-special');
-        }
-    }
     if (target.curHp <= 0) killMob(mapState.targetIdx); else renderMobs();   // 主擊先結算（避免與下方特效各自 killMob 重複擊殺）
     qiguWeaponProc(target, wpn);        // 奇古獸特效（幻影衝擊/心靈破壞；主擊已擊殺則內部 guard 跳過、自行處理擊殺）
     wandLightArrowProc(target);         // 🔮 共鳴（幻術士魔杖在 WAND_LIGHTARROW_IDS；非共鳴武器內部 no-op，主目標已死自動轉移）
@@ -1470,14 +1491,14 @@ function qiguWeaponProc(target, wpn) {
     if (!wpn || !wpn.qiguProc || !target || target.curHp <= 0) return;
     let en = capWpnEn((player.eq.wpn && player.eq.wpn.en) || 0);
     if (Math.random() >= (1 + en) / 100) return;   // 1% + 每強化 +1%
-    let qiguMastery = (player.mastery === 'i_qigu' && wpn.qigu);   // 🔮 奇古獸精通：穿透 70% MR
+    let ignoreMr = (player.mastery === 'i_qigu' && wpn.qigu);   // 🔮 奇古獸精通：裝備奇古獸時其觸發特效亦無視魔抗（與主擊一致，避免非奇古獸武器誤觸）
     let dmg = 0, label = '', cls = 'magic';
     if (wpn.qiguProc === 'phantom') {
         dmg = 79 + roll(1, 81);   // 80~160 無屬性固定傷害（不受MR）
         label = '幻影衝擊'; cls = 'player-special';
     } else if (wpn.qiguProc === 'mindbreak') {
         let effMr = (target.st && target.st.mrhalf > 0) ? (target.mr / 2) : target.mr;
-        dmg = Math.max(1, Math.floor((player.mmp || 0) * 0.05 * (1 + (player.d.magicDmg || 0) / 16) * mrMult(qiguMastery ? effMr * 0.3 : effMr)));   // 玩家最大MP 5% ×(1+魔法傷害/16)
+        dmg = Math.max(1, Math.floor((player.mmp || 0) * 0.05 * (1 + (player.d.magicDmg || 0) / 16) * (ignoreMr ? 1 : mrMult(effMr))));   // 玩家最大MP 5% ×(1+魔法傷害/16)（比照技能心靈破壞·不消耗MP）
         label = '心靈破壞';
     } else return;
     dmg = Math.max(1, Math.floor(dmg * fragileMult(target) * illuLvMult(player) * enhanceWpnFinalMult(en, wpn)));   // 🔮 幻術士等級加成 ×(1+等級/50)；🔧 武器強化 +11~+20 最終倍率
