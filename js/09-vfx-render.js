@@ -2161,8 +2161,13 @@ function _pmCasterRect() {
     } catch (e) { return null; }
 }
 
-// 🔮 奇古獸專屬普攻動畫：以使用者提供的 10 幀透明動畫暫時取代角色本體。
-// 僅由真正的 qigu 武器路徑呼叫；魔劍精通借用奇古獸傷害公式時不播放。
+// 🔮 奇古獸專屬普攻動畫：使用者指定 GIF 的 7 張透明影格，依原始幀時明確播放。
+// 不取代角色本體；僅由真正的 qigu 武器路徑呼叫，魔劍精通借用傷害公式時不播放。
+const QIGU_ATTACK_FRAME_DUR = [50, 100, 50, 50, 100, 50, 50];
+const QIGU_ATTACK_FRAME_SRC = QIGU_ATTACK_FRAME_DUR.map((_, i) => 'assets/effects/qigu-attack/frame_' + i + '.png?v=20260715-sevenframe2');
+(function preloadQiguAttackFrames() {
+    try { QIGU_ATTACK_FRAME_SRC.forEach(src => { let im = new Image(); im.src = src; }); } catch (e) {}
+})();
 function playQiguAttackSprite(actor) {
     try {
         let isPlayer = actor === player;
@@ -2170,11 +2175,10 @@ function playQiguAttackSprite(actor) {
         if (!st || !st.el || !st.el.isConnected || !st.imgs || !st.imgs.bd) return;
         let r = st.imgs.bd.getBoundingClientRect(); if (!r.width || !r.height) return;
         let layer = _vfxLayer(); if (!layer) return;
-        // 透明動畫只保留奇古獸揮動的魔力手臂、下揮光弧與落地光芒。
-        // 沿用原始 300×250 畫布的施法軸心，讓特效疊在人物上播放而不取代人物。
+        // 幽藍手臂橫移、下揮、落地後消散；逐張換圖保證每次從第 1 格開始。
         let h = Math.max(138, r.height * 1.34), w = h * (300 / 250);
         let el = document.createElement('img');
-        el.src = 'assets/effects/qigu-attack.webp?v=20260715-effectonly2'; el.alt = '';
+        el.src = QIGU_ATTACK_FRAME_SRC[0]; el.alt = '';
         el.className = 'vfx-qigu-attack';
         el.style.position = 'fixed'; el.style.pointerEvents = 'none';
         el.style.width = w + 'px'; el.style.height = h + 'px';
@@ -2183,7 +2187,15 @@ function playQiguAttackSprite(actor) {
         el.style.objectFit = 'contain'; el.style.imageRendering = 'pixelated';
         el.style.zIndex = '31';
         layer.appendChild(el);
-        setTimeout(() => { try { el.remove(); } catch (_) {} }, 500);
+        let frame = 0;
+        let nextFrame = () => {
+            if (!el.isConnected) return;
+            frame++;
+            if (frame >= QIGU_ATTACK_FRAME_SRC.length) { el.remove(); return; }
+            el.src = QIGU_ATTACK_FRAME_SRC[frame];
+            setTimeout(nextFrame, QIGU_ATTACK_FRAME_DUR[frame]);
+        };
+        setTimeout(nextFrame, QIGU_ATTACK_FRAME_DUR[0]);
     } catch (e) {}
 }
 
