@@ -1265,12 +1265,12 @@ function _updateUIImpl() {
       _el = document.getElementById('dt-movespeed'); if (_el) _el.innerText = `${100 + (player.d.moveSpeedPct || 0)}%`;
       _el = document.getElementById('dt-mpkill'); if (_el) _el.innerText = (typeof getWisMpOnKill === 'function' ? getWisMpOnKill(player.d.wis || 0) : 0);
       _el = document.getElementById('dt-mr'); if (_el) _el.innerText = player.d.mr || 0;
-      _el = document.getElementById('dt-resnone'); if (_el) _el.innerText = `${effResistPct(player.d.resNone || 0)}%`; }
+      _el = document.getElementById('dt-resnone'); if (_el) _el.innerText = Math.round(player.d.resNone || 0); }
     if(document.getElementById('dt-resfire')) {
-        document.getElementById('dt-resfire').innerText  = `${effResistPct(player.d.resFire  || 0)}%`;   // 🔧 顯示有效減傷%（>50 每+5才+1%）
-        document.getElementById('dt-reswater').innerText = `${effResistPct(player.d.resWater || 0)}%`;
-        document.getElementById('dt-reswind').innerText  = `${effResistPct(player.d.resWind  || 0)}%`;
-        document.getElementById('dt-researth').innerText = `${effResistPct(player.d.resEarth || 0)}%`;
+        document.getElementById('dt-resfire').innerText  = Math.round(player.d.resFire  || 0);
+        document.getElementById('dt-reswater').innerText = Math.round(player.d.resWater || 0);
+        document.getElementById('dt-reswind').innerText  = Math.round(player.d.resWind  || 0);
+        document.getElementById('dt-researth').innerText = Math.round(player.d.resEarth || 0);
     }
     
     renderStatusEffects();

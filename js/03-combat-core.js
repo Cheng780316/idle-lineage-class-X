@@ -4,6 +4,57 @@
 //       per-ally（每個傭兵獨立·key=存檔槽 _slot）。累積傷害÷觀測秒數＝DPS。換地圖/重置歸零（auditReset→_dpsReset），非存檔。
 let _dps = { player: 0, summon: 0, pet: 0, allies: {} };
 let _dpsAllyTurn = false;   // alliesTick 逐傭兵量測期間為 true：令 _allyDamageMob 不重複計入（回合內輸出已被該傭兵 HP-delta 涵蓋），僅「反擊/居合」等回合外輸出才由 _allyDamageMob 直接歸因
+// 原版方向的魔法係數：1－屬性防禦＋3×max(1, INT提供SP＋道具SP)÷32。
+// Fable 的 INT 可超過原版上限，因此 INT 提供的 SP 封頂 33（等同原版 INT 45 → INT-12）。
+// extraMp 仍是畫面上的「總額外魔法點數」；扣除 INT 原始提供量後才是道具／套裝／增益 SP，避免重複計算。
+function magicIntSp(dStats) {
+    if (!dStats) return 0;
+    if (dStats.intSp != null) return Math.max(0, Math.min(33, Number(dStats.intSp) || 0));
+    let raw = (typeof getIntExtraMp === 'function') ? getIntExtraMp(Number(dStats.int) || 0) : 0;
+    return Math.max(0, Math.min(33, Number(raw) || 0));
+}
+function magicItemSp(dStats) {
+    if (!dStats) return 0;
+    if (dStats.itemSp != null) return Math.max(0, Number(dStats.itemSp) || 0);
+    let rawIntSp = (typeof getIntExtraMp === 'function') ? getIntExtraMp(Number(dStats.int) || 0) : 0;
+    return Math.max(0, (Number(dStats.extraMp) || 0) - (Number(rawIntSp) || 0));
+}
+function magicAttrDefense(target, ele) {
+    if (!target) return 0;
+    let d = target.d || target;
+    let key = ele === 'fire' ? 'resFire' : ele === 'water' ? 'resWater' : ele === 'wind' ? 'resWind' : ele === 'earth' ? 'resEarth' : 'resNone';
+    let raw = Number(d[key]) || 0;
+    let effective = (typeof effResistPct === 'function') ? effResistPct(raw) : raw;
+    return Math.max(0, Math.min(1, effective / 100));
+}
+function magicTierMult(tier) {
+    return 1 + Math.max(0, Number(tier) || 0) / 10;
+}
+function magicDamageCoef(dStats, attrDefense, spellTier) {
+    let sp = Math.max(1, magicIntSp(dStats) + magicItemSp(dStats));
+    let attr = Math.max(0, Math.min(1, Number(attrDefense) || 0));
+    let base = Math.max(0, 1 - attr + 3 * sp / 32);
+    return base * (spellTier == null ? 1 : magicTierMult(spellTier));
+}
+// 魔法傷害 stat 視為骰值以外的固定魔法傷害，每次施法只加入一次。
+function magicBaseDamage(rolled, dStats, flatBase, includeStat) {
+    let stat = includeStat === false ? 0 : Math.max(0, Number(dStats && dStats.magicDmg) || 0);
+    return Math.max(0, Number(rolled) || 0) + Math.max(0, Number(flatBase) || 0) + stat;
+}
+// 魔法型武器特效／奇古獸普攻依潘朵拉權重換算法術階級；傳說與遺物固定視為 5 階。
+function weaponMagicTier(wpn) {
+    if (!wpn) return 0;
+    let w = Number(wpn.gachaWeight) || 0;
+    if (wpn.legend || wpn.relic || w === 1) return 5;
+    if (w >= 2 && w <= 20) return 4;
+    if (w <= 40 && w >= 21) return 3;
+    if (w <= 60 && w >= 41) return 2;
+    if (w <= 80 && w >= 61) return 1;
+    return 0;
+}
+function weaponMagicDamageCoef(dStats, wpn, target, ele) {
+    return magicDamageCoef(dStats, magicAttrDefense(target, ele), weaponMagicTier(wpn));
+}
 function _dpsReset() { _dps = { player: 0, summon: 0, pet: 0, allies: {} }; }
 function _dpsSnap() {   // 快照在場（未死）怪物 curHp（依索引；tick 內怪物陣列不位移→索引穩定）
     if (typeof mapState === 'undefined' || !mapState || !mapState.mobs) return null;
@@ -352,10 +403,10 @@ function tick() {
 
         // --- 異常狀態處理（倒數、中毒 DoT），死亡則跳過 ---
         if (processMobStatusTick(m, i)) continue;
-        // 👑 戰鬥頭目：每 5 秒恢復 HP；近 5 秒曾被物理命中回 1%，否則回 5%。
+        // 👑 戰鬥頭目：每 5 秒恢復 HP；近 5 秒曾被物理命中回 0.5%，否則回 2.5%。
         if (m.boss && !m.siegeEnemy && m.race !== '建築' && state.ticks % 50 === 0 && m.curHp > 0 && m.curHp < m.hp) {
             let recentPhysicalHit = m._lastPhysicalHitTick != null && state.ticks - m._lastPhysicalHitTick <= 50;
-            let regenPct = recentPhysicalHit ? 0.01 : 0.05;
+            let regenPct = recentPhysicalHit ? 0.005 : 0.025;
             m.curHp = Math.min(m.hp, m.curHp + Math.max(1, Math.floor(m.hp * regenPct)));
             if (!state.ff) renderMobs();
         }
@@ -991,21 +1042,20 @@ function wandLightArrowProc(target) {
     if (_ms) { procMagicStrike(t); return; }   // 🏅 改為發動魔擊（含擴散·不再施放光箭/回魔）
     procLightArrow(t);
 }
-// 光箭傷害：與 castSkill 單體魔法完全相同的公式(魔法/無屬性/tier1/dmgDice[1,6])，但不耗魔力、不吃冷卻
+// 光箭傷害：武器共鳴觸發，不耗魔力、不吃冷卻；階級依觸發武器的潘朵拉權重／傳說標記。
 function procLightArrow(t) {
     let sk = DB.skills['sk_lightarrow'];
     if (!sk || !t || t.curHp <= 0) return;
     let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
     let mrFactor = hasMastery('m_resonance') ? 1 : mrMult(effMr);   // 🏅 共鳴精通：光箭無視魔抗
     let isCrit = Math.random() * 100 < player.d.magicCrit;
-    let skillTier = sk.tier || 1;
-    let spCoef = (1 + (3 * player.d.magicDmg / 16));   // 🔧 武器特效(共鳴光箭)：不吃法師技能階級係數(1+階/3)（與 mageMult 一同移除）
-    let mageDmgMult = 1.0;   // 🔧 共鳴(光箭)為武器觸發特效，不再吃法師「法術階級加成」(1.5+階/20)；僅限法師自己消耗 MP 施放的法術
+    let _procWpn = player.eq.wpn ? DB.items[player.eq.wpn.id] : null;
+    let spCoef = weaponMagicDamageCoef(player.d, _procWpn, t, sk.ele || 'none');
+    let mageDmgMult = 1.0;
     let magicCritMult = isCrit ? (1 + player.d.magicCritDmg / 100) : 1.0;
     let baseMagicDmg = roll(sk.dmgDice[0], sk.dmgDice[1]);
-    let core = baseMagicDmg * spCoef * magicCritMult;
-    let extraMagicDmg = (sk.dmgBase || 0) + player.d.extraMp;
-    let d = Math.floor((core + extraMagicDmg) * mrFactor) - (t.dr || 0);
+    let core = magicBaseDamage(baseMagicDmg, player.d, sk.dmgBase || 0, true) * spCoef * magicCritMult;
+    let d = Math.floor(core * mrFactor);
     d = Math.max(1, d);   // 光箭無屬性，無剋制固定加值
     d = Math.floor(d * mageDmgMult);
     d = Math.max(1, Math.floor(d * wpnEnFinalMult(player.eq.wpn)));   // 🔧 武器強化 +11~+20：最終傷害倍率（共鳴光箭比照奇古獸/物理武器；與 tooltip 顯示一致）
@@ -1401,12 +1451,12 @@ function witchIceLance() {
     let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
     let mrFactor = mrMult(effMr);
     let isCrit = Math.random()*100 < player.d.magicCrit;
-    let tier = sk.tier || 1;
-    let spCoef = (1 + 3*player.d.magicDmg/16);   // 🔧 武器特效：不吃法師技能階級係數(1+tier/3)（與 mageMult 一同移除）
-    let mageMult = 1.0;   // 🔧 魔女5/5(共鳴觸發)為武器特效，不再吃法師「法術階級加成」(1.5+階/20)
+    let _procWpn = player.eq.wpn ? DB.items[player.eq.wpn.id] : null;
+    let spCoef = weaponMagicDamageCoef(player.d, _procWpn, t, 'water');
+    let mageMult = 1.0;   // 武器特效階級已由 weaponMagicDamageCoef 統一套用。
     let critMult = isCrit ? (1 + player.d.magicCritDmg/100) : 1;
-    let core = roll(sk.dmgDice[0], sk.dmgDice[1]) * spCoef * critMult;
-    let dmg = Math.max(1, Math.floor((core + player.d.extraMp) * mrFactor) - (t.dr||0));
+    let core = magicBaseDamage(roll(sk.dmgDice[0], sk.dmgDice[1]), player.d, sk.dmgBase || 0, true) * spCoef * critMult;
+    let dmg = Math.max(1, Math.floor(core * mrFactor));
     dmg = Math.max(1, Math.floor(dmg * elementCounterMult('water', t.e)));   // ⚔️ 水剋火 ×1.4、被風剋 ×0.6（取代舊 +6）
     dmg = Math.floor(dmg * mageMult);
     dmg = Math.max(1, Math.floor(dmg * rlFuryMult()));   // 🔮 紅獅5/5＋😡狂怒5/5（攻擊技能）
@@ -1447,7 +1497,7 @@ function mpOnHitAmount(wpn, en) {
     if (wpn.mpOnHitAmt != null) return wpn.mpOnHitAmt;
     return (wpn.mpOnHitBase || 1) + Math.max(0, (en || 0) - 6);
 }
-// 🔮 幻術士 奇古獸一般攻擊：[奇古獸骰 × (1 + 魔法傷害/16)] + 額外魔法點數 + 額外傷害；視為魔法傷害、100%命中、受目標MR減免（奇古獸精通無視MR）。
+// 🔮 幻術士 奇古獸一般攻擊：（奇古獸骰＋魔法傷害＋額外傷害）× 原版方向 SP／屬性防禦係數，100%命中、受目標MR減免（奇古獸精通無視MR）。
 //    觸發路徑：裝備奇古獸(wpn.qigu)恆走此式；或 魔劍精通 + 任意非弓「且非魔杖」武器亦套用此式。屬性詞綴→對應屬性(剋屬性+6)。
 // 🔮 幻術士專屬加成：所有傷害(奇古獸普攻/特效/傷害技能/立方/幻覺召喚物)最終 ×(1+等級/50)；非幻術士回 1（玩家傳 player、傭兵傳 ally）
 function illuLvMult(a){ return 1; }   // 🔧 幻術士等級加成 (1+等級/50) 已移除(2026-07 用戶要求)
@@ -1460,14 +1510,13 @@ function qiguPlayerAttack(target, wpn) {
     let dice = ((target.s === 'L') ? wpn.dmgL : wpn.dmgS)
              + enhanceWpnBonus(_qEn).dmg                         // 天堂原始武器強化：每階傷害 +1
              + _qEn * (wpn.qiguDmgPerEn || 0);                  // 特定奇古獸專屬額外成長
-    let core = roll(1, dice) * (1 + (d.magicDmg || 0) / 16);
-    let raw = core + (d.extraMp || 0) + (d.extraDmg || 0);
+    let ele = 'none';
+    { let _qa = player.eq.wpn && getAttrAffix(player.eq.wpn.attr); if (_qa) ele = _qa.ele; }
+    let raw = magicBaseDamage(roll(1, dice), d, d.extraDmg || 0, true) * weaponMagicDamageCoef(d, wpn, target, ele);
     let effMr = (target.st && target.st.mrhalf > 0) ? (target.mr / 2) : target.mr;
     if (target.st && (target.st.confuse > 0 || target.st.panic > 0)) effMr = Math.max(0, effMr - 10);   // 🔮 混亂/恐慌：MR-10（下限0，與其他魔法路徑 mrMult(Math.max(0,...)) 一致）
     let ignoreMr = (player.mastery === 'i_qigu' && wpn.qigu);   // 🔮 奇古獸精通：裝備奇古獸時無視魔抗
     let dmg = Math.max(1, Math.floor(raw * (ignoreMr ? 1 : mrMult(effMr))));
-    let ele = 'none';
-    { let _qa = player.eq.wpn && getAttrAffix(player.eq.wpn.attr); if (_qa) ele = _qa.ele; }   // 🔥 getAttrAffix：相容舊12代碼
     dmg = Math.max(1, Math.floor(dmg * elementCounterMult(ele, target.e)));   // ⚔️ 屬性剋制 ×1.4(剋)/×0.6(被剋)（取代舊 +6）
     dmg = Math.max(1, Math.floor(dmg * wpnEnFinalMult(player.eq.wpn)));   // 武器強化 +11~+20 最終倍率
     dmg = Math.max(1, Math.floor(dmg * rlFuryMult()));   // 🔮 紅獅5/5＋😡狂怒5/5
@@ -1509,11 +1558,11 @@ function qiguWeaponProc(target, wpn) {
     let ignoreMr = (player.mastery === 'i_qigu' && wpn.qigu);   // 🔮 奇古獸精通：裝備奇古獸時其觸發特效亦無視魔抗（與主擊一致，避免非奇古獸武器誤觸）
     let dmg = 0, label = '', cls = 'magic';
     if (wpn.qiguProc === 'phantom') {
-        dmg = 79 + roll(1, 81);   // 80~160 無屬性固定傷害（不受MR）
+        dmg = magicBaseDamage(79 + roll(1, 81), player.d, 0, true) * weaponMagicDamageCoef(player.d, wpn, target, 'none');   // 幻影衝擊：原版方向 SP 係數，無屬性且不受MR
         label = '幻影衝擊'; cls = 'player-special';
     } else if (wpn.qiguProc === 'mindbreak') {
         let effMr = (target.st && target.st.mrhalf > 0) ? (target.mr / 2) : target.mr;
-        dmg = Math.max(1, Math.floor((player.mmp || 0) * 0.05 * (1 + (player.d.magicDmg || 0) / 16) * (ignoreMr ? 1 : mrMult(effMr))));   // 玩家最大MP 5% ×(1+魔法傷害/16)（比照技能心靈破壞·不消耗MP）
+        dmg = Math.max(1, Math.floor(magicBaseDamage((player.mmp || 0) * 0.05, player.d, 0, true) * weaponMagicDamageCoef(player.d, wpn, target, 'none') * (ignoreMr ? 1 : mrMult(effMr))));   // 玩家最大MP 5% ×原版方向 SP 係數（不消耗MP）
         label = '心靈破壞';
     } else return;
     dmg = Math.max(1, Math.floor(dmg * fragileMult(target) * illuLvMult(player) * enhanceWpnFinalMult(en, wpn)));   // 🔮 幻術士等級加成 ×(1+等級/50)；🔧 武器強化 +11~+20 最終倍率

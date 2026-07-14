@@ -1,6 +1,6 @@
 /** 遊戲核心資料庫 */
 // 🏷️ 遊戲版本號（顯示於登入頁面下方·單一真相來源）：更新版本時只改這一行，登入頁面自動同步。
-const GAME_VERSION = 'v3.4.24';
+const GAME_VERSION = 'v3.4.25';
 // ===== 💾 存檔壓縮（LZString compressToUTF16/decompressFromUTF16·MIT, Pieroxy）：localStorage 內部以 UTF-16 壓縮，省 ~89%，繞過 5MB 上限 =====
 //  ⚠️ 只壓 localStorage（存檔位/倉庫/共用桶/_bak）；匯出檔維持明文 JSON（可攜·importSave 用 JSON.parse 驗證）。_lzGet 相容舊明文存檔（無 'LZ1:' 前綴→原樣回傳）。
 var LZString = (function () {
@@ -360,12 +360,12 @@ const DB = {
         "wpn_baranka_steelclaw": { n: "巴蘭卡鋼爪",   type: "wpn", w2h: true, dmgS: 18, dmgL: 18, hit: 0, dmgBonus: 8, spd: 0.7, req: "dark", safe: 6, p: 125000, eff: "combo", legend: true, gachaWeight: 1 },
         // ===== 傳說單手劍：附帶魔法施放特效（spellProc，不需學會技能、必中、受魔法傷害影響） =====
         "wpn_dk_flameblade": { n: "死亡騎士的烈炎之劍", type: "wpn", dmgS: 16, dmgL: 10, hit: 5, dmgBonus: 2, spd: 0.8, req: "knight", safe: 6, p: 152000, legend: true, gachaWeight: 1, spellProc: { skn: "地獄火", dice: [1, 60], ele: "fire", aoe: true }, procRateBase: 3, procRatePerEn: 1, d: "死亡騎士緊握至死的劍，劍刃終年燃著不滅的地獄業火。" },
-        "wpn_kurt_sword":    { n: "克特之劍", type: "wpn", dmgS: 15, dmgL: 11, hit: 9, dmgBonus: 5, spd: 0.8, req: "knight,elf", safe: 6, p: 152000, legend: true, gachaWeight: 1, spellProc: { skn: "極道落雷", dice: [6, 8], ele: "wind" }, procRateBase: 15, procRatePerEn: 1, d: "克特之劍，劍鋒間遊走著被馴服的雷霆。" },
+        "wpn_kurt_sword":    { n: "克特之劍", type: "wpn", dmgS: 15, dmgL: 11, hit: 9, dmgBonus: 5, spd: 0.8, req: "knight,elf", safe: 6, p: 152000, legend: true, gachaWeight: 1, spellProc: { skn: "極道落雷", dice: [6, 10], ele: "wind" }, procRateBase: 15, procRatePerEn: 1, d: "克特之劍，劍鋒間遊走著被馴服的雷霆。" },
         // ===== ⚡ 元素施放傳說武器（spellProc·攻擊1%+每強化1%觸發·必中·受魔法傷害影響·不吃法師階級加成） =====
         "wpn_thor_hammer":   { n: "雷神之鎚", type: "wpn", dmgS: 7, dmgL: 12, hit: 3, dmgBonus: 0, spd: 0.9, req: "royal,knight,elf,mage,warrior", safe: 6, p: 46000, legend: true, gachaWeight: 1, ignHardSkin: true, spellProc: { skn: "電光衝擊", dice: [5, 5], flat: 5, ele: "wind", status: { kind: "stun", pct: 5, dur: 3 } }, procRateBase: 1, procRatePerEn: 1, d: "雷神遺落的戰鎚，鎚頭間纏繞著未平息的雷霆。" },
         "wpn_pagrio_wrath":  { n: "帕格里奧之怒", type: "wpn", dmgS: 13, dmgL: 9, hit: 2, dmgBonus: 2, spd: 0.8, req: "royal,knight,elf", safe: 6, p: 56000, legend: true, gachaWeight: 1, ignHardSkin: true, spellProc: { skn: "火焰之陣", dice: [6, 6], flat: 6, ele: "fire", aoe: true }, procRateBase: 1, procRatePerEn: 1, d: "帕格里奧之怒，劍身灼燒著永不熄滅的怒火。" },
-        "wpn_mapler_punish": { n: "馬普勒的懲罰", type: "wpn", w2h: true, dmgS: 14, dmgL: 15, hit: 0, dmgBonus: 11, spd: 1, req: "royal,knight,elf,warrior", safe: 6, p: 46000, legend: true, gachaWeight: 1, eff: "crush", ignHardSkin: true, spellProc: { skn: "震裂術", dice: [4, 11], ele: "earth", aoe: true }, procRateBase: 1, procRatePerEn: 1, d: "馬普勒降下的懲戒之鎚，每一擊都撼動大地。" },
-        "wpn_osis_hammer":   { n: "歐西斯衝撞錘", type: "wpn", dmgS: 8, dmgL: 9, hit: 3, dmgBonus: 0, spd: 0.9, req: "royal,knight,warrior", safe: 6, p: 66000, legend: true, gachaWeight: 1, ignHardSkin: true, spellProc: { skn: "流星雨", dice: [6, 10], ele: "fire", aoe: true }, procRateBase: 1, procRatePerEn: 1, d: "歐西斯鍛造的衝撞之錘，揮動之間天降流火。" },
+        "wpn_mapler_punish": { n: "馬普勒的懲罰", type: "wpn", w2h: true, dmgS: 14, dmgL: 15, hit: 0, dmgBonus: 11, spd: 1, req: "royal,knight,elf,warrior", safe: 6, p: 46000, legend: true, gachaWeight: 1, eff: "crush", ignHardSkin: true, spellProc: { skn: "震裂術", dice: [6, 11], ele: "earth", aoe: true }, procRateBase: 1, procRatePerEn: 1, d: "馬普勒降下的懲戒之鎚，每一擊都撼動大地。" },
+        "wpn_osis_hammer":   { n: "歐西斯衝撞錘", type: "wpn", dmgS: 8, dmgL: 9, hit: 3, dmgBonus: 0, spd: 0.9, req: "royal,knight,warrior", safe: 6, p: 66000, legend: true, gachaWeight: 1, ignHardSkin: true, spellProc: { skn: "流星雨", dice: [10, 11], ele: "fire", aoe: true }, procRateBase: 1, procRatePerEn: 1, d: "歐西斯鍛造的衝撞之錘，揮動之間天降流火。" },
         "wpn_eva_scold":     { n: "伊娃的責罵", type: "wpn", dmgS: 9, dmgL: 9, hit: 1, dmgBonus: 1, spd: 0.8, req: "royal,knight,elf,mage,dark,dragon,illusion", safe: 6, p: 56400, legend: true, gachaWeight: 1, ignHardSkin: true, spellProc: { skn: "水之矛", dice: [5, 5], flat: 5, ele: "water", status: { kind: "freeze", pct: 5, dur: 4 } }, procRateBase: 1, procRatePerEn: 1, d: "伊娃的責罵，劍鋒凝著沁骨的寒泉。" },
         // ===== 軍王之室：掉落裝備 =====
         "wpn_assassin_mark": { n: "暗殺軍王之痕", type: "wpn", w2h: true, dmgS: 13, dmgL: 13, hit: 0, dmgBonus: 2, spd: 0.7, req: "dark", safe: 6, p: 25000, eff: "combo", gachaWeight: 10 },   // 雙刀・連擊
@@ -581,7 +581,7 @@ const DB = {
         "relic_lizard_scale":       { n: "破舊的蜥蜴甲",       type: "arm", slot: "shin", relic: true, noEnhance: true, ac: 1, mpR: 3, mr: 5, req: "mage,elf,dark,illusion", p: 10000, gachaWeight: 0, d: "【遺物】遺忘之島蜥蜴人剝下的破舊甲片，涼薄卻凝聚魔力。" },
         "relic_veteran_lizard_gauntlet":{ n: "資深蜥蜴族護手", type: "arm", slot: "gloves", relic: true, noEnhance: true, ac: 7, meleeDmg: 2, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】狂暴蜥蜴人的護手，久經戰陣使出手更具威力。" },
         "relic_black_gale":         { n: "黑色疾風",           type: "arm", slot: "armor", relic: true, noEnhance: true, ac: 10, hpR: 20, mpR: 1, dr: 6, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】狂野之魔化成的漆黑疾風，纏身而過生機盎然。" },
-        "relic_elder_thunder":      { n: "長老的雷電能量",     type: "wpn", isWand: true, relic: true, noEnhance: true, ignHardSkin: true, dmgS: 4, dmgL: 5, hit: 4, dmgBonus: 4, extraMp: 3, procSkill: "sk_thunder", procRateBase: 100, procRatePerEn: 0, req: "mage,illusion", p: 10000, gachaWeight: 0, d: "【遺物】長老掌中凝聚的雷電能量，每一擊都招來天雷。" },
+        "relic_elder_thunder":      { n: "長老的雷電能量",     type: "wpn", isWand: true, relic: true, noEnhance: true, ignHardSkin: true, dmgS: 4, dmgL: 5, hit: 4, dmgBonus: 4, extraMp: 3, procSkill: "sk_thunder", procRateBase: 100, procRatePerEn: 0, procOnHit: true, req: "mage,illusion", p: 10000, gachaWeight: 0, d: "【遺物】長老掌中凝聚的雷電能量。一般攻擊命中時，必定額外觸發極道落雷；未命中時不會觸發。" },
         "relic_green_imp_nail":     { n: "綠色妖鬼的指甲",     type: "arm", slot: "gloves", relic: true, noEnhance: true, ac: 3, atkSpdPct: 20, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】卡司特尖銳的綠色指甲，套上後出手快如鬼魅。" },
         "relic_ohm_hidepants":      { n: "歐姆的粗皮褲",       type: "arm", slot: "shin", relic: true, noEnhance: true, ac: 1, mr: 10, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】狂暴的歐姆脫下的粗皮褲，粗糙厚實、抗拒魔法。" },
         "relic_ogre_mawashi":       { n: "食人妖精的相撲褌",   type: "arm", slot: "shin", relic: true, noEnhance: true, ac: 3, resFire: 5, dr: 5, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】食人妖精纏腰的相撲褌，厚布層層擋下烈焰與重擊。" },
@@ -590,7 +590,7 @@ const DB = {
         "relic_mandra_spirit":      { n: "曼陀羅之靈",         type: "wpn", qigu: true, relic: true, noEnhance: true, dmgS: 26, dmgL: 26, hit: 0, mpR: 15, int: 1, extraMp: 7, procInstakill: { p: 0.01 }, req: "illusion", p: 10000, gachaWeight: 0, d: "【遺物】底比斯曼陀羅草凝成的靈體，化作幻術士的奇古獸。一般攻擊化為必中的魔法傷害（受魔抗減免）。" },
         "relic_ohm_heavyarmor":     { n: "歐姆士兵的重裝鎧甲", type: "arm", slot: "armor", relic: true, noEnhance: true, ac: 20, er: -50, dr: 10, req: "knight,warrior", p: 10000, gachaWeight: 0, d: "【遺物】歐姆裝甲兵的重裝鎧甲，堅不可摧卻笨重難行。" },
         "relic_cerberus_wand":      { n: "三頭犬魔杖",         type: "wpn", isWand: true, relic: true, noEnhance: true, ignHardSkin: true, dmgS: 2, dmgL: 3, hit: 9, dmgBonus: 9, mdmg: 3, extraMp: 5, ele: "fire", spellProc: { skn: "噴火", dice: [4, 6], ele: "fire", aoe: true }, procRateBase: 10, procRatePerEn: 0, req: "mage,illusion", p: 10000, gachaWeight: 0, d: "【遺物】以地獄犬三首煉成的魔杖，杖端噴吐地獄業火。" },
-        "relic_watersprite_string": { n: "水靈的琴弦",         type: "wpn", isBow: true, ranged: true, w2h: true, relic: true, noEnhance: true, ignHardSkin: true, rapidfire: 70, dmgS: 3, dmgL: 3, hit: 8, dmgBonus: 11, extraDmg: 5, ele: "water", spellProc: { skn: "寒冰氣息", dice: [3, 6], ele: "water", aoe: true }, procRateBase: 5, procRatePerEn: 0, req: "elf,illusion", p: 10000, gachaWeight: 0, d: "【遺物】希爾黛斯撥動的水靈琴弦，箭如寒流連綿不絕。" },
+        "relic_watersprite_string": { n: "水靈的琴弦",         type: "wpn", isBow: true, ranged: true, w2h: true, relic: true, noEnhance: true, ignHardSkin: true, rapidfire: 70, dmgS: 3, dmgL: 3, hit: 8, dmgBonus: 11, extraDmg: 5, ele: "water", spellProc: { skn: "寒冰氣息", dice: [5, 5], flat: 5, ele: "water", aoe: true }, procRateBase: 5, procRatePerEn: 0, req: "elf,illusion", p: 10000, gachaWeight: 0, d: "【遺物】希爾黛斯撥動的水靈琴弦，箭如寒流連綿不絕。" },
         "relic_dragonturtle_shell": { n: "龍龜的背殼",         type: "arm", slot: "cloak", relic: true, noEnhance: true, ac: 10, dr: 6, resFire: 5, resWater: 5, resEarth: 5, resWind: 5, req: "royal,dragon,knight,warrior", p: 10000, gachaWeight: 0, d: "【遺物】龍龜堅不可摧的背殼，抵禦萬般傷害與四方之力。" },
         "relic_bluetail_tail":      { n: "藍尾蜥蜴的斷尾",     type: "acc", slot: "belt", relic: true, noEnhance: true, ac: 0, weightCap: 150, hpR: 10, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】藍尾蜥蜴自斷的尾巴，輕盈且生機勃勃、再生不息。" },
         "relic_lizardman_cleaver":  { n: "蜥蜴人的大砍刀",     type: "wpn", w2h: true, relic: true, noEnhance: true, dmgS: 10, dmgL: 17, hit: 10, dmgBonus: 10, eff: "pierce", pierceChance: 50, vampPct: 0.03, mhp: 60, req: "royal,knight,elf,warrior", p: 10000, gachaWeight: 0, d: "【遺物】重裝蜥蜴人揮舞的大砍刀，一刀劈落數敵、飲血自癒。" },
@@ -603,7 +603,7 @@ const DB = {
         "relic_parrot_beak":        { n: "七彩鸚鵡喙",       type: "wpn", w2h: true, relic: true, noEnhance: true, dmgS: 20, dmgL: 17, hit: 9, dmgBonus: 12, eff: "cleave", ele: "wind", procStatusSkill: { skId: "sk_relic_silence", rate: 1 }, req: "royal,knight,dragon", p: 10000, gachaWeight: 0, d: "【遺物】奇異鸚鵡巨大的七彩喙，啄擊如疾風、令人噤聲。" },
         "relic_pirate_scimitar":    { n: "海賊經典彎刀",     type: "wpn", relic: true, noEnhance: true, dmgS: 8, dmgL: 8, hit: 15, dmgBonus: 15, req: "royal,knight,elf,mage,dark,dragon", p: 10000, gachaWeight: 0, d: "【遺物】海賊骷髏至死緊握的經典彎刀，鋒芒歷久不衰。" },
         "relic_scorpion_sting":     { n: "毒蠍的尾刺",       type: "wpn", relic: true, noEnhance: true, dmgS: 3, dmgL: 3, hit: 7, dmgBonus: 5, procPoison: { rate: 100, dmg: [30, 1], dur: 10, tick: 1 }, procInstakill: { p: 0.01 }, req: "royal,knight,elf,mage,dark", p: 10000, gachaWeight: 0, d: "【遺物】毒蠍淬滿劇毒的尾刺，一擊致命。" },
-        "relic_harvey_claw":        { n: "哈維的吸血爪",     type: "wpn", relic: true, noEnhance: true, dmgS: 9, dmgL: 11, hit: 8, dmgBonus: 8, vampPct: 0.05, spellProc: { skn: "吸血鬼之吻", dice: [2, 9], ele: "none", heal: 1.0 }, procRateBase: 3, procRatePerEn: 0, req: "royal,knight,elf,mage,dark,dragon", p: 10000, gachaWeight: 0, d: "【遺物】哈維鮮血淋漓的利爪，撕咬間奪取生命。" },
+        "relic_harvey_claw":        { n: "哈維的吸血爪",     type: "wpn", relic: true, noEnhance: true, dmgS: 9, dmgL: 11, hit: 8, dmgBonus: 8, vampPct: 0.05, spellProc: { skn: "吸血鬼之吻", dice: [2, 10], flat: 10, ele: "none", heal: 1.0 }, procRateBase: 3, procRatePerEn: 0, req: "royal,knight,elf,mage,dark,dragon", p: 10000, gachaWeight: 0, d: "【遺物】哈維鮮血淋漓的利爪，撕咬間奪取生命。" },
         "relic_death_leaf":         { n: "隱蔽的死亡草葉",   type: "arm", slot: "cloak", relic: true, noEnhance: true, ac: 5, stealth: true, instakillFull: 0.01, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】底比斯曼陀羅草化成的隱蔽草葉，藏形匿影、致人於死。" },
         "relic_apprentice_wand":    { n: "黑魔法學徒魔杖",   type: "wpn", isWand: true, relic: true, noEnhance: true, ignHardSkin: true, dmgS: 1, dmgL: 1, hit: 6, dmgBonus: 6, extraMp: 6, mpR: 15, req: "mage", p: 10000, gachaWeight: 0, d: "【遺物】黑暗妖精魔法學徒的入門魔杖，蘊藏綿延魔力。" },
         "relic_bear_vitality":      { n: "巨熊的生命力",     type: "acc", slot: "ring", relic: true, noEnhance: true, ac: 0, mhp: 100, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】魔熊凝於指環的旺盛生命力，令持有者體魄強健。" },
@@ -621,7 +621,7 @@ const DB = {
         "arm_yeti_gloves":          { n: "雪人手套",         type: "arm", slot: "gloves", ac: 1, resWater: 8, mhp: 5, req: "all", safe: 4, p: 30000, gachaWeight: 30, d: "雪人毛皮縫製的厚實手套，隔絕刺骨寒氣。" },
         "relic_paper_cloak":        { n: "輕薄的紙披風",     type: "arm", slot: "cloak", relic: true, noEnhance: true, ac: 0, resFire: -10, extraMp: 10, mpR: 10, req: "mage,illusion", p: 10000, gachaWeight: 0, d: "【遺物】紙人身上輕薄的符紙披風，蘊藏充沛魔力卻一觸即燃。" },
         "relic_darkthief_claw":     { n: "黑暗盜賊的兇殺爪", type: "wpn", w2h: true, relic: true, noEnhance: true, dmgS: 17, dmgL: 15, hit: 10, dmgBonus: 13, eff: "combo", comboRate: 50, extraDmg: 10, req: "dark", p: 10000, gachaWeight: 0, d: "【遺物】黑暗妖精盜賊行兇的雙爪，撕裂之間血花四濺。" },
-        "relic_darkelf_chainsword": { n: "暗精靈鎖鏈劍",     type: "wpn", w2h: true, chainsword: true, weakExpose: true, relic: true, noEnhance: true, dmgS: 22, dmgL: 16, hit: 8, dmgBonus: 8, hpR: 10, extraMp: 5, spellProc: { skn: "吸血鬼之吻", dice: [2, 9], ele: "none", heal: 1.0 }, procRateBase: 10, procRatePerEn: 0, req: "dragon", p: 10000, gachaWeight: 0, d: "【遺物】闇精靈王御用的鎖鏈劍，斬擊之餘吸食敵人的生命。" },
+        "relic_darkelf_chainsword": { n: "暗精靈鎖鏈劍",     type: "wpn", w2h: true, chainsword: true, weakExpose: true, relic: true, noEnhance: true, dmgS: 22, dmgL: 16, hit: 8, dmgBonus: 8, hpR: 10, extraMp: 5, spellProc: { skn: "吸血鬼之吻", dice: [2, 10], flat: 10, ele: "none", heal: 1.0 }, procRateBase: 10, procRatePerEn: 0, req: "dragon", p: 10000, gachaWeight: 0, d: "【遺物】闇精靈王御用的鎖鏈劍，斬擊之餘吸食敵人的生命。" },
         "relic_seawater_shirt":     { n: "浸泡海水的內衣",   type: "arm", slot: "tshirt", relic: true, noEnhance: true, ac: 6, resWind: -10, resFire: 10, mpR: 3, dr: 1, req: "all", p: 10000, gachaWeight: 0, d: "【遺物】海賊骷髏浸透海水的內衣，濕冷卻能澆熄烈焰。" },
         "relic_fighter_axe":        { n: "鬥士的老舊戰斧",   type: "wpn", w2h: true, relic: true, noEnhance: true, dmgS: 18, dmgL: 18, hit: 9, dmgBonus: 9, eff: "crush", hardWear: 100, req: "royal,knight,elf,illusion,dragon,warrior", p: 10000, gachaWeight: 0, d: "【遺物】骷髏鬥士的老舊戰斧，一劈便將堅甲硬皮盡數崩碎。" },
         "relic_hermitcrab_shell":   { n: "寄居蟹的巨大背殼", type: "arm", slot: "shield", relic: true, noEnhance: true, ac: 10, dr: 15, moveSpeedPct: -50, req: "knight", p: 10000, gachaWeight: 0, d: "【遺物】奎斯坦修的巨大背殼，堅如磐石卻沉重拖累身形。" },
@@ -2537,36 +2537,36 @@ const DB = {
         "sk_heal1": { n: "初級治癒術", type: "heal", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 4, valBase: 0, valDice: [1, 15], healDice: [1, 20], healBase: 20, msg: "你感覺舒服了一點。" },
         "sk_sunlight": { n: "日光術", type: "buff", tier: 1, reqM: 4, reqE: 8, reqK: 16, reqI: 10, reqDk: 15, mp: 4, dur: 7200, msg: "你更容易被怪物發現了。" },
         "sk_shield": { n: "保護罩", type: "buff", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 2, dur: 1200, d: { ac: 2 } },
-        "sk_lightarrow": { n: "光箭", type: "atk", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 3, dmgType: "magic", ele: "none", dmgDice: [1, 6] },
+        "sk_lightarrow": { n: "光箭", type: "atk", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 3, dmgType: "magic", ele: "none", dmgDice: [1, 10], dmgBase: 8 },
         "sk_teleport": { n: "傳送術", type: "manual", tier: 1, reqM: 4, reqE: 8, reqK: 16, reqI: 10, reqDk: 15, mp: 5, mEff: "teleport" },
-        "sk_icearrow": { n: "冰箭", type: "atk", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 3, dmgType: "magic", ele: "water", dmgDice: [1, 6] },
-        "sk_windblade": { n: "風刃", type: "atk", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 3, dmgType: "magic", ele: "wind", dmgDice: [1, 6] },
+        "sk_icearrow": { n: "冰箭", type: "atk", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 3, dmgType: "magic", ele: "water", dmgDice: [1, 10], dmgBase: 10 },
+        "sk_windblade": { n: "風刃", type: "atk", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 3, dmgType: "magic", ele: "wind", dmgDice: [1, 10], dmgBase: 10 },
         "sk_holy_wpn": { n: "神聖武器", type: "buff", tier: 1, reqM: 4, reqE: 8, reqK: 16, mp: 10, dur: 1200, d: { extraDmg: 1, extraHit: 1 }, msg: "你的武器暫時被注入了神聖力量。" },
 
         // 二階魔法 (Lv 8)
         "sk_antidote": { n: "解毒術", type: "heal", tier: 2, reqM: 8, reqE: 16, mp: 8, msg: "你感覺毒素消退了。" },
-        "sk_cold_shiver": { n: "寒冷戰慄", type: "atk", tier: 2, reqM: 8, reqE: 16, mp: 9, dmgType: "magic", ele: "none", dmgDice: [1, 10], lifesteal: true, healSlot: true },
+        "sk_cold_shiver": { n: "寒冷戰慄", type: "atk", tier: 2, reqM: 8, reqE: 16, mp: 9, dmgType: "magic", ele: "none", dmgDice: [2, 10], dmgBase: 10, lifesteal: true, healSlot: true },
         "sk_poison_curse": { n: "毒咒", type: "atk", tier: 2, reqM: 8, reqE: 16, mp: 10, dmgType: "magic", status: { kind: "poison", pbase: 100, dur: 15, tick: 3, dmg: [1, 8] }, msg: "你使目標中毒了。" },
         "sk_ench_wpn": { n: "擬似魔法武器", type: "buff", tier: 2, reqM: 8, reqE: 16, mp: 20, dur: 1800, d: { extraDmg: 2 }, msg: "你的武器暫時被注入了魔法力量。" },
         "sk_reveal": { n: "無所遁形術", type: "buff", tier: 2, reqM: 8, reqE: 16, mp: 8, dur: 180 },
         "sk_load_up": { n: "負重強化", type: "buff", tier: 2, reqM: 8, reqE: 16, reqD: 16, mp: 10, dur: 1800, label: "增益", msg: "感覺到身體變輕了。" },   // 🔧 改版：負重上限+50（持續1800秒，效果結束才再施放）
-        "sk_firearrow": { n: "火箭", type: "atk", tier: 2, reqM: 8, reqE: 16, mp: 3, dmgType: "magic", ele: "fire", dmgDice: [1, 6] },
-        "sk_hell_fang": { n: "地獄之牙", type: "atk", tier: 2, reqM: 8, reqE: 16, mp: 3, dmgType: "magic", ele: "earth", dmgDice: [1, 6] },
+        "sk_firearrow": { n: "火箭", type: "atk", tier: 2, reqM: 8, reqE: 16, mp: 3, dmgType: "magic", ele: "fire", dmgDice: [2, 10], dmgBase: 10 },
+        "sk_hell_fang": { n: "地獄之牙", type: "atk", tier: 2, reqM: 8, reqE: 16, mp: 3, dmgType: "magic", ele: "earth", dmgDice: [2, 10], dmgBase: 10 },
 
         // 三階魔法 (Lv 12)
-        "sk_aurora": { n: "極光雷電", type: "atk", tier: 3, reqM: 12, reqE: 24, mp: 13, dmgType: "magic", ele: "wind", target: "all", dmgDice: [2, 12] },
+        "sk_aurora": { n: "極光雷電", type: "atk", tier: 3, reqM: 12, reqE: 24, mp: 13, dmgType: "magic", ele: "wind", target: "all", dmgDice: [4, 10] },
         "sk_undead_bane": { n: "起死回生術", type: "atk", tier: 3, reqM: 12, reqE: 24, mp: 15, dmgType: "magic", instakill: { tag: "undead", cap: 12 } },   // 🔧 即死成功率最高 60%
         "sk_heal_mid": { n: "中級治癒術", type: "heal", tier: 3, reqM: 12, reqE: 24, mp: 11, valDice: [1, 30], healDice: [1, 50], healBase: 50, msg: "你感覺舒服了一點。" },
         "sk_dark_blind": { n: "闇盲咒術", type: "atk", tier: 3, reqM: 12, reqE: 24, mp: 20, dmgType: "magic", status: { kind: "blind", pbase: 150, hit: 4, dur: 10 } },
         "sk_shield2": { n: "鎧甲護持", type: "buff", tier: 3, reqM: 12, reqE: 24, mp: 20, dur: 1800, d: { ac: 3 }, msg: "你的盔甲暫時被注入了魔法力量。" },
-        "sk_chill": { n: "寒冰氣息", type: "atk", tier: 3, reqM: 12, reqE: 24, mp: 9, dmgType: "magic", ele: "water", target: "all", dmgDice: [3, 6] },
+        "sk_chill": { n: "寒冰氣息", type: "atk", tier: 3, reqM: 12, reqE: 24, mp: 9, dmgType: "magic", ele: "water", target: "all", dmgDice: [5, 5], dmgBase: 5 },
         "sk_energy_sense": { n: "能量感測", type: "manual", tier: 3, reqM: 12, reqE: 24, mp: 8, mEff: "sense" },
 
         // 四階魔法 (Lv 16)
-        "sk_fireball": { n: "燃燒的火球", type: "atk", tier: 4, reqM: 16, reqE: 32, mp: 16, dmgType: "magic", ele: "fire", target: "all", multiDmg: [[2, 6], [3, 6]] },
+        "sk_fireball": { n: "燃燒的火球", type: "atk", tier: 4, reqM: 16, reqE: 32, mp: 16, dmgType: "magic", ele: "fire", target: "all", dmgDice: [5, 9] },
         "sk_dex_up": { n: "通暢氣脈術", type: "buff", tier: 4, reqM: 16, reqE: 32, mp: 45, dur: 1200, d: { dex: 5 }, msg: "你覺得身手變得更靈活。" },
         "sk_break": { n: "壞物術", type: "atk", tier: 4, reqM: 16, reqE: 32, mp: 20, dmgType: "magic", status: { kind: "broken", pbase: 150, dur: 25 } },
-        "sk_vampire": { n: "吸血鬼之吻", type: "atk", tier: 4, reqM: 16, reqE: 32, mp: 13, dmgType: "magic", ele: "none", dmgDice: [2, 9], lifesteal: true, healSlot: true },
+        "sk_vampire": { n: "吸血鬼之吻", type: "atk", tier: 4, reqM: 16, reqE: 32, mp: 13, dmgType: "magic", ele: "none", dmgDice: [3, 10], dmgBase: 15, lifesteal: true, healSlot: true },
         "sk_slow": { n: "緩速術", type: "atk", tier: 4, reqM: 16, reqE: 32, mp: 20, dmgType: "magic", status: { kind: "slow", pbase: 150, dur: 30 } },
         "sk_relic_stun": { n: "暈眩", type: "atk", status: { kind: "stun", dur: 2, force: true } },   // 🏺 遺物「地靈的木棍」攻擊命中觸發用（procStatusSkill·非可學技能·force 跳過魔抗故 proc 率＝最終暈眩率·BOSS 免疫仍生效）
         "sk_relic_freeze": { n: "冰凍", type: "atk", status: { kind: "freeze", dur: 6, force: true } },   // 🏺 遺物「冰原十字鎬」攻擊命中觸發用（procStatusSkill·非可學技能·force 跳過魔抗故 proc 率＝最終冰凍率·BOSS 免疫仍生效）
@@ -2576,17 +2576,17 @@ const DB = {
         "sk_relic_stone": { n: "石化", type: "atk", status: { kind: "stone", dur: 6, force: true } },   // 🏺 遺物「眼魔的凝視」攻擊命中觸發（procStatusSkill·force 跳魔抗→proc 率＝最終石化率·BOSS 免疫仍生效）
         "sk_relic_broken": { n: "損壞", type: "atk", status: { kind: "broken", dur: 8, force: true } },   // 🏺 遺物「巨人的拋投石」攻擊命中觸發（procStatusSkill·force·損壞＝敵一般攻擊傷害-2）   // 🏺 遺物「七彩鸚鵡喙」攻擊命中觸發用（procStatusSkill·非可學技能）；怪物用 magicseal(魔法封印) 實現沉默·js/03:367 施法閘讀 st.magicseal
         "sk_holy_lightning": { n: "致命落雷", type: "atk", tier: 6, dmgType: "magic", ele: "wind", dmgDice: [6, 10] },   // 🏛️ 聖晶魔杖 procSkill 用：6D10 風屬性·走 procFreeMagicSkill（武器 proc 不套法師階級加成·非可學技能）
-        "sk_rock_prison": { n: "岩牢", type: "atk", tier: 4, reqM: 16, reqE: 32, mp: 11, dmgType: "magic", ele: "earth", target: "all", dmgDice: [4, 5] },
+        "sk_rock_prison": { n: "岩牢", type: "atk", tier: 4, reqM: 16, reqE: 32, mp: 11, dmgType: "magic", ele: "earth", target: "all", dmgDice: [5, 8] },
         "sk_magic_shield": { n: "魔法屏障", type: "buff", tier: 4, reqM: 16, reqE: 32, mp: 16, dur: 16 },
         "sk_meditation": { n: "冥想術", type: "buff", tier: 4, reqM: 16, reqE: 32, hpCost: 40, mp: 10, dur: 600, d: { mpR: 5 } },
 
         // 五階魔法 (Lv 20)
         "sk_mummy_curse": { n: "木乃伊的詛咒", type: "atk", tier: 5, reqM: 20, reqE: 40, mp: 35, dmgType: "magic", status: { kind: "stone", pbase: 100, dur: 6 } },
         "sk_charm": { n: "迷魅術", type: "manual", tier: 5, reqM: 20, reqE: 40, mp: 30, mEff: "charm" },
-        "sk_thunder": { n: "極道落雷", type: "atk", tier: 5, reqM: 20, reqE: 40, mp: 25, dmgType: "magic", ele: "wind", dmgDice: [8, 9] },
+        "sk_thunder": { n: "極道落雷", type: "atk", tier: 5, reqM: 20, reqE: 40, mp: 25, dmgType: "magic", ele: "wind", dmgDice: [5, 8], dmgBase: 40 },
         "sk_heal2": { n: "高級治癒術", type: "heal", tier: 5, reqM: 20, reqE: 40, mp: 20, valDice: [2, 30], healDice: [1, 100], healBase: 100, msg: "你感覺舒服了一點。" },
         "sk_holy_light": { n: "聖潔之光", type: "heal", tier: 5, reqM: 20, reqE: 40, mp: 10, msg: "神聖光芒驅散了詛咒。" },
-        "sk_ice_spike": { n: "冰錐", type: "atk", tier: 5, reqM: 20, reqE: 40, mp: 21, dmgType: "magic", ele: "water", dmgDice: [6, 10] },
+        "sk_ice_spike": { n: "冰錐", type: "atk", tier: 5, reqM: 20, reqE: 40, mp: 21, dmgType: "magic", ele: "water", dmgDice: [5, 6], dmgBase: 40 },
         "sk_demon_kiss": { n: "惡魔之吻", type: "atk", tier: 3, mp: 0, dmgType: "magic", ele: "earth", dmgDice: [3, 20], procOnly: true },   // 🏛️ 底比斯歐西里斯武器附魔施放（procSkill·不需學習/不耗MP·受魔法傷害公式影響）；procOnly：純武器proc、不顯示於技能列表/下拉
         "sk_mana_drain": { n: "魔力奪取", type: "convert", tier: 5, reqM: 20, reqE: 40, hpCost: 50, drain: true },   // 🔧 改為轉換技能（法師/妖精）：消耗HP、需對怪物施展且以異常魔法命中判定，命中吸取 MP=1D(怪物等級/2)；其餘機制比照魂體轉換
         "sk_dark_shadow": { n: "黑闇之影", type: "atk", tier: 5, reqM: 20, reqE: 40, mp: 25, dmgType: "magic", status: { kind: "blind", pbase: 150, hit: 5, dur: 20 } },
@@ -2595,8 +2595,8 @@ const DB = {
         "sk_zombie": { n: "造屍術", type: "buff", tier: 6, reqM: 24, reqE: 48, mp: 35, dur: 3600, desc: "以死靈魔法喚醒倒下的人形軀殼，使其服從施術者並肩作戰。施術者的力量越成熟，甦醒的亡者也越強韌。", summon: { n: "隨從：人形殭屍", dmgDice: [1, 12], dmgDiv: 5, dmgLvDiv: 20, dmgMult: 0.90, interval: 20, kind: "melee", hitLvOff: 0 } },
         "sk_haste_spell": { n: "加速術", type: "buff", tier: 6, reqM: 24, reqE: 48, mp: 40, dur: 1200, haste: true, msg: "你感到身體變得非常輕盈。" },
         "sk_cancel": { n: "魔法相消術", type: "heal", tier: 6, reqM: 24, reqE: 48, mp: 40, msg: "你全身上下感到涼意。" },
-        "sk_earthquake": { n: "地裂術", type: "atk", tier: 6, reqM: 24, reqE: 48, mp: 25, dmgType: "magic", ele: "earth", dmgDice: [10, 8] },
-        "sk_blaze": { n: "烈炎術", type: "atk", tier: 6, reqM: 24, reqE: 48, mp: 30, dmgType: "magic", ele: "fire", dmgDice: [1, 100] },
+        "sk_earthquake": { n: "地裂術", type: "atk", tier: 6, reqM: 24, reqE: 48, mp: 25, dmgType: "magic", ele: "earth", dmgDice: [5, 3], dmgBase: 50 },
+        "sk_blaze": { n: "烈炎術", type: "atk", tier: 6, reqM: 24, reqE: 48, mp: 30, dmgType: "magic", ele: "fire", dmgDice: [16, 5], dmgBase: 40 },
         "sk_str_up": { n: "體魄強健術", type: "buff", tier: 6, reqM: 24, reqE: 48, mp: 50, dur: 1200, d: { str: 5 }, msg: "你覺得身體充滿了力量。" },
         "sk_bless_wpn": { n: "祝福魔法武器", type: "buff", tier: 6, reqM: 24, reqE: 48, mp: 20, dur: 1200, d: { extraDmg: 2, extraHit: 2 }, msg: "你的武器暫時被注入了魔法力量。" },
         "sk_weaken": { n: "弱化術", type: "atk", tier: 6, reqM: 24, reqE: 48, mp: 25, dmgType: "magic", status: { kind: "weaken", pbase: 150, dur: 30 } },
@@ -2604,8 +2604,8 @@ const DB = {
         // 七階魔法 (Lv 28)
         "sk_regen": { n: "體力回復術", type: "heal", tier: 7, reqM: 28, mp: 35, hot: { interval: 30, ticks: 5 }, valDice: [1, 20], healDice: [1, 30], healBase: 30, msg: "你的傷口逐漸癒合。", autoBuff: true },
         "sk_greater_haste": { n: "強力加速術", type: "buff", tier: 7, reqM: 28, mp: 60, dur: 2400, haste: true, msg: "你感到身體變得非常輕盈。" },
-        "sk_ice_lance": { n: "冰矛圍籬", type: "atk", tier: 7, reqM: 28, mp: 30, dmgType: "magic", ele: "water", dmgDice: [8, 10], freeze: 200 },
-        "sk_tornado": { n: "龍捲風", type: "atk", tier: 7, reqM: 28, mp: 45, dmgType: "magic", ele: "wind", target: "all", multiDmg: [[2, 9], [2, 9], [2, 9]] },
+        "sk_ice_lance": { n: "冰矛圍籬", type: "atk", tier: 7, reqM: 28, mp: 30, dmgType: "magic", ele: "water", dmgDice: [10, 6], dmgBase: 45, freeze: 200 },
+        "sk_tornado": { n: "龍捲風", type: "atk", tier: 7, reqM: 28, mp: 45, dmgType: "magic", ele: "wind", target: "all", multiDmg: [[2, 10], [2, 10], [2, 10], [2, 10], [2, 10], [2, 10]] },
         "sk_berserk": { n: "狂暴術", type: "buff", tier: 7, reqM: 28, mp: 40, dur: 1200, d: { meleeDmg: 5, ac: -10 }, msg: "你的野性逐漸支配理智。" },
         "sk_summon": { n: "召喚術", type: "buff", tier: 7, reqM: 28, mp: 50, dur: 3600, summon: { tiered: true } },
         "sk_holy_dash": { n: "神聖疾走", type: "buff", tier: 7, reqM: 28, mp: 20, dur: 64, d: { er: 15 }, msg: "你覺得身體變輕了。" },
@@ -2613,10 +2613,10 @@ const DB = {
 
         // 八階魔法 (Lv 32)
         "sk_full_heal": { n: "全部治癒術", type: "heal", tier: 8, reqM: 32, mp: 30, valDice: [3, 30], healDice: [3, 50], healBase: 150, msg: "你感覺舒服了不少。" },
-        "sk_blizzard": { n: "冰雪暴", type: "atk", tier: 8, reqM: 32, mp: 60, dmgType: "magic", ele: "water", target: "all", multiDmg: [[2, 10], [2, 10], [2, 10], [2, 10]] },
-        "sk_blizzard_storm": { n: "冰雪颶風", type: "buff", tier: 10, reqM: 40, mp: 60, dur: 32, ele: "water", target: "all", noRefresh: true, stormInterval: 40, dmgDice: [1, 10], freezeHitOff: -3, msg: "冰雪颶風在你周身成形。" },   // 🌨️ 輔助勾選維持的傷害增益：每4秒對全體造成1D10水傷+冰凍(魔命-3)；傷害由 stormBuffTick 處理
-        "sk_fire_prison": { n: "火牢", type: "buff", tier: 8, reqM: 32, mp: 60, dur: 10, ele: "fire", target: "all", noRefresh: true, stormInterval: 20, dmgDice: [1, 15], msg: "熊熊火牢在你周身燃起。" },   // 🔥 輔助勾選維持的傷害增益：每2秒對全體造成1D15火傷（無異常）；傷害由 stormBuffTick 處理
-        "sk_quake": { n: "震裂術", type: "atk", tier: 8, reqM: 32, mp: 40, dmgType: "magic", ele: "earth", target: "all", dmgDice: [4, 15] },
+        "sk_blizzard": { n: "冰雪暴", type: "atk", tier: 8, reqM: 32, mp: 60, dmgType: "magic", ele: "water", target: "all", multiDmg: [[2, 10], [2, 10], [2, 10], [2, 10], [2, 10], [2, 10], [2, 10], [2, 10]] },
+        "sk_blizzard_storm": { n: "冰雪颶風", type: "buff", tier: 10, reqM: 40, mp: 60, dur: 32, ele: "water", target: "all", noRefresh: true, stormInterval: 40, dmgDice: [2, 10], freezeHitOff: -3, msg: "冰雪颶風在你周身成形。" },   // 🌨️ 輔助勾選維持的傷害增益：每4秒對全體造成2D10水傷+冰凍(魔命-3)；傷害由 stormBuffTick 處理
+        "sk_fire_prison": { n: "火牢", type: "buff", tier: 8, reqM: 32, mp: 60, dur: 10, ele: "fire", target: "all", noRefresh: true, stormInterval: 20, dmgDice: [2, 15], msg: "熊熊火牢在你周身燃起。" },   // 🔥 輔助勾選維持的傷害增益：每2秒對全體造成2D15火傷（無異常）；傷害由 stormBuffTick 處理
+        "sk_quake": { n: "震裂術", type: "atk", tier: 8, reqM: 32, mp: 40, dmgType: "magic", ele: "earth", target: "all", dmgDice: [8, 10], dmgBase: 30 },
         "sk_invisible": { n: "隱身術", type: "buff", tier: 8, reqM: 32, hpCost: 20, mp: 45, dur: 64 },
         "sk_resurrection": { n: "返生術", type: "passive", tier: 8, reqM: 32, mp: 50 },
         "sk_seal": { n: "魔法封印", type: "atk", tier: 8, reqM: 32, mp: 30, dmgType: "magic", status: { kind: "vacuum", pbase: 100, dur: 16 } },
@@ -2624,14 +2624,14 @@ const DB = {
         // 九階魔法 (Lv 36)
         "sk_holy_barrier": { n: "聖結界", type: "buff", tier: 9, reqM: 36, mp: 30, dur: 32, msg: "一道神聖的防禦屏障保護著你。" },
         "sk_sleep_mist": { n: "沉睡之霧", type: "atk", tier: 9, reqM: 36, mp: 40, dmgType: "magic", target: "all", status: { kind: "sleep", pbase: 100, dur: 8 } },
-        "sk_thunder_storm": { n: "雷霆風暴", type: "atk", tier: 9, reqM: 36, mp: 48, dmgType: "magic", ele: "wind", target: "all", multiDmg: [[1, 9], [1, 9], [1, 9], [1, 9], [1, 9], [1, 9], [1, 9], [1, 9]] },
-        "sk_fire_storm": { n: "火風暴", type: "atk", tier: 9, reqM: 36, mp: 48, dmgType: "magic", ele: "fire", target: "all", multiDmg: [[3, 12], [3, 12]] },
+        "sk_thunder_storm": { n: "雷霆風暴", type: "atk", tier: 9, reqM: 36, mp: 48, dmgType: "magic", ele: "wind", target: "all", multiDmg: [[2, 10], [2, 10], [2, 10], [2, 10], [2, 10], [2, 10], [2, 10], [2, 10]] },
+        "sk_fire_storm": { n: "火風暴", type: "atk", tier: 9, reqM: 36, mp: 48, dmgType: "magic", ele: "fire", target: "all", multiDmg: [[4, 10], [4, 10], [4, 10], [4, 10]] },
 
         // 十階魔法 (Lv 40)
-        "sk_meteor": { n: "流星雨", type: "atk", tier: 10, reqM: 40, mp: 60, dmgType: "magic", ele: "fire", target: "all", multiDmg: [[1, 15], [1, 15], [1, 15], [1, 15], [1, 15], [1, 15]] },
+        "sk_meteor": { n: "流星雨", type: "atk", tier: 10, reqM: 40, mp: 60, dmgType: "magic", ele: "fire", target: "all", multiDmg: [[2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9]], apexAoe: true },
         "sk_soul_up": { n: "靈魂昇華", type: "buff", tier: 10, reqM: 40, mp: 20, dur: 1200, msg: "你覺得身體充滿了活力。" },
         "sk_abs_barrier": { n: "絕對屏障", type: "manual", tier: 10, reqM: 40, mp: 30, mEff: "barrier", dur: 7, label: "增益", msg: "你感覺身體與這個世界隔絕了。" },
-        "sk_disintegrate": { n: "究極光裂術", type: "atk", tier: 10, reqM: 40, mp: 70, dmgType: "magic", ele: "none", dmgDice: [2, 70] },
+        "sk_disintegrate": { n: "究極光裂術", type: "atk", tier: 10, reqM: 40, mp: 70, dmgType: "magic", ele: "none", dmgDice: [10, 20], dmgBase: 100, apexSingle: true },
 
         // ================= 【騎士技術】 =================
         "sk_solid_shield": { n: "堅固防護", type: "buff", tier: 2, reqK: 40, hpCost: 30, mp: 5, dur: 180, reqShield: true, d: { er: 15 } },
@@ -2742,7 +2742,7 @@ const DB = {
         "sk_dragon_awaken_falion": { n: "覺醒：法利昂", type: "buff", label: "增益", tier: 2, reqDk: 30, mp: 30, hpCost: 20, dur: 600, noRefresh: true, awaken: true, d: { resFire: 15, resWater: 15, resEarth: 15, resWind: 15 }, msg: "你引動法利昂之力，魔抗與全屬性抗性大增。" },
         // —— 三階龍魔法（Lv45）——
         "sk_dragon_deadlybody":    { n: "致命身軀", type: "buff", label: "增益", tier: 3, reqDk: 45, mp: 0, hpCost: 50, dur: 300, noRefresh: true, msg: "你的身軀化為致命的反擊之刃。" },
-        "sk_dragon_deathlightning":{ n: "奪命之雷", type: "atk", tier: 3, reqDk: 45, mp: 0, hpCost: 35, dmgType: "magic", ele: "wind", target: "all", multiDmg: [[6, 8]], status: { kind: "stun", dur: 6 } },
+        "sk_dragon_deathlightning":{ n: "奪命之雷", type: "atk", tier: 3, reqDk: 45, mp: 0, hpCost: 35, dmgType: "magic", ele: "wind", target: "all", multiDmg: [[8, 8]], status: { kind: "stun", dur: 6 } },
         "sk_dragon_reaper":        { n: "驚悚死神", type: "atk", tier: 3, reqDk: 45, mp: 0, hpCost: 20, fixedStatus: { kind: "doom", chance: 0.50, dur: 32 }, noRecastStatus: "doom" },
         "sk_dragon_awaken_baraka": { n: "覺醒：巴拉卡斯", type: "buff", label: "增益", tier: 3, reqDk: 45, mp: 50, hpCost: 30, dur: 600, noRefresh: true, awaken: true, d: { str: 3, con: 3, dex: 3, int: 3, wis: 3, extraHit: 5 }, msg: "你引動巴拉卡斯之力，全身充滿磅礡之力。" },
         // ================= ⚔️【戰士技能·印記習得】 =================（cat:熱血blood/憤怒rage/忍耐endure）
