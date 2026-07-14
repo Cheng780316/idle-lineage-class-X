@@ -413,7 +413,8 @@ function weaponSpellProc(target, attackHit) {
     let inst = player.eq.wpn;
     let wpn = inst ? DB.items[inst.id] : null;
     if (!wpn) return;
-    if (wpn.procOnHit && !attackHit) return;   // 🏺 長老的雷電能量：僅一般攻擊實際命中才觸發極道落雷
+    let _createMagicWeapon = player.cls === 'mage' && player.buffs && player.buffs.sk_create_magic_weapon > 0;
+    if (wpn.procOnHit && !attackHit && !_createMagicWeapon) return;   // 🧙 創造魔法武器：法師增益生效時，未命中／ER迴避也能判定原本限定命中的武器魔法
     if (wpn.procPoison) applyWeaponProcPoison(target, wpn.procPoison, wpnEnFinalMult(inst));   // 🔧 死亡之指：攻擊時毒咒（吃武器強化最終倍率）
     if (wpn.procBurstPoison) applyWeaponBurstPoison(target, wpn.procBurstPoison, capWpnEn(inst.en), wpnEnFinalMult(inst));   // 💥 破壞雙刀/鋼爪：攻擊時猛爆劇毒（吃武器強化最終倍率）
     if (wpn.procStatusSkill) applyWeaponProcStatusSkill(target, wpn.procStatusSkill);   // 🌑 惡魔王武器：攻擊時 10% 施放疾病術

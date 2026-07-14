@@ -1024,7 +1024,8 @@ const STATUS_ICON_SKILLS = {
     'sk_dragon_bloodlust':'血之渴望','sk_dragon_awaken_falion':'覺醒：法利昂','sk_dragon_deadlybody':'致命身軀','sk_dragon_awaken_baraka':'覺醒：巴拉卡斯','sk_royal_precise':'精準目標','sk_royal_burnweapon':'灼熱武器','sk_royal_bravewill':'勇猛意志','sk_royal_shield':'閃亮之盾',
     'sk_warrior_throwaxe':'戰斧投擲','sk_warrior_endurance':'體能強化','sk_warrior_outlaw':'亡命之徒',
     // 裝備法術沿用原法術圖示。
-    'sk_helm_dex1':'通暢氣脈術','sk_helm_dex2':'加速術','sk_helm_str1':'擬似魔法武器','sk_helm_str2':'無所遁形術','sk_helm_str3':'體魄強健術'
+    'sk_helm_dex1':'通暢氣脈術','sk_helm_dex2':'加速術','sk_helm_str1':'擬似魔法武器','sk_helm_str2':'無所遁形術','sk_helm_str3':'體魄強健術',
+    'sk_create_magic_weapon':'創造魔法武器.png'
 };
 function renderStatusIconBar() {
     let bar=document.getElementById('status-icon-bar'); if(!bar||!player||!player.buffs)return;
@@ -1049,7 +1050,7 @@ function renderStatusIconBar() {
     let sig=rows.map(x=>x.name+'|'+x.label).join('||');
     if(bar.dataset.statusSig!==sig){
         bar.dataset.statusSig=sig;
-        bar.innerHTML=rows.map((x,i)=>{let title=x.label+(x.ticks>0?'｜剩餘 '+x.sec+' 秒':'');return `<div class="status-icon" data-status-index="${i}" title="${title}"><img src="assets/state-icons/${encodeURIComponent(x.icon||x.name)}.jpg" alt="${x.label}"></div>`;}).join('');
+        bar.innerHTML=rows.map((x,i)=>{let title=x.label+(x.ticks>0?'｜剩餘 '+x.sec+' 秒':'');let iconName=String(x.icon||x.name);let iconFile=/\.(?:png|jpe?g|webp|gif)$/i.test(iconName)?iconName:(iconName+'.jpg');return `<div class="status-icon" data-status-index="${i}" title="${title}"><img src="assets/state-icons/${encodeURIComponent(iconFile)}" alt="${x.label}"></div>`;}).join('');
     } else {
         rows.forEach((x,i)=>{let icon=bar.querySelector(`[data-status-index="${i}"]`);if(!icon)return;icon.title=x.label+(x.ticks>0?'｜剩餘 '+x.sec+' 秒':'');});
     }

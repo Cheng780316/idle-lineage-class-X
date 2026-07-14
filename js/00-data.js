@@ -1553,6 +1553,7 @@ const DB = {
 
         "bk_meteor": { type: "skillbk", n: "魔法書(流星雨)", p: 250000, sk: "sk_meteor", gachaWeight: 1 },
         "bk_soul_up": { type: "skillbk", n: "魔法書(靈魂昇華)", p: 250000, sk: "sk_soul_up", gachaWeight: 1 },
+        "bk_create_magic_weapon": { type: "skillbk", n: "魔法書(創造魔法武器)", p: 1, sk: "sk_create_magic_weapon", gachaWeight: 0, img: "assets/icons/skills/創造魔法武器.png", d: "【測試版】法師十階增益魔法。持續期間內，普通攻擊即使未命中或被迴避，仍可判定武器內建魔法；發動率依武器原設定。" },
         "bk_abs_barrier": { type: "skillbk", n: "魔法書(絕對屏障)", p: 102400, sk: "sk_abs_barrier", gachaWeight: 1, d: "記載著「絕對屏障」術式的古老魔法書，研讀後可將咒文銘刻於記憶。" },
         "bk_disintegrate": { type: "skillbk", n: "魔法書(究極光裂術)", p: 250000, sk: "sk_disintegrate", gachaWeight: 1 },
 
@@ -2631,6 +2632,7 @@ const DB = {
         // 十階魔法 (Lv 40)
         "sk_meteor": { n: "流星雨", type: "atk", tier: 10, reqM: 40, mp: 60, dmgType: "magic", ele: "fire", target: "all", multiDmg: [[2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9]], apexAoe: true },
         "sk_soul_up": { n: "靈魂昇華", type: "buff", tier: 10, reqM: 40, mp: 20, dur: 1200, msg: "你覺得身體充滿了活力。" },
+        "sk_create_magic_weapon": { n: "創造魔法武器", type: "buff", tier: 10, reqM: 40, mp: 200, dur: 1200, magicWeaponMissProc: true, msg: "你的武器被賦予突破命中限制的魔法力量。" },
         "sk_abs_barrier": { n: "絕對屏障", type: "manual", tier: 10, reqM: 40, mp: 30, mEff: "barrier", dur: 7, label: "增益", msg: "你感覺身體與這個世界隔絕了。" },
         "sk_disintegrate": { n: "究極光裂術", type: "atk", tier: 10, reqM: 40, mp: 70, dmgType: "magic", ele: "none", dmgDice: [10, 20], dmgBase: 100, apexSingle: true },
 
