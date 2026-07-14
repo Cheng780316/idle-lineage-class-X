@@ -118,7 +118,7 @@ function wearHardSkin(target, wpnId, heavy, bluntProc, basic, suppressEff) {
     if (dec > 0) target.hardSkin = Math.max(0, target.hardSkin - dec);
 }
 function tryInstakill(m, ik, skillName, idx, deferKill) {
-    if(m.boss || m.immortal) return false;
+    if(m.boss) return false;
 
     // 👇 加上 ik.tag 的存在判定：只有在規定了特定 tag 時，才去檢查怪物有沒有該 tag
     if(ik.tag && !mobHasTag(m, ik.tag)) return false;

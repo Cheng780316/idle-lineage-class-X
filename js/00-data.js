@@ -1553,7 +1553,7 @@ const DB = {
 
         "bk_meteor": { type: "skillbk", n: "魔法書(流星雨)", p: 250000, sk: "sk_meteor", gachaWeight: 1 },
         "bk_soul_up": { type: "skillbk", n: "魔法書(靈魂昇華)", p: 250000, sk: "sk_soul_up", gachaWeight: 1 },
-        "bk_create_magic_weapon": { type: "skillbk", n: "魔法書(創造魔法武器)", p: 1, sk: "sk_create_magic_weapon", gachaWeight: 0, img: "assets/icons/skills/究極光裂術.png", d: "【測試版】法師十階增益魔法（測試期間 1 級可學）。持續期間內，普通攻擊即使未命中或被迴避，仍可判定武器內建魔法；發動率依武器原設定。" },
+        "bk_create_magic_weapon": { type: "skillbk", n: "魔法書(創造魔法武器)", p: 1, sk: "sk_create_magic_weapon", gachaWeight: 0, img: "assets/icons/items/魔法書(究極光裂術).png", d: "法師十階增益魔法。持續期間內，普通攻擊即使未命中或被迴避，仍可判定武器內建魔法；發動率依武器原設定。" },
         "bk_abs_barrier": { type: "skillbk", n: "魔法書(絕對屏障)", p: 102400, sk: "sk_abs_barrier", gachaWeight: 1, d: "記載著「絕對屏障」術式的古老魔法書，研讀後可將咒文銘刻於記憶。" },
         "bk_disintegrate": { type: "skillbk", n: "魔法書(究極光裂術)", p: 250000, sk: "sk_disintegrate", gachaWeight: 1 },
 
@@ -2288,8 +2288,6 @@ const DB = {
         "pirate_skelblade": { n: "海賊骷髏刀手", lv: 32, s: "S", beh: "主動", race: "不死", un: true, e: "earth", hp: 500, ac: -25, mr: 60, exp: 1025, goldMin: 173, goldMax: 285, atkSpd: 3, dmg: [2, 45], db: 23, hit: 31 },
         "pirate_skelchief": { n: "海賊骷髏首領", lv: 32, s: "S", beh: "主動", race: "不死", un: true, e: "earth", hp: 350, ac: -23, mr: 50, exp: 1025, goldMin: 173, goldMax: 285, atkSpd: 2, dmg: [2, 45], db: 23, hit: 31 },
         "pirate_drake": { n: "德雷克", lv: 42, s: "S", beh: "主動", boss: true, hard: true, race: "不死", un: true, e: "earth", hp: 2200, ac: -35, mr: 50, exp: 1765, goldMin: 292, goldMax: 470, atkSpd: 2, dmg: [2, 99], db: 50, hit: 63, mag: { skn: "迴旋斬", cd: 100, dmg: [5, 42], db: 42, ele: "none", alwaysHit: true } },
-        // 🧪 銀騎士村測試場：100% 物理迴避、不攻擊、不死，供測試「創造魔法武器」揮空發動。
-        "training_straw_dummy": { n: "測試稻草人", img: "assets/icons/accessories/魔法娃娃：稻草人.png", lv: 1, s: "S", beh: "被動", race: "稻草人", trainingDummy: true, immortal: true, noAttack: true, noCharm: true, e: "none", hp: 999999999, ac: 100, mr: 0, er: 100, exp: 0, goldMin: 0, goldMax: 0, atkSpd: 999999, dmg: [0, 0], db: 0, hit: 0 },
     },
 	
 	    // 👇 完整的城鎮系統資料庫
@@ -2634,7 +2632,7 @@ const DB = {
         // 十階魔法 (Lv 40)
         "sk_meteor": { n: "流星雨", type: "atk", tier: 10, reqM: 40, mp: 60, dmgType: "magic", ele: "fire", target: "all", multiDmg: [[2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9], [2, 9]], apexAoe: true },
         "sk_soul_up": { n: "靈魂昇華", type: "buff", tier: 10, reqM: 40, mp: 20, dur: 1200, msg: "你覺得身體充滿了活力。" },
-        "sk_create_magic_weapon": { n: "創造魔法武器", type: "buff", tier: 10, reqM: 1, mp: 50, dur: 1200, magicWeaponMissProc: true, msg: "你的武器被賦予突破命中限制的魔法力量。" },
+        "sk_create_magic_weapon": { n: "創造魔法武器", type: "buff", tier: 10, reqM: 40, mp: 50, dur: 1200, magicWeaponMissProc: true, msg: "你的武器被賦予突破命中限制的魔法力量。" },
         "sk_abs_barrier": { n: "絕對屏障", type: "manual", tier: 10, reqM: 40, mp: 30, mEff: "barrier", dur: 7, label: "增益", msg: "你感覺身體與這個世界隔絕了。" },
         "sk_disintegrate": { n: "究極光裂術", type: "atk", tier: 10, reqM: 40, mp: 70, dmgType: "magic", ele: "none", dmgDice: [10, 20], dmgBase: 100, apexSingle: true },
 
@@ -2792,7 +2790,6 @@ const DB = {
         "pirate_wild": ["nm_035", "nm_003", "doberman", "pirate_wildpoison", "pirate_lizardrage", "pirate_wildfang", "pirate_wilddemon", "pirate_lizardhigh", "pirate_bluetail", "pirate_parrot", "pirate_chest", "mambo_rabbit", "wild_tiger", "wild_koreapup", "wild_raccoon"],
         "pirate_dungeon": ["pirate_lizardrage", "pirate_lizardhigh", "pirate_skeleton", "pirate_lizardheavy", "pirate_skelsoldier", "pirate_skelblade", "pirate_skelchief", "pirate_drake"],
         "training": ["orc", "goblin", "orc_archer", "gremlin"],
-        "silver_knight_test": ["training_straw_dummy"],
         "silent_outer": ["orc", "orc_archer", "zombie", "nm_008", "fighter", "nm_002", "nm_001", "wolf", "skeleton", "orc_zombie", "skel_archer", "stone_golem", "bear", "lizardman", "sparto"],
         "elf_grave": ["elf_earthfang","elf_windfang","elf_waterfang","elf_firefang","elf_waterlord","abyss_ghoul","abyss_archer","elf_earthlord","elf_windlord","elf_firelord","abyss_sith","abyss_water","abyss_earth","abyss_wind","abyss_fire","mambo_rabbit","abyss_lord"],
         "hidden_cave": ["demon_bat","de_thief","dark_spirit_mob","armadillo","demon_bear","de_gate_xbow","de_gate_apprentice","ohm_militia","scorpion","dark_spirit_king","de_gate_spear","metal_centipede","monia","darkdweller","ohm_armor","de_train_blacktiger","dark_spirit_caller","de_train_summoner","de_gate_patrol","de_gate_soldier","de_lab_blackmage","fire_beast","beast_tamer","de_gate_general"],

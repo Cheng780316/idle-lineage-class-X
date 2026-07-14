@@ -38,7 +38,7 @@ const MAP_CATEGORIES = {
         {v:'shadow_temple',t:'暗影神殿',c:'#7c3aed',keyHoldReq:'item_shadow_temple_key',affinityReq:1000}
     ],
     special: [
-        {v:'training',t:'新兵修練場'}, {v:'silver_knight_test',t:'稻草人測試場'}, {v:'dream_island',t:'夢幻之島'},
+        {v:'training',t:'新兵修練場'}, {v:'dream_island',t:'夢幻之島'},
         {v:'king_baranka_room',t:'魔獸軍王之室',c:'#f87171',needKey:'item_king_key'},
         {v:'law_king_room',t:'法令軍王之室',c:'#f87171',needKey:'item_king_key'},
         {v:'necro_king_room',t:'冥法軍王之室',c:'#f87171',needKey:'item_king_key'},
@@ -83,7 +83,7 @@ const MAP_CATEGORIES = {
 //  ⚠️新增地圖時：除了加進 MAP_CATEGORIES，也要在此對應地區補一筆，否則該圖不會出現在下拉。
 const MAP_REGIONS = [
     { key: 'silverknight', label: '銀騎士村', maps: [
-        {v:'town_silver_knight', t:'銀騎士村莊'}, {v:'silver_knight', t:'銀騎士村周邊'}, {v:'training', t:'新兵修練場'}, {v:'silver_knight_test', t:'稻草人測試場'}
+        {v:'town_silver_knight', t:'銀騎士村莊'}, {v:'silver_knight', t:'銀騎士村周邊'}, {v:'training', t:'新兵修練場'}
     ]},
     { key: 'fairyforest', label: '妖精森林', maps: [
         {v:'town_elf', t:'妖精森林村莊'}, {v:'zone_01', t:'妖精森林周邊'},
@@ -1205,9 +1205,7 @@ function changeMap(force) {
 
         // 進入新區域：依邏輯 tick 排程出怪（中央 50t=5秒、左側 70t=7秒、右側 90t=9秒）
         let t0 = state.ticks;
-        mapState.spawnAt = mapState.current === 'silver_knight_test'
-            ? [null, t0 + 10, null, null, null]          // 🧪 測試場：中央稻草人 1 秒後出現，且只生成一隻
-            : [t0 + 70, t0 + 50, t0 + 90];              // [左0, 中1, 右2]
+        mapState.spawnAt = [t0 + 70, t0 + 50, t0 + 90];  // [左0, 中1, 右2]
         mapState.suppressSiegeBoss = true;   // 初次進場：必定不出現肯特城門/守護塔
         // 🏛️ 雙BOSS祭壇：進場立即生成兩隻BOSS（之後不逐格補怪，兩隻皆亡才會在 15 秒後同時復活）
         if (KING_ROOMS[mapState.current] && KING_ROOMS[mapState.current].dual) {

@@ -331,7 +331,6 @@ function tick() {
     // mapState.spawnAt[i] = 該格子預定出怪的 tick 值；為 null 代表該格目前有怪、無需排程。
     {
         let isPureBossMap = PURE_BOSS_MAPS.includes(mapState.current) && !KING_ROOMS[mapState.current];   // 🔧 軍王之室仍屬純BOSS房(免自動瞬移/追蹤)，但版面用三格
-        let isTrainingDummyMap = mapState.current === 'silver_knight_test';
         if(!mapState.spawnAt) mapState.spawnAt = [null, null, null, null, null];
         let nowT = state.ticks;
         if(KING_ROOMS[mapState.current] && state._kbRespawnAt != null) {
@@ -344,7 +343,7 @@ function tick() {
             let slotCount = backSlotsActive() ? 5 : 3;                          // 🆕 一般狩獵地圖開放後排兩格(3,4)→最多 5 隻；特殊版面維持 3 格
             for(let i=0; i<slotCount; i++) {
                 if(mapState.mobs[i]) { mapState.spawnAt[i] = null; continue; } // 有怪：清除排程
-                if((isPureBossMap || isTrainingDummyMap) && i !== 1) continue;  // 純 BOSS 房／稻草人測試場只生中央
+                if(isPureBossMap && i !== 1) continue;                         // 純 BOSS 房只生中央
                 let delay;
                 if(isPureBossMap) {
                     delay = 50;                                                 // 🔧 純BOSS房(三龍窟)：BOSS死亡後固定 5 秒(50 tick)才刷新，不受日光術/席琳的世界加速影響（2026-06 用戶調整 3 分鐘→5 秒）
@@ -697,7 +696,6 @@ function pledgeBlessTick() {
 
 function spawnMob(idx) {
     if (mapState.current === 'rift_battle') { spawnRiftMob(idx); return; }   // 🌀 時空裂痕：自訂動態出怪（不靠 DB.maps）
-    if (mapState.current === 'silver_knight_test' && idx !== 1) { mapState.mobs[idx] = null; return; }
     let pool = DB.maps[mapState.current];
     if(!pool) return;
     // 🔧 軍王之室：中央(1)固定 BOSS、兩側(0/2)固定指定小怪（不走一般出怪/席琳強化/追蹤邏輯）
@@ -808,7 +806,7 @@ function spawnMob(idx) {
     }
     if(base.pledgeEnemy) applyPledgeEnemyScaling(mapState.mobs[idx]);   // 血盟敵人：依玩家等級縮放
     if(base.siegeEnemy) applySiegeEnemyScaling(mapState.mobs[idx]);   // 攻城敵人：依玩家等級縮放
-    if(!base.trainingDummy) applySherineBuff(idx);   // 🔮 測試稻草人維持固定數值；其餘怪物套用席琳世界強化
+    applySherineBuff(idx);
     if(mapState.mobs[idx].hard) initHardSkin(mapState.mobs[idx]);   // 🔧 硬皮：依等級/頭目/席琳世界初始化硬皮值（須在席琳 _sherine 標記之後）
     // 🔧 攻城城門/守護塔 HP 跨地圖保留（兩座城共用 gateHp/towerHp，依當前攻城城池的城門/塔名稱判定）
     if(base.siegeEnemy && player.siege) {
@@ -824,7 +822,7 @@ function spawnMob(idx) {
         logSys('<span class="text-red-300">完整的召喚球之力仍束縛著吉爾塔斯——牠的傷勢沒有癒合！</span>');
     }
 
-    if(!base.trainingDummy) applySherineGrace(idx);   // 🔮 測試稻草人不套用恩賜；其餘一般怪維持原判定
+    applySherineGrace(idx);
     if (base.boss && typeof vfxBossEntrance === 'function') { try { vfxBossEntrance(mapState.mobs[idx]); } catch (e) {} }   // 🐉 v3.4.6 四大龍＋吉爾塔斯／冥皇丹特斯出場：酷炫特效＋螢幕震動（cosmetic·函式內部只吃這 6 名·吃 __vfxOff/補跑）
     renderMobs();
 }
