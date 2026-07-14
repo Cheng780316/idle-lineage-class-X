@@ -2320,7 +2320,6 @@ function allyTryPotion(ally) {
     if (!ally || ally._downed) return;
     let thr = allyPotHpPct(ally);   // 🍶 v2.6.4：喝藥水門檻(獨立·回退舊 _hpSafePct)
     if (thr <= 0) return;                                   // 門檻=0＝關閉
-    if ((ally._potCd || 0) > 0) return;                     // 冷卻中
     let mhp = ally.mhp || 1, cur = ally.curHp || 0;
     if (cur <= 0) return;                                   // 倒地（理論上已被上面 return 擋掉）
     if (cur > mhp * thr / 100) return;                      // HP 仍在安全線之上→不喝
@@ -2328,6 +2327,7 @@ function allyTryPotion(ally) {
     let potId = potSel ? potSel.value : 'potion_heal';      // 隊長設定的藥水
     let pdef = DB.items[potId];
     if (!pdef || pdef.val == null) return;                  // 只認固定 val 的治癒藥水（紅/橙/白）
+    if (!pdef.noPotionDelay && (ally._potCd || 0) > 0) return;   // 一般藥水冷卻中；古代系列無喝水延遲
     let stack = player.inv && player.inv.find(i => i.id === potId && (i.cnt || 0) > 0);
     if (!stack) {
         // 🍶 v2.6.43 用戶要求：隊長沒有這瓶藥水時，若勾選「自動購買藥水」→ 傭兵喝藥水也能觸發自動補貨（比照玩家 autoActions：補到 100 瓶），讓傭兵有藥水可喝。
@@ -2348,7 +2348,7 @@ function allyTryPotion(ally) {
     let _dollPot = (ally.eq && ally.eq.doll && DB.items[ally.eq.doll.id]) ? (DB.items[ally.eq.doll.id].potionBonus || 0) : 0;   // 🆕 v2.6.10 #3：魔法娃娃 potionBonus%（吸血鬼娃娃）
     let h = Math.max(1, Math.floor(potionHealBase(pdef) * (1 + (_conPct + _dollPot) / 100)));   // 🍶 藥水基準改隨機區間 valMin~valMax（傭兵比照玩家）
     ally.curHp = Math.min(mhp, cur + h);
-    ally._potCd = 10;                                       // ~1 秒冷卻（10 ticks·比照玩家 cds.pot=1 秒）
+    if (!pdef.noPotionDelay) ally._potCd = 10;              // 一般藥水約 1 秒冷卻；古代系列不產生冷卻
     logCombat(`<span class="text-emerald-300 font-bold">協力·${ally._allyName}</span> 飲用 ${pdef.n}，恢復 ${h} 點 HP。`, 'heal', 'mercenary');
 }
 // 🔵 傭兵藍色藥水：跟隨隊長「藍色藥水」勾選；每名傭兵各消耗 1 瓶隊長庫存，缺貨且勾自動購買時比照治癒藥水補到 100 瓶。

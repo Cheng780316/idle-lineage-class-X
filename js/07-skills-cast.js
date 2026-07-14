@@ -855,7 +855,8 @@ function autoActions() {
         }
     }
     
-    if (hpPct <= potThr && player.cds.pot <= 0) {
+    let potDef = DB.items[potId];
+    if (hpPct <= potThr && potDef && (potDef.noPotionDelay || player.cds.pot <= 0)) {
         let item = player.inv.find(i => i.id === potId);
         if (item) useItem(item.uid, true);
         else if (document.getElementById('set-auto-buy-pot').checked) {
