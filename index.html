@@ -406,14 +406,17 @@
                     <div class="bg-slate-800 p-3 rounded-lg border border-slate-700">
                         <div class="flex flex-col gap-2">
                             <div class="flex justify-between items-center">
-                            <select id="set-pot" class="bg-slate-900 border border-slate-600 text-red-300 px-2 py-1 rounded text-sm w-28 outline-none" onchange="this.classList.remove('text-red-300', 'text-orange-300', 'text-white'); this.classList.add(this.value === 'potion_heal' ? 'text-red-300' : (this.value === 'potion_strong' ? 'text-orange-300' : 'text-white'));">
+                            <select id="set-pot" class="bg-slate-900 border border-slate-600 text-red-300 px-2 py-1 rounded text-sm w-36 outline-none" onchange="this.classList.remove('text-red-300', 'text-orange-300', 'text-white', 'text-red-200', 'text-orange-200', 'text-yellow-100'); this.classList.add(({potion_heal:'text-red-300',potion_strong:'text-orange-300',potion_ult:'text-white',potion_ancient_heal:'text-red-200',potion_ancient_strong:'text-orange-200',potion_ancient_ult:'text-yellow-100'})[this.value] || 'text-white');">
                             <option value="potion_heal" class="text-red-300">紅色藥水</option>
                             <option value="potion_strong" class="text-orange-300">橙色藥水</option>
                             <option value="potion_ult" class="text-white">白色藥水</option>
+                            <option value="potion_ancient_heal" class="text-red-200">古代體力恢復劑</option>
+                            <option value="potion_ancient_strong" class="text-orange-200">古代強力體力恢復劑</option>
+                            <option value="potion_ancient_ult" class="text-yellow-100">古代終極體力恢復劑</option>
                         </select>
                         <span class="text-sm">HP &lt; <input type="number" id="set-hp-pot" value="70" class="w-14 bg-slate-900 border border-slate-600 text-center text-white rounded">%</span>
                     </div>
-                            <label class="cursor-pointer flex items-center gap-2 mt-1 border-t border-slate-700 pt-2"><input type="checkbox" id="set-auto-buy-pot" class="w-4 h-4"><span class="text-sm text-slate-300">藥水不足自動買至100</span></label>
+                            <label class="cursor-pointer flex items-center gap-2 mt-1 border-t border-slate-700 pt-2"><input type="checkbox" id="set-auto-buy-pot" class="w-4 h-4"><span class="text-sm text-slate-300">藥水剩1瓶時自動補至100</span></label>
                         </div>
                     </div>
                     
@@ -557,7 +560,7 @@
 <script src="js/10-ui-tabs.js?v=20260714-v3.4.25-x2"></script>
 <script src="js/11-world-map.js?v=20260714-v3.4.25-x3"></script>
 <script src="js/12-npc-quests.js?v=20260714-v3.4.25-x2"></script>
-<script src="js/13-shop-save.js?v=20260714-v3.4.25-x2"></script>
+<script src="js/13-shop-save.js?v=20260714-v3.4.25-x4"></script>
 <script src="js/14-craft-pandora.js?v=20260714-v3.4.25-x3"></script>
 <script src="js/15-cards.js?v=v3.2.64-8dircodex"></script>
 <script src="js/16-equip-book.js?v=20260713-mythic-enhance-v1"></script>

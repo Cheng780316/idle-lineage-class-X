@@ -1448,8 +1448,16 @@ function loadGame() {
             if (c.setPot) {
                 let potSel = document.getElementById('set-pot');
                 potSel.value = c.setPot;
-                potSel.classList.remove('text-red-300', 'text-orange-300', 'text-white');
-                potSel.classList.add(c.setPot === 'potion_heal' ? 'text-red-300' : (c.setPot === 'potion_strong' ? 'text-orange-300' : 'text-white'));
+                potSel.classList.remove('text-red-300', 'text-orange-300', 'text-white', 'text-red-200', 'text-orange-200', 'text-yellow-100');
+                const potColorClasses = {
+                    potion_heal: 'text-red-300',
+                    potion_strong: 'text-orange-300',
+                    potion_ult: 'text-white',
+                    potion_ancient_heal: 'text-red-200',
+                    potion_ancient_strong: 'text-orange-200',
+                    potion_ancient_ult: 'text-yellow-100'
+                };
+                potSel.classList.add(potColorClasses[c.setPot] || 'text-white');
             }
             if (c.setHpPot) document.getElementById('set-hp-pot').value = c.setHpPot;
             if (c.setAutoBuyPot !== undefined) document.getElementById('set-auto-buy-pot').checked = c.setAutoBuyPot;
