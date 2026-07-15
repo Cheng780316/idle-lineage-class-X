@@ -26,6 +26,8 @@ from PIL import Image, ImageSequence
 
 ROOT = Path(__file__).resolve().parents[1]
 
+CLASS_SKILL_TARGETS = sorted((ROOT / "assets/effects/class-skills").glob("*.webp"))
+
 TARGETS = [
     *(ROOT / "assets/effects/god-weapons").glob("*.webp"),
     *(
@@ -42,9 +44,7 @@ TARGETS = [
         )
     ),
     ROOT / "assets/effects/triple-ring-client-original.webp",
-    ROOT / "assets/effects/class-skills/skill-ab4327434900.webp",
-    ROOT / "assets/effects/class-skills/skill-350d28566596.webp",
-    ROOT / "assets/effects/class-skills/skill-657e870c8c26.webp",
+    *CLASS_SKILL_TARGETS,
     ROOT / "assets/icons/skills/ttmi/屠宰者-透明.webp",
     ROOT / "assets/icons/skills/ttmi/衝擊之暈-透明.webp",
 ]
@@ -100,7 +100,8 @@ def clean_animation(path: Path, write: bool) -> dict[str, int | str]:
         loop = int(source.info.get("loop", 0))
         source_frames = [frame.convert("RGBA") for frame in ImageSequence.Iterator(source)]
 
-    if len(before_durations) != len(source_frames):
+    is_animated = len(source_frames) > 1
+    if is_animated and len(before_durations) != len(source_frames):
         raise ValueError(f"{path}: duration/frame mismatch")
 
     visible_before = dark_before = 0
@@ -118,28 +119,33 @@ def clean_animation(path: Path, write: bool) -> dict[str, int | str]:
 
     if write:
         temporary = path.with_name(path.name + ".tmp")
-        cleaned[0].save(
-            temporary,
-            format="WEBP",
-            save_all=True,
-            append_images=cleaned[1:],
-            duration=before_durations,
-            loop=loop,
-            lossless=True,
-            method=6,
-            background=(0, 0, 0, 0),
-            exact=True,
-            kmin=1,
-            kmax=1,
-        )
+        save_options = {
+            "format": "WEBP",
+            "lossless": True,
+            "method": 6,
+            "background": (0, 0, 0, 0),
+            "exact": True,
+        }
+        if is_animated:
+            save_options.update(
+                save_all=True,
+                append_images=cleaned[1:],
+                duration=before_durations,
+                loop=loop,
+                kmin=1,
+                kmax=1,
+            )
+        cleaned[0].save(temporary, **save_options)
         with Image.open(temporary) as check:
-            if check.size != size or getattr(check, "n_frames", 1) != len(source_frames):
-                temporary.unlink(missing_ok=True)
-                raise ValueError(f"{path}: encoded animation geometry changed")
-            if check.info.get("background") != (0, 0, 0, 0):
-                temporary.unlink(missing_ok=True)
-                raise ValueError(f"{path}: encoded canvas is not transparent")
-        if webp_frame_durations(temporary) != before_durations:
+            bad_geometry = check.size != size or getattr(check, "n_frames", 1) != len(source_frames)
+            bad_background = is_animated and check.info.get("background") != (0, 0, 0, 0)
+        if bad_geometry:
+            temporary.unlink(missing_ok=True)
+            raise ValueError(f"{path}: encoded animation geometry changed")
+        if bad_background:
+            temporary.unlink(missing_ok=True)
+            raise ValueError(f"{path}: encoded canvas is not transparent")
+        if is_animated and webp_frame_durations(temporary) != before_durations:
             temporary.unlink(missing_ok=True)
             raise ValueError(f"{path}: encoded frame timing changed")
         os.replace(temporary, path)
@@ -157,10 +163,16 @@ def clean_animation(path: Path, write: bool) -> dict[str, int | str]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", action="store_true", help="replace target WebPs after validation")
+    parser.add_argument(
+        "--class-skills-only",
+        action="store_true",
+        help="process only the 134 class skill animations",
+    )
     args = parser.parse_args()
 
     totals = {"files": 0, "frames": 0, "dark_before": 0, "dark_after": 0}
-    for target in TARGETS:
+    targets = CLASS_SKILL_TARGETS if args.class_skills_only else TARGETS
+    for target in targets:
         result = clean_animation(target, args.write)
         totals["files"] += 1
         totals["frames"] += int(result["frames"])

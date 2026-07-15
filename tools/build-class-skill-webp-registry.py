@@ -5,6 +5,8 @@ import json
 import shutil
 from pathlib import Path
 
+from PIL import Image, ImageSequence
+
 from clean_effect_black_matte import clean_animation
 
 
@@ -13,11 +15,7 @@ SOURCE = ROOT / "client-animation-extract" / "all-class-skill-effects"
 OUTPUT = ROOT / "assets" / "effects" / "class-skills"
 REGISTRY = ROOT / "js" / "class-skill-anim.js"
 
-CLEAN_BLACK_MATTE = {
-    "skill-ab4327434900.webp",  # 三重矢
-    "skill-350d28566596.webp",  # 屠宰者
-    "skill-657e870c8c26.webp",  # 衝擊之暈
-}
+ASSET_VERSION = "20260716-class-vfx-fix1"
 
 TARGET_WORDS = (
     "目標", "命中", "爆發", "落雷", "衝擊", "地面", "傷害", "擊中", "爆裂",
@@ -97,6 +95,25 @@ def candidate_from_manifest(manifest_path: Path) -> tuple[str, dict] | None:
     return skill, best
 
 
+def visible_focus(path: Path) -> tuple[float, float]:
+    """Return the union alpha-content center in normalized canvas coordinates."""
+    with Image.open(path) as source:
+        width, height = source.size
+        left, top, right, bottom = width, height, 0, 0
+        for frame in ImageSequence.Iterator(source):
+            alpha = frame.convert("RGBA").getchannel("A")
+            bbox = alpha.point(lambda value: 255 if value >= 8 else 0).getbbox()
+            if not bbox:
+                continue
+            left = min(left, bbox[0])
+            top = min(top, bbox[1])
+            right = max(right, bbox[2])
+            bottom = max(bottom, bbox[3])
+    if right <= left or bottom <= top:
+        return 0.5, 0.5
+    return (left + right) / (2 * width), (top + bottom) / (2 * height)
+
+
 def build() -> None:
     if not SOURCE.is_dir():
         raise SystemExit(f"Missing source folder: {SOURCE}")
@@ -122,19 +139,23 @@ def build() -> None:
         wanted_names.add(filename)
         output_path = OUTPUT / filename
         shutil.copy2(source_path, output_path)
-        if filename in CLEAN_BLACK_MATTE:
-            clean_animation(output_path, write=True)
+        # 客戶端技能圖是以黑底加亮方式製作；全部轉為 straight-alpha，
+        # 否則 screen 混合仍會留下不透明深黑輪廓或整塊黑底。
+        clean_animation(output_path, write=True)
+        focus_x, focus_y = visible_focus(output_path)
         canvas = anim.get("canvas") or [128, 128]
         durations = anim.get("durations_ms") or []
         duration = max(120, sum(int(value or 0) for value in durations))
         if duration <= 120:
             duration = max(420, int(anim.get("frames") or 1) * 90)
         registry[skill] = {
-            "src": f"assets/effects/class-skills/{filename}?v=20260716-alpha-clean1",
+            "src": f"assets/effects/class-skills/{filename}?v={ASSET_VERSION}",
             "width": max(1, int(canvas[0] or 1)),
             "height": max(1, int(canvas[1] or 1)),
             "duration": duration,
             "placement": "target" if anim.get("_skill_type") == "atk" else "caster",
+            "focusX": round(focus_x, 4),
+            "focusY": round(focus_y, 4),
         }
 
     for old_file in OUTPUT.glob("skill-*.webp"):

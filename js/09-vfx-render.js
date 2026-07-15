@@ -288,7 +288,7 @@ const _WEAPON_ANIM_FOCUS = Object.freeze({
     'gaia-rage.webp':          { x:0.5000, bottom:0.6992, ar:1, duration:1230 },
     'holycrystal-wand.webp':   { x:0.4700, bottom:0.8750 },
     'redshadow-dual.webp':     { x:0.3940, bottom:0.8484 },
-    'hyperion-despair.webp':   { x:0.5000, bottom:1.0000, ar:1, duration:1230 },
+    'hyperion-despair.webp':   { x:0.5000, bottom:0.9000, ar:1, duration:1230 },
     'cronos-fear.webp':        { x:0.4859, bottom:0.8382 },
     'titan-rage.webp':         { x:0.4869, bottom:0.9107 }
 });
@@ -405,7 +405,9 @@ function playClientSkillAnimatedFx(skn, mob, actor) {
         el.className = 'vfx-spell vfx-client-skill-anim';
         el.style.position = 'fixed'; el.style.pointerEvents = 'none'; el.style.objectFit = 'contain';
         el.style.width = w + 'px'; el.style.height = h + 'px';
-        el.style.left = (cx - w * 0.5) + 'px'; el.style.top = (cy - h * 0.5) + 'px';
+        // 抽取畫布常有不對稱透明留白；對準「實際發光內容中心」而非檔案中心。
+        el.style.left = (cx - w * (cfg.focusX != null ? cfg.focusX : 0.5)) + 'px';
+        el.style.top = (cy - h * (cfg.focusY != null ? cfg.focusY : 0.5)) + 'px';
         el.style.mixBlendMode = 'screen'; el.style.zIndex = cfg.placement === 'target' ? '13' : '32';
         layer.appendChild(el); _clientSkillAnimActive[key] = true;
         try { el.animate([
@@ -1566,7 +1568,11 @@ if (typeof castSkill === 'function' && !castSkill._vfxWrapped) {
         if (proj) { before = mapState.mobs.map(m => (m && !m._dead) ? { uid: m.uid, hp: m.curHp, rect: _vfxSlotRect(m.uid) } : null); }
         let r = _vfxOrigCastSkill(skId);
         if (r) { try { if (typeof _playerMorphTrigger === 'function') _playerMorphTrigger('skill', skId); } catch (e) {} }   // 🧝 v3.0.105 施法動作只在「實際施放成功(r)」才播（修：自動恢復/維持技即使沒真的施放·仍每 tick 觸發施法動畫→sprite 卡在施法姿勢）
-        if (r && sk && sk.n !== '魂體轉換' && typeof CLIENT_SKILL_ANIM_FX !== 'undefined' && CLIENT_SKILL_ANIM_FX[sk.n] && CLIENT_SKILL_ANIM_FX[sk.n].placement === 'caster') {
+        // 68 個輔助技能同時存在舊版 SELF_FX 與新客戶端 WebP；兩邊都播會
+        // 形成角色上下各一套特效。已調校 SELF_FX 的技能只保留舊版，只有
+        // 缺少 SELF_FX 的施法者技能才由新 WebP 補上。
+        if (r && sk && typeof CLIENT_SKILL_ANIM_FX !== 'undefined' && CLIENT_SKILL_ANIM_FX[sk.n] && CLIENT_SKILL_ANIM_FX[sk.n].placement === 'caster'
+            && (typeof SELF_FX === 'undefined' || !SELF_FX[sk.n])) {
             try { playClientSkillAnimatedFx(sk.n, null, player); } catch (e) {}
         }
         if (proj) { try { _vfxCastProjectiles(before, _pele); } catch (e) {} }
@@ -2426,10 +2432,12 @@ function playTripleRingFx(actor) {
             ? _morphBattleCache[(_playerBattleForm() || {}).key]
             : _morphBattleCache[st.key];
         let idle0 = anim && anim !== 'probing' && anim.idle && anim.idle[0];
-        let stableW = rootRect.width || (idle0 && idle0.naturalWidth) || r.width;
-        let stableH = (idle0 && idle0.naturalHeight) || r.height;
-        let stableLeft = rootRect.width ? rootRect.left : (r.left + r.width * 0.5 - stableW * 0.5);
-        let stableBottom = rootRect.height ? rootRect.bottom : r.bottom;
+        // 主角色三重矢會在切到 skill 幀後才進來，直接依當下 pm-body
+        // 對位；傭兵仍沿用穩定 root，兩者的光圈都貼著實際施法角色。
+        let stableW = isPlayer ? r.width : (rootRect.width || (idle0 && idle0.naturalWidth) || r.width);
+        let stableH = isPlayer ? r.height : ((idle0 && idle0.naturalHeight) || r.height);
+        let stableLeft = isPlayer ? r.left : (rootRect.width ? rootRect.left : (r.left + r.width * 0.5 - stableW * 0.5));
+        let stableBottom = isPlayer ? r.bottom : (rootRect.height ? rootRect.bottom : r.bottom);
         let layer = _vfxLayer(); if (!layer) return;
         // 客戶端原版為 104×152、7 幀；可見光圈最大寬約 84px。
         // 以可見光圈寬度縮放，再保留完整透明畫布，避免上緣光線被裁切。

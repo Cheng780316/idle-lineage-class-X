@@ -643,7 +643,16 @@ function castSkillInner(skId) {
             }
 
             let hits = sk.hits || 1;
-            if (skId === 'sk_elf_triple' && typeof playTripleRingFx === 'function') playTripleRingFx(player);
+            if (skId === 'sk_elf_triple' && typeof playTripleRingFx === 'function') {
+                // castSkill 外層會在本函式回傳後才切到角色 skill 幀；延到下一輪
+                // 才讀 pm-body，避免光圈仍黏在 idle 錨點、角色已移到施法幀。
+                setTimeout(() => {
+                    try {
+                        if (typeof _playerMorphApply === 'function') _playerMorphApply();
+                        playTripleRingFx(player);
+                    } catch (e) {}
+                }, 0);
+            }
             // 🗼 騎士范德之劍：施展 衝擊之暈 時，本次技能近距離命中 +1（getPhysicalDmg 讀取，迴圈結束後重置）
             player._skillHitBonus = (skId === 'sk_shock_stun' && wpn && wpn.vanderStunHit && !wpn.isBow) ? 1 : 0;
             let totalDmg = 0, landed = 0, hitsLog = [], killed = false, delayDone = false;
