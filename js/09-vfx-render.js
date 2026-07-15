@@ -249,26 +249,26 @@ function _playGodWeaponDecor(style, ax, ay, targetRect, layer) {
 // anchorX/anchorY 取自原始 sprite 的施法原點，避免寬畫布特效偏離怪物；
 // 只替換畫面，武器傷害／發動率仍走原戰鬥公式。
 const GOD_WEAPON_ANIM_FX = {
-    '殷海薩的憤怒':     { src:'assets/effects/god-weapons/ainshasad.webp?v=20260716-client-plus6',          h:1.60, ar:0.8345, anchorX:0.446, anchorY:0.786, duration:980,  motion:'native' },
-    '格蘭肯的憤怒':     { src:'assets/effects/god-weapons/grankain_judgment.webp?v=20260716-client-plus6', h:1.53, ar:1.0000, anchorX:0.446, anchorY:0.645, duration:1470, motion:'native' },
-    '沙哈的憤怒':       { src:'assets/effects/god-weapons/sayha.webp?v=20260716-client-plus6',              h:1.40, ar:1.0983, anchorX:0.371, anchorY:0.757, duration:980,  motion:'native' },
-    '伊娃的憤怒':       { src:'assets/effects/god-weapons/eva.webp?v=20260716-client-plus6',                h:1.55, ar:0.9071, anchorX:0.202, anchorY:0.672, duration:1470, motion:'native' },
-    '丹特斯的憤怒':     { src:'assets/effects/god-weapons/dantes.webp?v=20260716-client-plus6',             h:1.51, ar:1.3055, anchorX:0.252, anchorY:0.329, duration:1050, motion:'native' },
-    '泰亞的憤怒':       { src:'assets/effects/god-weapons/theia.webp?v=20260716-client-plus6',              h:1.57, ar:1.2918, anchorX:0.379, anchorY:0.490, duration:1260, motion:'native' },
-    '奧拉奇亞的憤怒':   { src:'assets/effects/god-weapons/aurakia.webp?v=20260716-client-plus6',            h:1.71, ar:1.2438, anchorX:0.452, anchorY:0.694, duration:1330, motion:'native' },
-    '格蘭肯的恐怖之怒': { src:'assets/effects/god-weapons/grankain_fear.webp?v=20260716-client-plus6',      h:1.62, ar:1.1594, anchorX:0.330, anchorY:0.637, duration:910,  motion:'native' }
+    '殷海薩的憤怒':     { src:'assets/effects/god-weapons/ainshasad.webp?v=20260716-alpha-clean1',          h:1.60, ar:0.8345, anchorX:0.446, anchorY:0.786, duration:980,  motion:'native' },
+    '格蘭肯的憤怒':     { src:'assets/effects/god-weapons/grankain_judgment.webp?v=20260716-alpha-clean1', h:1.53, ar:1.0000, anchorX:0.446, anchorY:0.645, duration:1470, motion:'native' },
+    '沙哈的憤怒':       { src:'assets/effects/god-weapons/sayha.webp?v=20260716-alpha-clean1',              h:1.40, ar:1.0983, anchorX:0.371, anchorY:0.757, duration:980,  motion:'native' },
+    '伊娃的憤怒':       { src:'assets/effects/god-weapons/eva.webp?v=20260716-alpha-clean1',                h:1.55, ar:0.9071, anchorX:0.202, anchorY:0.672, duration:1470, motion:'native' },
+    '丹特斯的憤怒':     { src:'assets/effects/god-weapons/dantes.webp?v=20260716-alpha-clean1',             h:1.51, ar:1.3055, anchorX:0.252, anchorY:0.329, duration:1050, motion:'native' },
+    '泰亞的憤怒':       { src:'assets/effects/god-weapons/theia.webp?v=20260716-alpha-clean1',              h:1.57, ar:1.2918, anchorX:0.379, anchorY:0.490, duration:1260, motion:'native' },
+    '奧拉奇亞的憤怒':   { src:'assets/effects/god-weapons/aurakia.webp?v=20260716-alpha-clean1',            h:1.71, ar:1.2438, anchorX:0.452, anchorY:0.694, duration:1330, motion:'native' },
+    '格蘭肯的恐怖之怒': { src:'assets/effects/god-weapons/grankain_fear.webp?v=20260716-alpha-clean1',      h:1.62, ar:1.1594, anchorX:0.330, anchorY:0.637, duration:910,  motion:'native' }
 };
 // 可羅蘭斯傳說武器「+6 以上」客戶端正式動態素材。
 // 獸王鋼爪在原版客戶端沒有獨立武器魔法，故「獸王裂擊」保留本遊戲自訂能力，不冒用其他武器素材。
 const LEGEND_WEAPON_ANIM_FX = {
-    '風之力':     { src:'assets/effects/legend-plus6/windblade.webp?v=20260716-client-plus6',          h:1.65, ar:1.0983, anchorX:0.3713, anchorY:0.7573, duration:980,  motion:'native' },
-    '審判衝擊':   { src:'assets/effects/legend-plus6/emperor-blade.webp?v=20260716-client-plus6',      h:1.75, ar:1.0878, anchorX:0.3587, anchorY:0.7220, duration:1050, motion:'native' },
-    '大地射擊':   { src:'assets/effects/legend-plus6/gaia-rage.webp?v=20260716-client-plus6',          h:1.40, ar:1.3261, anchorX:0.6885, anchorY:0.7174, duration:1470, motion:'native' },
-    '致命落雷':   { src:'assets/effects/legend-plus6/holycrystal-wand.webp?v=20260716-client-plus6',  h:1.75, ar:0.6757, anchorX:0.2400, anchorY:0.6486, duration:840,  motion:'native' },
-    '迅捷斬擊':   { src:'assets/effects/legend-plus6/redshadow-dual.webp?v=20260716-client-plus6',    h:1.30, ar:1.3235, anchorX:0.3282, anchorY:0.4344, duration:980,  motion:'native' },
-    '黑暗隕石':   { src:'assets/effects/legend-plus6/hyperion-despair.webp?v=20260716-client-plus6', h:1.55, ar:0.8065, anchorX:0.2400, anchorY:0.5806, duration:1470, motion:'native' },
-    '致命一擊':   { src:'assets/effects/legend-plus6/cronos-fear.webp?v=20260716-client-plus6',       h:1.45, ar:0.9118, anchorX:0.5806, anchorY:0.7059, duration:560,  motion:'native' },
-    '泰坦之怒':   { src:'assets/effects/legend-plus6/titan-rage.webp?v=20260716-client-plus6',        h:1.35, ar:1.3673, anchorX:0.3582, anchorY:0.6122, duration:910,  motion:'native' }
+    '風之力':     { src:'assets/effects/legend-plus6/windblade.webp?v=20260716-alpha-clean1',          h:1.65, ar:1.0983, anchorX:0.3713, anchorY:0.7573, duration:980,  motion:'native' },
+    '審判衝擊':   { src:'assets/effects/legend-plus6/emperor-blade.webp?v=20260716-alpha-clean1',      h:1.75, ar:1.0878, anchorX:0.3587, anchorY:0.7220, duration:1050, motion:'native' },
+    '大地射擊':   { src:'assets/effects/legend-plus6/gaia-rage.webp?v=20260716-alpha-clean1',          h:1.40, ar:1.3261, anchorX:0.6885, anchorY:0.7174, duration:1470, motion:'native' },
+    '致命落雷':   { src:'assets/effects/legend-plus6/holycrystal-wand.webp?v=20260716-alpha-clean1',  h:1.75, ar:0.6757, anchorX:0.2400, anchorY:0.6486, duration:840,  motion:'native' },
+    '迅捷斬擊':   { src:'assets/effects/legend-plus6/redshadow-dual.webp?v=20260716-alpha-clean1',    h:1.30, ar:1.3235, anchorX:0.3282, anchorY:0.4344, duration:980,  motion:'native' },
+    '黑暗隕石':   { src:'assets/effects/legend-plus6/hyperion-despair.webp?v=20260716-alpha-clean1', h:1.55, ar:0.8065, anchorX:0.2400, anchorY:0.5806, duration:1470, motion:'native' },
+    '致命一擊':   { src:'assets/effects/legend-plus6/cronos-fear.webp?v=20260716-alpha-clean1',       h:1.45, ar:0.9118, anchorX:0.5806, anchorY:0.7059, duration:560,  motion:'native' },
+    '泰坦之怒':   { src:'assets/effects/legend-plus6/titan-rage.webp?v=20260716-alpha-clean1',        h:1.35, ar:1.3673, anchorX:0.3582, anchorY:0.6122, duration:910,  motion:'native' }
 };
 let _godWeaponAnimActive = {};
 function playGodWeaponAnimatedFx(skn, mob) {
@@ -504,8 +504,8 @@ function playSpellFx(skn, mob) {
 // TTMI 技能參考特效：直接以 GIF 疊在怪物立繪上。三重矢保留既有三支飛箭，
 // 再補命中箭芒；屠宰者使用完整動態斬擊，玩家與協力角色共用。
 const TTMI_SKILL_GIF_FX = {
-    '三重矢': { src: 'assets/effects/triple-ring-client-original.webp?v=20260716-client7f', casterHead: true, size: 66, duration: 500, blend: 'screen' },
-    '屠宰者': { src: 'assets/icons/skills/ttmi/屠宰者-透明.webp', scale: 1.25, minSize: 86, maxSize: 150, duration: 1800, blend: 'normal' }
+    '三重矢': { src: 'assets/effects/triple-ring-client-original.webp?v=20260716-alpha-clean1', casterHead: true, size: 66, duration: 500, blend: 'screen' },
+    '屠宰者': { src: 'assets/icons/skills/ttmi/屠宰者-透明.webp?v=20260716-alpha-clean1', scale: 1.25, minSize: 86, maxSize: 150, duration: 1800, blend: 'screen' }
 };
 function playTtmiSkillFx(skillName, mob, casterRect) {
     try {
@@ -553,7 +553,7 @@ function playShockStunHitFx(mob) {
         let layer = _vfxLayer(); if (!layer) return;
         let size = Math.max(82, Math.min(126, r.height * 1.05));
         let el = document.createElement('img');
-        el.src = 'assets/icons/skills/ttmi/衝擊之暈-透明.webp'; el.alt = '';
+        el.src = 'assets/icons/skills/ttmi/衝擊之暈-透明.webp?v=20260716-alpha-clean1'; el.alt = '';
         el.className = 'vfx-shock-stun-hit';
         el.style.position = 'fixed'; el.style.pointerEvents = 'none';
         el.style.width = size + 'px'; el.style.height = size + 'px';
@@ -2389,7 +2389,7 @@ function playTripleRingFx(actor) {
         let canvasW = size * (104 / 84);
         let canvasH = size * (152 / 84);
         let el = document.createElement('img');
-        el.src = 'assets/effects/triple-ring-client-original.webp?v=20260716-client7f'; el.alt = '';
+        el.src = 'assets/effects/triple-ring-client-original.webp?v=20260716-alpha-clean1'; el.alt = '';
         el.className = 'vfx-triple-ring';
         el.style.position = 'fixed'; el.style.pointerEvents = 'none';
         el.style.width = canvasW + 'px'; el.style.height = canvasH + 'px';

@@ -5,11 +5,19 @@ import json
 import shutil
 from pathlib import Path
 
+from clean_effect_black_matte import clean_animation
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "client-animation-extract" / "all-class-skill-effects"
 OUTPUT = ROOT / "assets" / "effects" / "class-skills"
 REGISTRY = ROOT / "js" / "class-skill-anim.js"
+
+CLEAN_BLACK_MATTE = {
+    "skill-ab4327434900.webp",  # 三重矢
+    "skill-350d28566596.webp",  # 屠宰者
+    "skill-657e870c8c26.webp",  # 衝擊之暈
+}
 
 TARGET_WORDS = (
     "目標", "命中", "爆發", "落雷", "衝擊", "地面", "傷害", "擊中", "爆裂",
@@ -112,14 +120,17 @@ def build() -> None:
         digest = hashlib.sha1(str(source_path.relative_to(ROOT)).encode("utf-8")).hexdigest()[:12]
         filename = f"skill-{digest}.webp"
         wanted_names.add(filename)
-        shutil.copy2(source_path, OUTPUT / filename)
+        output_path = OUTPUT / filename
+        shutil.copy2(source_path, output_path)
+        if filename in CLEAN_BLACK_MATTE:
+            clean_animation(output_path, write=True)
         canvas = anim.get("canvas") or [128, 128]
         durations = anim.get("durations_ms") or []
         duration = max(120, sum(int(value or 0) for value in durations))
         if duration <= 120:
             duration = max(420, int(anim.get("frames") or 1) * 90)
         registry[skill] = {
-            "src": f"assets/effects/class-skills/{filename}?v=20260716-client",
+            "src": f"assets/effects/class-skills/{filename}?v=20260716-alpha-clean1",
             "width": max(1, int(canvas[0] or 1)),
             "height": max(1, int(canvas[1] or 1)),
             "duration": duration,
