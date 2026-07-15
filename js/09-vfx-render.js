@@ -271,6 +271,37 @@ const LEGEND_WEAPON_ANIM_FX = {
     '泰坦之怒':   { src:'assets/effects/legend-plus6/titan-rage.webp?v=20260716-alpha-clean1',        h:1.35, ar:1.3673, anchorX:0.3582, anchorY:0.6122, duration:910,  motion:'native' }
 };
 let _godWeaponAnimActive = {};
+// Animated WebPs use very different transparent canvas padding.  Anchor the
+// visible effect (rather than the file canvas/original sprite origin) to the
+// monster body so every legend/mythic proc lands on its target.
+const _WEAPON_ANIM_FOCUS = Object.freeze({
+    'ainshasad.webp':          { x:0.5000, bottom:0.9802 },
+    'grankain_judgment.webp':  { x:0.4995, bottom:0.9587 },
+    'sayha.webp':              { x:0.4298, bottom:0.9490 },
+    'eva.webp':                { x:0.2819, bottom:0.8626 },
+    'dantes.webp':             { x:0.3253, bottom:0.5274 },
+    'theia.webp':              { x:0.4668, bottom:0.9735 },
+    'aurakia.webp':            { x:0.4928, bottom:0.9688 },
+    'grankain_fear.webp':      { x:0.4009, bottom:0.7995 },
+    'windblade.webp':          { x:0.4298, bottom:0.9490 },
+    'emperor-blade.webp':      { x:0.3984, bottom:0.9553 },
+    'gaia-rage.webp':          { x:0.5000, bottom:0.6992, ar:1, duration:1230 },
+    'holycrystal-wand.webp':   { x:0.4700, bottom:0.8750 },
+    'redshadow-dual.webp':     { x:0.3940, bottom:0.8484 },
+    'hyperion-despair.webp':   { x:0.5000, bottom:1.0000, ar:1, duration:1230 },
+    'cronos-fear.webp':        { x:0.4859, bottom:0.8382 },
+    'titan-rage.webp':         { x:0.4869, bottom:0.9107 }
+});
+function _weaponAnimFocus(cfg) {
+    let src = (cfg && cfg.src) || '';
+    for (let name in _WEAPON_ANIM_FOCUS) if (src.indexOf('/' + name) >= 0) return _WEAPON_ANIM_FOCUS[name];
+    return { x:0.5, bottom:1 };
+}
+(function _versionWeaponAnimFx() {
+    [...Object.values(GOD_WEAPON_ANIM_FX), ...Object.values(LEGEND_WEAPON_ANIM_FX)].forEach(cfg => {
+        cfg.src = cfg.src.replace('20260716-alpha-clean1', '20260716-target-align1');
+    });
+})();
 function playGodWeaponAnimatedFx(skn, mob) {
     try {
         if (_vfxMute() || !mob) return;
@@ -282,14 +313,19 @@ function playGodWeaponAnimatedFx(skn, mob) {
         let r = box.getBoundingClientRect(); if (!r.width || !r.height) return;
         let layer = _vfxLayer(); if (!layer || layer.childElementCount > 190) return;
         let body = box.querySelector('img:not(.mob-anim-shadow):not(.mob-anim-weapon):not(.mob-anim-weapon2)');
-        let anc = _mobImgAnchor(body), cx = r.left + r.width * anc.hc, cy = r.top + r.height * anc.vc;
-        let h = r.height * cfg.h, w = h * (cfg.ar || 1);
+        let br = body && body.getBoundingClientRect ? body.getBoundingClientRect() : null;
+        if (!br || !br.width || !br.height) br = r;
+        let anc = _mobImgAnchor(body), focus = _weaponAnimFocus(cfg);
+        let cx = br.left + br.width * anc.hc;
+        let footY = br.top + br.height * anc.bc;
+        let h = r.height * cfg.h, w = h * (focus.ar || cfg.ar || 1);
+        let duration = focus.duration || cfg.duration;
         let el = document.createElement('img');
         el.className = 'vfx-spell vfx-god-weapon-anim'; el.src = cfg.src; el.alt = ''; el.draggable = false;
         el.style.position = 'fixed'; el.style.pointerEvents = 'none'; el.style.objectFit = 'contain';
         el.style.width = w + 'px'; el.style.height = h + 'px';
-        el.style.left = (cx - w * (cfg.anchorX == null ? 0.5 : cfg.anchorX)) + 'px';
-        el.style.top = (cy - h * cfg.anchorY) + 'px';
+        el.style.left = (cx - w * focus.x) + 'px';
+        el.style.top = (footY - h * focus.bottom) + 'px';
         el.style.mixBlendMode = 'screen'; el.style.zIndex = '12';
         layer.appendChild(el); _godWeaponAnimActive[key] = true;
         // 神話／傳說武器特效一律由怪物上方落下，在命中位置收束；
@@ -324,9 +360,9 @@ function playGodWeaponAnimatedFx(skn, mob) {
                     { transform: 'translate3d(0,' + settlePx + 'px,0) scale(1)', opacity: 0, offset: 1 }
                 ];
             }
-            el.animate(frames, { duration: cfg.duration, easing: 'linear', fill: 'forwards' });
+            el.animate(frames, { duration: duration, easing: 'linear', fill: 'forwards' });
         } catch (_) {}
-        setTimeout(() => { try { el.remove(); } catch (_) {} delete _godWeaponAnimActive[key]; }, cfg.duration);
+        setTimeout(() => { try { el.remove(); } catch (_) {} delete _godWeaponAnimActive[key]; }, duration);
     } catch (e) {}
 }
 (function _preloadGodWeaponAnimFx() {
@@ -1530,7 +1566,7 @@ if (typeof castSkill === 'function' && !castSkill._vfxWrapped) {
         if (proj) { before = mapState.mobs.map(m => (m && !m._dead) ? { uid: m.uid, hp: m.curHp, rect: _vfxSlotRect(m.uid) } : null); }
         let r = _vfxOrigCastSkill(skId);
         if (r) { try { if (typeof _playerMorphTrigger === 'function') _playerMorphTrigger('skill', skId); } catch (e) {} }   // 🧝 v3.0.105 施法動作只在「實際施放成功(r)」才播（修：自動恢復/維持技即使沒真的施放·仍每 tick 觸發施法動畫→sprite 卡在施法姿勢）
-        if (r && sk && typeof CLIENT_SKILL_ANIM_FX !== 'undefined' && CLIENT_SKILL_ANIM_FX[sk.n] && CLIENT_SKILL_ANIM_FX[sk.n].placement === 'caster') {
+        if (r && sk && sk.n !== '魂體轉換' && typeof CLIENT_SKILL_ANIM_FX !== 'undefined' && CLIENT_SKILL_ANIM_FX[sk.n] && CLIENT_SKILL_ANIM_FX[sk.n].placement === 'caster') {
             try { playClientSkillAnimatedFx(sk.n, null, player); } catch (e) {}
         }
         if (proj) { try { _vfxCastProjectiles(before, _pele); } catch (e) {} }
@@ -2382,10 +2418,22 @@ function playTripleRingFx(actor) {
         let st = isPlayer ? _pmState : (actor && actor._slot != null ? _allySpriteStates[String(actor._slot)] : null);
         if (!st || !st.el || !st.el.isConnected || !st.imgs || !st.imgs.bd) return;
         let r = st.imgs.bd.getBoundingClientRect(); if (!r.width || !r.height) return;
+        // The active skill frame may have a much wider transparent canvas than
+        // idle (especially after polymorph).  Use the stable party sprite root
+        // and idle frame dimensions so player and mercenary share one anchor.
+        let rootRect = st.el.getBoundingClientRect();
+        let anim = isPlayer
+            ? _morphBattleCache[(_playerBattleForm() || {}).key]
+            : _morphBattleCache[st.key];
+        let idle0 = anim && anim !== 'probing' && anim.idle && anim.idle[0];
+        let stableW = rootRect.width || (idle0 && idle0.naturalWidth) || r.width;
+        let stableH = (idle0 && idle0.naturalHeight) || r.height;
+        let stableLeft = rootRect.width ? rootRect.left : (r.left + r.width * 0.5 - stableW * 0.5);
+        let stableBottom = rootRect.height ? rootRect.bottom : r.bottom;
         let layer = _vfxLayer(); if (!layer) return;
         // 客戶端原版為 104×152、7 幀；可見光圈最大寬約 84px。
         // 以可見光圈寬度縮放，再保留完整透明畫布，避免上緣光線被裁切。
-        let size = Math.max(52, Math.min(68, r.height * 0.55));
+        let size = Math.max(52, Math.min(68, stableH * 0.55));
         let canvasW = size * (104 / 84);
         let canvasH = size * (152 / 84);
         let el = document.createElement('img');
@@ -2393,8 +2441,8 @@ function playTripleRingFx(actor) {
         el.className = 'vfx-triple-ring';
         el.style.position = 'fixed'; el.style.pointerEvents = 'none';
         el.style.width = canvasW + 'px'; el.style.height = canvasH + 'px';
-        el.style.left = (r.left + r.width * 0.5 - canvasW * (56 / 104)) + 'px';
-        el.style.top = (r.top - size * 0.42 - canvasH * (15 / 152)) + 'px';
+        el.style.left = (stableLeft + stableW * 0.5 - canvasW * (56 / 104)) + 'px';
+        el.style.top = (stableBottom - stableH - size * 0.42 - canvasH * (15 / 152)) + 'px';
         el.style.objectFit = 'contain'; el.style.zIndex = '31';
         layer.appendChild(el);
         setTimeout(() => { try { el.remove(); } catch (_) {} }, 500);
