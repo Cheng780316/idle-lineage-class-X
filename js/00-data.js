@@ -3371,11 +3371,12 @@ function _origAuthorizedHost() {
   return _origAuthCache;
 }
 
-// 官方版指引橫幅（中性·無指控）：僅在非官方網域顯示；若被移除可安全重掛（見 gameLoop）
+// 官方版指引橫幅（中性·無指控）：僅在非官方網域顯示；每次載入顯示 10 秒後淡出。
+var _origNoticeExpired = false;
 function _origEnforce() {
   try {
     if (_origAuthorizedHost()) return;
-    if (!document.body || document.getElementById('_orig_pbar')) return;
+    if (_origNoticeExpired || !document.body || document.getElementById('_orig_pbar')) return;
     var url = 'https://shines871.github.io/idle-lineage-class/';
     var bar = document.createElement('div');
     bar.id = '_orig_pbar';
@@ -3383,13 +3384,23 @@ function _origEnforce() {
       + 'background:linear-gradient(90deg,#0d1f3a,#17408a,#0d1f3a);color:#eef4ff;'
       + 'font:bold 15px/1.5 "Microsoft JhengHei","Segoe UI",Arial,sans-serif;'
       + 'padding:11px 16px;text-align:center;letter-spacing:.3px;'
-      + 'box-shadow:0 2px 14px rgba(0,0,0,.45);border-bottom:2px solid #ffcf5a;';
+      + 'box-shadow:0 2px 14px rgba(0,0,0,.45);border-bottom:2px solid #ffcf5a;'
+      + 'transition:opacity .4s ease,transform .4s ease;';
     // ⚠️中性措辭·勿加「盜版/未授權/廣告/惡意」等指控（授權允許非商業轉載→指控合法轉載者有毀謗風險）
     bar.innerHTML = '📢 這是<span style="color:#ffcf5a">非官方轉載版本</span>，內容可能不是最新。'
       + '本遊戲<span style="color:#ffcf5a">永久免費</span>，前往<span style="color:#ffcf5a">官方最新版</span>：'
       + '<a href="' + url + '" style="color:#ffcf5a;font-weight:bold;text-decoration:underline">'
       + 'shines871.github.io/idle-lineage-class</a>';
     document.body.appendChild(bar);
+    setTimeout(function () {
+      _origNoticeExpired = true;
+      bar.style.pointerEvents = 'none';
+      bar.style.opacity = '0';
+      bar.style.transform = 'translateY(-100%)';
+      setTimeout(function () {
+        if (bar.parentNode) bar.parentNode.removeChild(bar);
+      }, 400);
+    }, 10000);
   } catch (_) {}
 }
 
