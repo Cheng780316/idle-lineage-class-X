@@ -360,7 +360,7 @@ function summonV2Tick() {
 }
 function summonV2AttackOnce(s, d, t, owner) {
     owner = owner || player;   // 🩸 v3.3.23 owner 參數化：傭兵召喚術抽象輸出共用（讀 owner 裝備/精通；killMob 仍歸真隊長·不換身）
-    const _ownerDmgMult = (owner !== player && typeof royalAllyMult === 'function') ? royalAllyMult() : 1;   // 👑 傭兵召喚物比照傭兵本體吃隊長魅力；玩家召喚固定1
+    const _ownerDmgMult = (owner !== player && typeof royalAllyMult === 'function') ? royalAllyMult(false) : 1;   // 👑 傭兵召喚物只吃王族 CHA，不套王者統御
     const _sgb = (typeof summonGearBonus === 'function') ? summonGearBonus(owner) : { dmg: 0, hit: 0 };   // 🏺 喚獸師的訓練鞭等
     const _ia = (typeof teamIlluAura === 'function') ? teamIlluAura(s) : null;   // 🩹 v3.2.67 幻覺攻擊光環（化身+10傷／歐吉+4傷+4命）全隊生效→注入召喚物普攻（s 非提供者·排除無效果=取全隊）
     const _ownerIa = (owner !== player && typeof teamIlluAura === 'function') ? teamIlluAura(owner) : null;   // 傭兵 d 已含自身光環；補入其他隊員提供的巫妖魔傷，玩家 d 則已由 recompute 注入

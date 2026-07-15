@@ -373,7 +373,7 @@ function castSkillInner(skId) {
         player.mp = 0;
         let wpn = player.eq.wpn ? DB.items[player.eq.wpn.id] : null;
         let dice = wpn ? (_t.s === 'L' ? wpn.dmgL : wpn.dmgS) : 2;
-        let base = getPhysicalDmg(dice, _t, wpn, null, true, false, false, true);    // forceHeavy＋forceCrit：必中必重必爆（🛡️ v2.6.69 審計#6：爆擊改由 getPhysicalDmg 內部套用一次；原外層再乘(1+爆傷%)＝自然爆擊時重複乘算變 ×4）
+        let base = getPhysicalDmg(dice, _t, wpn, null, true, false, false, true, null, false, true);    // 主動職業技能不套神話武器增幅
         let raw = (base.dmg || 1) + mobHardSkin(_t);                     // 無視硬皮：加回硬皮扣減量
         let dmg = Math.max(1, Math.floor(raw * mult));   // MP 佔比倍率（必定爆擊已含於 base.dmg）
         if (_t.race === '血盟') dmg *= 2;                                 // 對血盟敵人 x2
@@ -487,7 +487,7 @@ function castSkillInner(skId) {
             for (let h = 0; h < times; h++) {
                 if (t.curHp <= 0) break;
                 let dice = t.s === 'L' ? wpn.dmgL : wpn.dmgS;
-                let res = getPhysicalDmg(dice, t, wpn, null);
+                let res = getPhysicalDmg(dice, t, wpn, null, false, false, false, false, null, false, true);
                 if (!res.hit) { log.push('Miss'); continue; }
                 let dmg = res.dmg;
                 if (bonus > 0) { dmg += bonus; applied = true; }   // 🐉 弱點曝光：成功觸發後，一次施放的三刀「每一擊命中」都吃 +10/層（不再僅首擊）
@@ -535,7 +535,8 @@ function castSkillInner(skId) {
             if (sk.noRecastStatus && t.st && t.st[sk.noRecastStatus] > 0) return false;   // 已有狀態：不重複（不耗 HP/CD）
             player.mp -= cost; player.cds.atkSk = getAutoCastInterval();
             if (sk.hpCost) player.hp = Math.max(1, player.hp - effHpCost(sk));
-            if (Math.random() < fs.chance) {
+            let _fixedChance = Math.min(0.95, fs.chance + (typeof mythStatusSuccessPct === 'function' ? mythStatusSuccessPct(player, fs.kind, sk.n) / 100 : 0));
+            if (Math.random() < _fixedChance) {
                 if (!t.st) t.st = newMobStatus();
                 t.st[fs.kind] = (fs.dur || 16) * 10;
                 logCombat(`施放 ${sk.n}，<span class="${getMobColor(t.lv)}">${t.n}</span> 陷入了「${STATUS_NAME[fs.kind] || sk.n}」。`, 'magic');
@@ -572,7 +573,7 @@ function castSkillInner(skId) {
                 let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr; if (t.st && (t.st.confuse > 0 || t.st.panic > 0)) effMr -= 10;
                 dmg = Math.max(1, Math.floor(magicBaseDamage(dmg, player.d, 0, true) * magicDamageCoef(player.d, magicAttrDefense(t, 'none'), sk.tier) * mrMult(Math.max(0, effMr))));
             }
-            dmg = Math.max(1, Math.floor(dmg * fragileMult(t) * illuLvMult(player) * wpnEnFinalMult(player.eq.wpn) * elementCounterMult(sk.weaponDmg ? getWpnEle(player.eq.wpn, player.eq.wpn ? DB.items[player.eq.wpn.id] : null) : 'none', t.e)));   // 🔮 幻術士等級加成 ×(1+等級/50)；🔧 武器強化 +11~+20 最終倍率；⚔️ 屬性剋制(僅武器傷害技吃武器屬性)
+            dmg = Math.max(1, Math.floor(dmg * fragileMult(t) * illuLvMult(player) * wpnEnFinalMult(player.eq.wpn, true) * elementCounterMult(sk.weaponDmg ? getWpnEle(player.eq.wpn, player.eq.wpn ? DB.items[player.eq.wpn.id] : null) : 'none', t.e)));   // 主動職業技能不套神話武器增幅
             t.curHp -= dmg; t.justHit = sk.weaponDmg ? getWpnEle(player.eq.wpn, player.eq.wpn ? DB.items[player.eq.wpn.id] : null) : 'magic'; if (!sk.weaponDmg) t._spellHurt = true; mobWake(t);   // 🎬 v3.0.14 純魔法技→hurt(含頭目)
             if (typeof reflectWallOnDamage === 'function' && t._reflectWall) { let _rwW = player.eq.wpn && DB.items[player.eq.wpn.id]; reflectWallOnDamage(t, dmg, sk.weaponDmg ? ((_rwW && (_rwW.isBow || _rwW.ranged)) ? 'ranged' : 'melee') : 'magic', null); }   // 🌑 v3.3.33 血壁空間：玩家技能傷害反射
             if (sk.mpDmgPct && t.st && t.st.mrhalf > 0) t.st.mrhalf = 0;   // 🔧 心靈破壞（魔法）：受一次魔法傷害後解除魔抗減半（與其他魔法路徑一致）
@@ -615,7 +616,7 @@ function castSkillInner(skId) {
             for(let h = 0; h < hits; h++) {
                 if(t.curHp <= 0) break;
                 if (typeof playArrowFx === 'function') playArrowFx(player, t, h * 90);   // 🏹 v3.2.14 三重矢：每箭一支箭矢序列幀投射物·錯開 90ms 快速連發（取代原 CSS 風彈·非弓技能如衝擊之暈內部 no-op）
-                let res = getPhysicalDmg(dice, t, wpn, arrowData);
+                let res = getPhysicalDmg(dice, t, wpn, arrowData, false, false, false, false, null, false, true);
                 if(!res.hit) { hitsLog.push('Miss'); continue; }
                 landed++;
                 if(sk.skillAddDmg) res.dmg = Math.max(1, res.dmg + sk.skillAddDmg);   // ⚔️ 衝擊之暈：一般攻擊傷害 +10
@@ -630,8 +631,9 @@ function castSkillInner(skId) {
                 let mark = (res.heavy && res.crit) ? '會心' : (res.crit ? '爆' : (res.heavy ? '重' : ''));
                 hitsLog.push(res.dmg + (mark ? '(' + mark + ')' : ''));
                 mobWake(t);
-                if(sk.stun && (sk.stunChance == null || Math.random() < sk.stunChance)) {
-                    let _stunLanded = applyMobStatus(t, { kind:'stun', pbase:sk.stun, dur:6, hitOff: ((wpn && wpn.stunHitBonus && !wpn.isBow) ? Math.round(wpn.stunHitBonus / 5) : 0) + ((typeof weaponSpecialHitBonus === 'function' && !wpn.isBow) ? weaponSpecialHitBonus(player.eq && player.eq.wpn, wpn) : 0) }, sk.n);
+                let _stunMythPct = (sk.stun && typeof mythStatusSuccessPct === 'function') ? mythStatusSuccessPct(player, 'stun', sk.n) : 0;
+                if(sk.stun && (sk.stunChance == null || Math.random() * 100 < Math.min(95, sk.stunChance * 100 + _stunMythPct))) {
+                    let _stunLanded = applyMobStatus(t, { kind:'stun', pbase:sk.stun, dur:6, skipMythStatus:true, hitOff: ((wpn && wpn.stunHitBonus && !wpn.isBow) ? Math.round(wpn.stunHitBonus / 5) : 0) + ((typeof weaponSpecialHitBonus === 'function' && !wpn.isBow) ? weaponSpecialHitBonus(player.eq && player.eq.wpn, wpn) : 0) }, sk.n);
                     if (_stunLanded && sk.n === '衝擊之暈' && typeof playShockStunHitFx === 'function') playShockStunHitFx(t);
                 }   // ⚔️ 衝擊之暈：命中時 stunChance(10%) 機率暈眩；🏛️ 真．冥皇執行劍：暈眩命中率 +20%（hitOff +4）
                 if(sk.status) {
@@ -713,7 +715,7 @@ function castSkillInner(skId) {
                     d = Math.max(1, Math.floor(d * rlFuryMult()));   // 🔮 紅獅5/5(×1.2)＋😡狂怒5/5：攻擊技能最終傷害
                     // 🔧 魔導精通同屬性傷害×2 已移除(2026-07 用戶要求)
                     d = Math.max(1, Math.floor(d * fragileMult(t) * illuLvMult(player)));    // 🔮 脆弱（白鳥5）；🔮 幻術士等級加成 ×(1+等級/50)（幻想/混亂）
-                    d = Math.max(1, Math.floor(d * wpnEnFinalMult(player.eq.wpn)));   // 🔧 武器強化 +11~+20：最終傷害倍率（也影響玩家施放的傷害魔法；物理技能走 getPhysicalDmg 已含、不在此處）
+                    d = Math.max(1, Math.floor(d * wpnEnFinalMult(player.eq.wpn, true)));   // 主動傷害魔法不套神話武器增幅
                     totalDmg += d;
                     hitsLog.push(d);
                 });

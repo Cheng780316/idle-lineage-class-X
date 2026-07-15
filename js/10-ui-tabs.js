@@ -898,7 +898,7 @@ function buildItemDescHTML(item) {
         if(d.dmgBonus !== undefined) desc += ` / ${dmgLabel}: ${formatBonus(d.dmgBonus)}`; // 強化傷害已接在小型／大型傷害後方，避免重複顯示
         
         if(d.mdmg) desc += ` / 魔法傷害: ${formatBonus(d.mdmg)}`;
-        if (_wpnEn > 0 && (d.enMeleeCrit || d.enRangedCrit || d.enMagicCrit || d.enMagicCritFrom7 || d.enMagicDmg || d.enMagicDmgEvery2 || d.enMagicHit || d.enMagicHitEvery2 || d.enMagicDamagePct || d.enSpecialHit || d.enSpecialHitEvery2 || d.enWeaponImmuneIgnore || d.skillHitPerEn || d.skillHitPerEnFrom7 || d.procRatePerEn)) {
+        if (_wpnEn > 0 && (d.enMeleeCrit || d.enRangedCrit || d.enMagicCrit || d.enMagicCritFrom7 || d.enMagicDmg || d.enMagicDmgEvery2 || d.enMagicHit || d.enMagicHitEvery2 || d.enMagicDamagePct || d.enSpecialHit || d.enSpecialHitEvery2 || d.enWeaponImmuneIgnore || d.skillHitPerEn || d.skillHitPerEnFrom7 || d.procRatePerEn || d.mythWeaponAmpPerEn || d.statusSuccessPctPerEn || d.royalAllyDmgPerEn || d.titanReflectPctPerEn || d.titanBulletErEvery)) {
             let _grow = [];
             if (d.enMeleeCrit) _grow.push(`近距離爆擊 +${_wpnEn * d.enMeleeCrit}%`);
             if (d.enRangedCrit) _grow.push(`遠距離爆擊 +${_wpnEn * d.enRangedCrit}%`);
@@ -909,6 +909,11 @@ function buildItemDescHTML(item) {
             if (d.enMagicDamagePct) _grow.push(`魔法傷害 +${_wpnEn * d.enMagicDamagePct}%`);
             if (d.enSpecialHit || d.enSpecialHitEvery2) _grow.push(`${d.specialHitLabel || '職業命中'} +${_wpnEn * (d.enSpecialHit || 0) + Math.floor(_wpnEn / 2) * (d.enSpecialHitEvery2 || 0)}`);
             if (d.enWeaponImmuneIgnore) _grow.push(`武器傷害免疫忽略 +${_wpnEn * d.enWeaponImmuneIgnore}%`);
+            if (d.mythWeaponAmpPerEn) _grow.push(`神話武器增幅 +${_wpnEn * d.mythWeaponAmpPerEn}%`);
+            if (d.statusSuccessPctPerEn) _grow.push(`${d.statusSuccessLabel || '異常狀態成功率'} +${Math.min(15, _wpnEn * d.statusSuccessPctPerEn)}%`);
+            if (d.royalAllyDmgPerEn) _grow.push(`王者統御：傭兵最終傷害 +${(_wpnEn * d.royalAllyDmgPerEn).toFixed(1).replace(/\.0$/, '')}%`);
+            if (d.titanReflectPctPerEn) _grow.push(`泰坦增幅：岩石／魔法反射 +${_wpnEn * d.titanReflectPctPerEn}%`);
+            if (d.titanBulletErEvery) _grow.push(`泰坦增幅：子彈 ER +${Math.floor(_wpnEn / d.titanBulletErEvery) * (d.titanBulletErGain || 1)}`);
             if (d.skillHitPerEn) _grow.push(`破壞命中 +${_wpnEn * d.skillHitPerEn}`);
             if (d.skillHitPerEnFrom7) _grow.push(`秘技命中 +${Math.min(d.skillHitPerEnMax || 99, Math.max(0, _wpnEn - 6) * d.skillHitPerEnFrom7)}`);
             if (d.procRatePerEn && (d.spellProc || d.procSkill || d.meleeHitSpell)) _grow.push(`武器魔法發動率 ${Math.max(0, Math.min(100, (d.procRateBase || 1) + _wpnEn * d.procRatePerEn))}%`);

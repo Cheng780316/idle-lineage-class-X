@@ -1797,10 +1797,39 @@ function wpnEnCurveMax(def) {
     if (w <= 75) return 1.75;
     return 1.5;
 }
-function enhanceWpnFinalMult(en, def) {
-    return 1;   // 🔧 v3.1.25 用戶要求移除「武器強化最終傷害倍率」機制：一律回傳 1（所有戰鬥呼叫點 ×1＝無效化）。強化仍保留固定命中/傷害加成（js/02:218 每+1→近/遠 傷害+命中 各+1）。⚠️ 上方 WPN_EN_FINALMULT 曲線與 wpnEnCurveMax 保留供日後還原（把本函式改回原計算即可）。
+function enhanceWpnFinalMult(en, def, suppressMythAmp) {
+    // 一般武器維持 v3.1.25 的設定：不再因強化取得最終傷害倍率。
+    // 神話武器改用「神話武器增幅」：每強化 +1，武器來源最終傷害 +1%，最高依武器強化上限 +15%。
+    // 主動職業技能會由呼叫端傳 suppressMythAmp=true 排除，避免把技能傷害誤算成武器特效。
+    if (!suppressMythAmp && def && def.godWeapon && def.mythWeaponAmpPerEn) {
+        return 1 + capWpnEn(en) * def.mythWeaponAmpPerEn / 100;
+    }
+    return 1;
 }
-function wpnEnFinalMult(wpnInst) { return enhanceWpnFinalMult(wpnInst && wpnInst.en, wpnInst && DB.items[wpnInst.id]); }      // 由武器實例取倍率（未裝備→1）
+function wpnEnFinalMult(wpnInst, suppressMythAmp) { return enhanceWpnFinalMult(wpnInst && wpnInst.en, wpnInst && DB.items[wpnInst.id], suppressMythAmp); }      // 由武器實例取倍率（未裝備→1）
+
+// 神話武器的職業專屬強化能力。全部由「目前實際裝備」與強化值即時計算，不寫入存檔面板，避免換裝後殘留。
+function mythWeaponTraitValue(actor, field) {
+    let inst = actor && actor.eq && actor.eq.wpn;
+    let def = inst && DB.items[inst.id];
+    if (!def || !def.godWeapon || !def[field]) return 0;
+    return capWpnEn(inst.en) * def[field];
+}
+function mythStatusSuccessPct(actor, kind, skillName) {
+    let inst = actor && actor.eq && actor.eq.wpn;
+    let def = inst && DB.items[inst.id];
+    if (!def || !def.godWeapon || !def.statusSuccessPctPerEn) return 0;
+    if (def.statusSuccessKinds && !def.statusSuccessKinds.includes(kind)) return 0;
+    if (def.statusSuccessSkills && !def.statusSuccessSkills.includes(skillName)) return 0;
+    return Math.min(15, capWpnEn(inst.en) * def.statusSuccessPctPerEn);
+}
+function mythTitanReflectMult(actor) { return 1 + mythWeaponTraitValue(actor, 'titanReflectPctPerEn') / 100; }
+function mythTitanBulletEr(actor) {
+    let inst = actor && actor.eq && actor.eq.wpn;
+    let def = inst && DB.items[inst.id];
+    if (!def || !def.godWeapon || !def.titanBulletErEvery) return 0;
+    return Math.floor(capWpnEn(inst.en) / def.titanBulletErEvery) * (def.titanBulletErGain || 1);
+}
 
 // ===== ⚔️ 攻擊速度改由「職業性別 × 武器種類」決定（2026-07 用戶要求·武器 def 的 spd 欄位停用） =====
 // 表值單位＝「動作/分鐘」（interval 秒 = 60/APM）。基準＝用戶表A（單手劍72/單手鈍器65/弓60/單手矛68/魔杖72/匕首75/雙手劍65/雙刀72/鋼爪72/鎖鏈劍68/雙斧72/奇古獸72）；

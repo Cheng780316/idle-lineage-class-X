@@ -21,9 +21,14 @@ const BOSS_IMMUNE = ['freeze','stun','stone','sleep'];
 // clamp[0,20]，擲 1d20（與一般攻擊相同：擲20必中、擲1必失、其餘 命中值≥骰值 即命中），命中率 5%~95%。
 // 異常魔法命中（玩家對怪物）：d20 機制，命中值 hv 上限預設 20（最高 95%）。
 // 🔧 傳入 maxHv 可降低成功率上限：maxHv=12 → 最高 60%（起死回生術、迷魅術用）。自然20必中、自然1必失。
-function abnormalMagicHit(m, maxHv, hitOff) {
+function abnormalMagicHit(m, maxHv, hitOff, successPctOff) {
     let hv = player.lv + (player.d.magicHit || 0) + (hitOff || 0) - ((m.lv || 0) - 10) - ((m.mr || 0) / 10);
     hv = Math.max(0, Math.min(maxHv || 20, hv));
+    // 神話武器的職業異常成功率採「百分點」直接加到最終成功率，不再誤當 d20 命中點（1點約等於5%）。
+    if (successPctOff > 0) {
+        let basePct = 5 + Math.max(0, Math.min(18, Math.floor(hv) - 1)) * 5;
+        return Math.random() * 100 < Math.min(95, basePct + successPctOff);
+    }
     let r = roll(1, 20);
     return (r === 20) || (r !== 1 && hv >= r);
 }
@@ -41,11 +46,13 @@ function applyMobStatus(m, st, skillName, damageCoef) {
                 + Math.floor(_statusEn / 2) * (_statusWpn.skillHitEvery2 || 0);
         }
     }
+    let _statusSuccessPct = (!st.force && !st.skipMythStatus && typeof mythStatusSuccessPct === 'function')
+        ? mythStatusSuccessPct(player, st.kind, skillName) : 0;
     // 異常狀態魔法命中（玩家對怪物）：見 abnormalMagicHit；st.hitOff＝命中加值（🏛️ 真．冥皇執行劍 衝擊之暈 +4≈命中率+20%）
     // ⚡ st.force：跳過魔抗命中判定，由呼叫端自行擲固定機率（雷神之鎚電光衝擊／伊娃的責罵水之矛的 5% 固定附加）；BOSS 免疫仍上方先擋
-    if(!st.force && !abnormalMagicHit(m, undefined, st.hitOff)) {
+    if(!st.force && !abnormalMagicHit(m, undefined, _statusHitOff, _statusSuccessPct)) {
         logCombat(`<span class="${getMobColor(m.lv)}">${m.n}</span> 抵抗了${skillName || '異常狀態'}。`, 'miss');
-        return;
+        return false;
     }
     // 持續時間：支援固定 dur(秒) 或隨機 durRand:[最小,最大]（秒）
     let durSec = st.durRand ? roll(st.durRand[0], st.durRand[1]) : (st.dur || 6);
@@ -53,7 +60,7 @@ function applyMobStatus(m, st, skillName, damageCoef) {
     let k = st.kind;
     if(k === 'poison') {
         m.st.poison = dur; m.st.poisonTick = (st.tick || 3) * 10;
-        m.st.poisonDmg = Math.max(1, Math.floor(roll(st.dmg[0], st.dmg[1]) * (damageCoef || 1) * wpnEnFinalMult(player && player.eq && player.eq.wpn)));   // 傷害魔法毒咒吃統一係數；通用武器毒傷未傳係數，維持原樣
+        m.st.poisonDmg = Math.max(1, Math.floor(roll(st.dmg[0], st.dmg[1]) * (damageCoef || 1) * wpnEnFinalMult(player && player.eq && player.eq.wpn, true)));   // 職業中毒持續傷害不套神話武器增幅
         m.st.poisonStacks = 1; m.st.poisonUnit = m.st.poisonDmg;   // 技能類中毒：單層（不疊加），仍顯示層數符號
     } else if(k === 'blind') {
         m.st.blind = dur; m.st.blindVal = st.hit || 4;
@@ -70,6 +77,7 @@ function applyMobStatus(m, st, skillName, damageCoef) {
             logCombat(`${prefix}對 <span class="${getMobColor(m.lv)}">${m.n}</span> 造成 ${STATUS_NAME[k]||k} 狀態。`, 'magic');
         }
     }
+    return true;
 }
 function weaponSpecialHitBonus(item, def) {
     if (!item || !def) return 0;
@@ -328,7 +336,15 @@ function allySlotList() { return ['1','2','3','4','5','6','7','8'].filter(n => n
 const ALLY_ACTIVE_MAX = 3;   // 🔧 協力傭兵同時上場上限（不論存檔格數多少，最多 3 名）
 function allyActiveCap() { return ALLY_ACTIVE_MAX; }   // 全職業同時上場上限 3。
 // 王族魅力加成只作用於傭兵：傷害/HP/MP ×(1+魅力/100)。寵物使用 js/22 的獨立固定加值公式。
-function royalAllyMult() { return (player && player.cls === 'royal') ? (1 + (((player.d && player.d.cha) || 0)) / 100) : 1; }
+function royalAllyMult(includeWeaponDamage) {
+    if (!player || player.cls !== 'royal') return 1;
+    let mult = 1 + (((player.d && player.d.cha) || 0)) / 100;
+    // 王者統御只強化傭兵造成的傷害；傭兵 HP/MP、寵物與召喚物仍只吃原本 CHA 加成。
+    if (includeWeaponDamage !== false && typeof mythWeaponTraitValue === 'function') {
+        mult *= 1 + mythWeaponTraitValue(player, 'royalAllyDmgPerEn') / 100;
+    }
+    return mult;
+}
 function isAllyActive(slotN) { return !!(player.allies && player.allies.some(a => a && a._slot === String(slotN))); }
 // 由存檔位建立協力角色：載入該存檔 player → 暫時切換全域 player 跑 calcStats 取得真實衍生戰力 → 還原
 // 協力顯示名稱：有取名→角色名；否則用職業中文（騎士/法師/妖精）
@@ -440,7 +456,7 @@ function buildAlly(slotN, sourceRaw) {
     player = _save; calcStats();   // 還原真實玩家的衍生值並刷新 UI
     if (!ok) return null;
     _applyMercCubeRes(ally);   // 🔮 v2.7.96 幻術士傭兵立方屬性抗性 rider（招募快照·比照玩家立方 buff 給 +30 抗性）
-    { let _rm = royalAllyMult(); if (_rm !== 1) { ally.mhp = Math.max(1, Math.floor((ally.mhp || 1) * _rm)); ally.mmp = Math.floor((ally.mmp || 0) * _rm); } }   // 👑 王族魅力加成：傭兵 HP/MP ×(1+魅力/100)（招募當下快照·主玩家 player 已於上行還原）
+    { let _rm = royalAllyMult(false); if (_rm !== 1) { ally.mhp = Math.max(1, Math.floor((ally.mhp || 1) * _rm)); ally.mmp = Math.floor((ally.mmp || 0) * _rm); } }   // 👑 王族魅力加成：傭兵 HP/MP 不套王者統御
     ally._slot = slotN; ally._allyName = allyName(ally); ally._atkCd = 0; ally.curHp = ally.mhp;
     ally._downed = false;   // 🤝 Phase 3：倒地旗標（curHp 歸零→true·停止行動/不被選為目標·須隊伍面板手動復活）
     ally._reviveCd = 0;   // 🤝 Phase 3：倒地後復活冷卻（ticks 倒數；倒地時設 150＝15秒·每 tick 於 alliesTick 遞減·存檔安全相對值）
@@ -826,7 +842,7 @@ function allyCastMagic(ally, sk) {
             dd = Math.max(1, Math.floor(dd * allyRlFuryMult(ally)));   // 🔴😡 v2.6.18 紅獅5×狂怒5造傷（傷害魔法逐骰·原僅紅獅字面）
             // 🔧 傭兵魔導精通同屬性傷害×2 已移除(2026-07 用戶要求)
             dd = Math.max(1, Math.floor(dd * fragileMult(t) * illuLvMult(ally)));   // 🔮 脆弱（白鳥5）；🔮 幻術士(傭兵)等級加成 ×(1+等級/50)
-            dd = Math.max(1, Math.floor(dd * wpnEnFinalMult(ally.eq && ally.eq.wpn)));   // 🔧 武器強化 +11~+20：最終傷害倍率（也影響傭兵施放的傷害魔法；物理技走 allyStrikeRoll 已含）
+            dd = Math.max(1, Math.floor(dd * wpnEnFinalMult(ally.eq && ally.eq.wpn, true)));   // 主動傷害魔法不套神話武器增幅
             dd = Math.max(1, Math.floor(dd * elementCounterMult(sk.ele, t.e)));   // ⚔️ 屬性剋制倍率（取代舊 +6 固定加值）
             totalDmg += dd;
         });
@@ -975,7 +991,7 @@ function allyCastPhysicalSkill(ally, sk) {
     try {
         for (let h = 0; h < hits; h++) {
             if (t.curHp <= 0) break;
-            let res = allyStrikeRoll(ally, t, {});   // 一般命中判定（可重擊/爆擊）
+            let res = allyStrikeRoll(ally, t, { suppressMythAmp: true });   // 主動職業技能不套神話武器增幅
             if (!res.hit) { logHits.push('Miss'); continue; }
             landed++;
             res.dmg = Math.floor(res.dmg * illuLvMult(ally));   // 🔮 幻術士(傭兵)骷髏毀壞：等級加成 ×(1+等級/50)（非幻術士回 1，不影響騎士/龍騎物理技）
@@ -986,8 +1002,9 @@ function allyCastPhysicalSkill(ally, sk) {
             totalDmg += res.dmg;
             let mark = (res.heavy && res.crit) ? '會心' : (res.crit ? '爆' : (res.heavy ? '重' : ''));
             logHits.push(res.dmg + (mark ? '(' + mark + ')' : ''));
-            if (sk.stun && (sk.stunChance == null || Math.random() < sk.stunChance)) {
-                let _stunLanded = applyMobStatus(t, { kind: 'stun', pbase: sk.stun, dur: 6, hitOff: ((wpn && wpn.stunHitBonus) ? Math.round(wpn.stunHitBonus / 5) : 0) + weaponSpecialHitBonus(ally.eq && ally.eq.wpn, wpn) }, sk.n);
+            let _stunMythPct = (sk.stun && typeof mythStatusSuccessPct === 'function') ? mythStatusSuccessPct(ally, 'stun', sk.n) : 0;
+            if (sk.stun && (sk.stunChance == null || Math.random() * 100 < Math.min(95, sk.stunChance * 100 + _stunMythPct))) {
+                let _stunLanded = applyMobStatus(t, { kind: 'stun', pbase: sk.stun, dur: 6, skipMythStatus: true, hitOff: ((wpn && wpn.stunHitBonus) ? Math.round(wpn.stunHitBonus / 5) : 0) + weaponSpecialHitBonus(ally.eq && ally.eq.wpn, wpn) }, sk.n);
                 if (_stunLanded && sk.n === '衝擊之暈' && typeof playShockStunHitFx === 'function') playShockStunHitFx(t);
             }   // 🏛️ 傭兵持真．冥皇執行劍：衝擊之暈暈眩命中率 +20%；🛡️ v2.6.69 審計#3：補鏡像 stunChance(10%) 前置骰（原漏→傭兵每擊必判暈＝玩家10倍）
             if (sk.status) applyMobStatus(t, sk.status, sk.n);
@@ -1137,7 +1154,7 @@ function allyStrikeRoll(ally, t, opts) {
     if (graze) dmg = Math.max(1, Math.floor(dmg * 0.5));   // 🥊 v2.6.20 擦傷 50%（鏡像玩家 833）
     dmg = Math.max(1, Math.floor(dmg * fragileMult(t)));   // 🔮 脆弱（白鳥5）
     dmg = _allyAtkBuffProcs(ally, dmg, isRanged);   // 🆕 v2.6.9 #1b：攻擊 buff proc（連擊/魔擊/反擊/居合/雙持共用此計算）
-    dmg = Math.max(1, Math.floor(dmg * (opts.noEnhance ? 1 : wpnEnFinalMult(wpnInst))));   // 🔧 武器強化 +11~+20：最終傷害倍率（noEnhance＝副手不另計強化）
+    dmg = Math.max(1, Math.floor(dmg * (opts.noEnhance ? 1 : wpnEnFinalMult(wpnInst, opts.suppressMythAmp))));   // 神話武器增幅；主動職業技能可用 suppressMythAmp 排除
     dmg = Math.max(1, Math.floor(dmg * allyRlFuryMult(ally)));   // 🔴😡 v2.6.18 紅獅5×狂怒5造傷：物理攻擊樞紐（普攻技/連擊/魔擊/反擊/居合/穿透/雙持/鐵衛/物理技/屠宰者皆經此·鏡像玩家 getPhysicalDmg rlFuryMult；原物理傭兵全無紅獅5）
     if (t._fireVulnUntil > state.ticks && getWpnEle(wpnInst, wpn) === 'fire') dmg = Math.max(1, Math.floor(dmg * 1.3));   // 🏺 v3.1.76 灼熱蜥蜴長舌（傭兵受益端·連擊/反擊/居合/副手共用·鏡像玩家 js/03:901）
     if (!opts.forceHit && !opts.forceLand && !opts.forceHeavy && d.eleWpnMult && getWpnEle(wpnInst, wpn) === d.eleWpnMult.ele) dmg = Math.max(1, Math.floor(dmg * d.eleWpnMult.mult));   // 🏺 v3.1.80 四之牙臂甲（傭兵·連擊/副手）：對應屬性武器一般攻擊 ×1.2（v3.2.42 稽核修：排除反擊/居合/魔擊·對齊玩家 js/03 _natRoll 閘＝「一般攻擊」字面）
@@ -1528,7 +1545,7 @@ function allyReflectOnHit(ally, mob, dmgTaken, isMagic) {
     }
     { let _titanSk = isMagic ? 'sk_warrior_titan_magic' : 'sk_warrior_titan_rock';   // 泰坦：岩石(物理)/魔法(魔法)·HP<40%(反彈精通80%)·100%
       if (ally.skills && ally.skills.includes(_titanSk) && mob.curHp > 0 && (ally.curHp || 0) < (ally.mhp || 1) * ((ally.cls === 'warrior' && allyHasMastery(ally, 'k_rebound')) ? 0.8 : 0.4)) {
-        let _tr = Math.max(1, Math.floor(dmgTaken * _fm));
+        let _tr = Math.max(1, Math.floor(dmgTaken * _fm * (typeof mythTitanReflectMult === 'function' ? mythTitanReflectMult(ally) : 1)));
         logCombat(`<span class="font-bold" style="color:#d6d3d1;">【協力·${ally._allyName}·泰坦】</span>反彈 <span class="${getMobColor(mob.lv)}">${mob.n}</span> ${_tr} 點傷害。`, 'magic');
         _allyDamageMob(ally, mob, _tr, 'magic');
       } }
@@ -1866,7 +1883,7 @@ function allyCubeTick(ally) {
             teamRecoverMp(c.val || 5);   // 🔮 v2.6.4：回全隊 MP（玩家＋全體非倒地傭兵）
             let t = getTarget();
             if (t && t.curHp > 0 && !t._dead) {
-                let dd = Math.max(1, Math.floor(summonElementDamage(c.dice, c.ele || 'none', t, ally.d.magicDmg || 0, magicDamageCoef(ally.d, magicAttrDefense(t, c.ele || 'none'), sk.tier)) * illuLvMult(ally) * wpnEnFinalMult(ally.eq && ally.eq.wpn)));   // 🔮 傭兵立方：SP／屬性防禦公式 ×(1+專屬法術階級/10)
+                let dd = Math.max(1, Math.floor(summonElementDamage(c.dice, c.ele || 'none', t, ally.d.magicDmg || 0, magicDamageCoef(ally.d, magicAttrDefense(t, c.ele || 'none'), sk.tier)) * illuLvMult(ally) * wpnEnFinalMult(ally.eq && ally.eq.wpn, true)));   // 立方技能不套神話武器增幅
                 dd = Math.max(1, Math.floor(dd * royalAllyMult()));   // 👑 王族魅力加成：傭兵造成傷害 ×(1+魅力/100)
                 dd = _allyIllusionMagicDmg(ally, dd);   // 🔮 v3.1.77 幻覺2/5回MP＋5/5加倍（傭兵立方·鏡像玩家 js/07:98）
                 t.curHp -= dd; t.justHit = (c.ele && c.ele !== 'none') ? c.ele : 'magic'; mobWake(t);
@@ -1880,7 +1897,7 @@ function allyCubeTick(ally) {
         if (!live.length) return;
         if (c.kind === 'dmg') {
             let txt = [];
-            live.forEach((m, i) => { let dd = Math.max(1, Math.floor(summonElementDamage(c.dice, c.ele || 'none', m, ally.d.magicDmg || 0, magicDamageCoef(ally.d, magicAttrDefense(m, c.ele || 'none'), sk.tier)) * illuLvMult(ally) * wpnEnFinalMult(ally.eq && ally.eq.wpn))); dd = Math.max(1, Math.floor(dd * royalAllyMult()));   /* 👑 王族魅力加成 */ dd = _allyIllusionMagicDmg(ally, dd, i === 0); m.curHp -= dd; m.justHit = (c.ele && c.ele !== 'none') ? c.ele : 'magic'; mobWake(m); txt.push(dd); });   // 🔮 全體立方每次發動只回一次MP，5件仍逐目標生效
+            live.forEach((m, i) => { let dd = Math.max(1, Math.floor(summonElementDamage(c.dice, c.ele || 'none', m, ally.d.magicDmg || 0, magicDamageCoef(ally.d, magicAttrDefense(m, c.ele || 'none'), sk.tier)) * illuLvMult(ally) * wpnEnFinalMult(ally.eq && ally.eq.wpn, true))); dd = Math.max(1, Math.floor(dd * royalAllyMult()));   /* 👑 王族魅力加成 */ dd = _allyIllusionMagicDmg(ally, dd, i === 0); m.curHp -= dd; m.justHit = (c.ele && c.ele !== 'none') ? c.ele : 'magic'; mobWake(m); txt.push(dd); });   // 🔮 全體立方每次發動只回一次MP，5件仍逐目標生效
             logCombat(`<span class="text-emerald-300 font-bold">【協力·${ally._allyName}】</span>的【${sk.n}】對全體造成 ${txt.join('、')} 點傷害。`, 'dot', 'mercenary');   // 🟢 立方傷害＝DoT(綠)、傭兵來源
             live.forEach(m => { if (m.curHp <= 0) { let i = mapState.mobs.findIndex(x => x && x.uid === m.uid); if (i !== -1) killMob(i); } });   // 擊殺歸玩家（killMob 不換身）
             renderMobs();
@@ -1904,7 +1921,7 @@ function allyStormTick(ally, sk, noMageBonus) {
     let dice = sk.dmgDice || [1, 10];
     let canFreeze = (sk.freezeHitOff !== undefined);
     let glow = STORM_ELE_GLOW[sk.ele] || STORM_ELE_GLOW.none;
-    let wpnMult = wpnEnFinalMult(ally.eq && ally.eq.wpn);   // 🔧 武器強化 +11~+20 最終倍率
+    let wpnMult = wpnEnFinalMult(ally.eq && ally.eq.wpn, true);   // 持續型職業技能不套神話武器增幅
     let dmgLog = [], frozeLog = [];
     targets.forEach((t, _illusionIdx) => {
         if (t.curHp <= 0) return;
@@ -1959,7 +1976,7 @@ function allyCastCrush(ally, sk) {
     let _dmgB = _rng ? (d.rangedDmg || 0) : (d.meleeDmg || 0);
     let _base = roll(1, dice) + _dmgB + enB + (sk.weaponFlat || 0);
     let dmg = Math.max(1, Math.floor(magicBaseDamage(_base, d, 0, true) * magicDamageCoef(d, magicAttrDefense(t, getWpnEle(ally.eq ? ally.eq.wpn : null, wpn)), sk.tier))) + (sk.flatBonus || 0);   // 🔮 統一魔法公式 ×(1+幻術專屬階級/10)；骷髏毀壞另加固定20
-    dmg = Math.max(1, Math.floor(dmg * fragileMult(t) * illuLvMult(ally) * wpnEnFinalMult(ally.eq && ally.eq.wpn)));   // 🔮 幻術士(傭兵)等級加成 ×(1+等級/50)；🔧 武器強化 +11~+20 最終倍率
+    dmg = Math.max(1, Math.floor(dmg * fragileMult(t) * illuLvMult(ally) * wpnEnFinalMult(ally.eq && ally.eq.wpn, true)));   // 主動職業技能不套神話武器增幅
     dmg = Math.max(1, Math.floor(dmg * elementCounterMult(getWpnEle(ally.eq ? ally.eq.wpn : null, wpn), t.e)));   // ⚔️ 武器屬性剋制倍率（粉碎能量）
     dmg = Math.max(1, Math.floor(dmg * royalAllyMult()));   // 👑 王族魅力加成：傭兵造成傷害 ×(1+魅力/100)
     t.curHp -= dmg; t.justHit = getWpnEle(ally.eq ? ally.eq.wpn : null, wpn); mobWake(t);
@@ -1980,7 +1997,8 @@ function allyCastFixedStatus(ally, sk) {
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
     if ((ally.mp || 0) < cost) return false;
     ally.mp -= cost; allyManaMasteryRefund(ally, cost);
-    if (Math.random() < fs.chance) {
+    let _fixedChance = Math.min(0.95, fs.chance + (typeof mythStatusSuccessPct === 'function' ? mythStatusSuccessPct(ally, fs.kind, sk.n) / 100 : 0));
+    if (Math.random() < _fixedChance) {
         if (!t.st) t.st = newMobStatus();
         t.st[fs.kind] = (fs.dur || 16) * 10;
         logCombat(`<span class="text-sky-300 font-bold">【協力·${ally._allyName}】</span>施放 ${sk.n}，<span class="${getMobColor(t.lv)}">${t.n}</span> 陷入了「${STATUS_NAME[fs.kind] || sk.n}」。`, 'magic');
@@ -2008,7 +2026,7 @@ function allyCastSlaughter(ally, sk) {
     let times = sk.hits || 3, total = 0, log = [], applied = false;
     for (let h = 0; h < times; h++) {
         if (t.curHp <= 0) break;
-        let res = allyStrikeRoll(ally, t, {});
+        let res = allyStrikeRoll(ally, t, { suppressMythAmp: true });
         if (!res.hit) { log.push('Miss'); continue; }
         let dmg = res.dmg;
         if (bonus > 0) { dmg += bonus; applied = true; }   // 🐉 弱點曝光（傭兵）：成功觸發後，三刀每一擊命中都吃 +10/層（不再僅首擊）
@@ -2038,7 +2056,7 @@ function allyCastMpDmg(ally, sk) {
     let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
     if (t.st && (t.st.confuse > 0 || t.st.panic > 0)) effMr -= 10;   // 🔮 混亂/恐慌：MR -10（與玩家心靈破壞一致）
     dmg = Math.max(1, Math.floor(magicBaseDamage(dmg, ally.d, 0, true) * magicDamageCoef(ally.d, magicAttrDefense(t, 'none'), sk.tier) * mrMult(Math.max(0, effMr))));   // 🔮 基礎=消耗MP量，套統一公式與幻術專屬階級
-    dmg = Math.max(1, Math.floor(dmg * fragileMult(t) * illuLvMult(ally) * wpnEnFinalMult(ally.eq && ally.eq.wpn)));   // 🔮 幻術士(傭兵)等級加成 ×(1+等級/50)；🔧 武器強化 +11~+20 最終倍率
+    dmg = Math.max(1, Math.floor(dmg * fragileMult(t) * illuLvMult(ally) * wpnEnFinalMult(ally.eq && ally.eq.wpn, true)));   // 主動職業技能不套神話武器增幅
     dmg = Math.max(1, Math.floor(dmg * royalAllyMult()));   // 👑 王族魅力加成：傭兵造成傷害 ×(1+魅力/100)
     t.curHp -= dmg; t.justHit = 'magic'; mobWake(t);
     if (t.st && t.st.mrhalf > 0) t.st.mrhalf = 0;
@@ -2054,7 +2072,7 @@ function allyDarkCrit(ally, t) {
     let dice = wpn ? (t.s === 'L' ? wpn.dmgL : wpn.dmgS) : 2;
     ally.buffs = ally.buffs || {}; ally.statuses = ally.statuses || {}; ally.eq = ally.eq || {};   // 安全：getPhysicalDmg 會取用 player.buffs/statuses/eq
     let _sv = player; player = ally; let base;
-    try { base = getPhysicalDmg(dice, t, wpn, null, true, false); } finally { player = _sv; }   // forceHeavy：必中必重，套用傭兵自身物理公式
+    try { base = getPhysicalDmg(dice, t, wpn, null, true, false, false, false, null, false, true); } finally { player = _sv; }   // 主動職業技能不套神話武器增幅
     let raw = (base.dmg || 1) + mobHardSkin(t);                                                  // 無視硬皮：加回硬皮扣減量
     let dmg = Math.max(1, Math.floor(raw * (1 + ((ally.d && ally.d.meleeCritDmg) || 0) / 100) * 10));   // 必定爆擊 ×10
     if (t.race === '血盟') dmg *= 2;                                                              // 對血盟敵人 x2
@@ -2554,7 +2572,7 @@ function _allyLevelRecompute(ally) {
     ally.cardDex = _oc; ally.equipDex = _oe; ally.miscDex = _om;   // 還原傭兵自身欄位
     player = _save; calcStats();   // 還原真實玩家的衍生值並刷新 UI（同 buildAlly）
     ally._recompN = (ally._recompN || 0) + 1;   // 🔮 v2.6.7：ally.d 已就地重建→遞增計數，讓 alliesTick 幻覺光環還原守衛偵測到本回合重算（避免把光環當基底扣掉）
-    if (ok) { _applyMercCubeRes(ally); let _rm = royalAllyMult(); if (_rm !== 1) { ally.mhp = Math.max(1, Math.floor((ally.mhp || 1) * _rm)); ally.mmp = Math.floor((ally.mmp || 0) * _rm); } ally.curHp = Math.max(1, Math.min(_keepHp != null ? _keepHp : ally.mhp, ally.mhp || 1)); ally.mp = Math.min(_keepMp != null ? _keepMp : ally.mmp, ally.mmp || 0); }   // 🔮 v2.7.96 立方抗性 rider；👑 王族魅力加成：升級重算後重新套用 HP/MP ×(1+魅力/100)
+    if (ok) { _applyMercCubeRes(ally); let _rm = royalAllyMult(false); if (_rm !== 1) { ally.mhp = Math.max(1, Math.floor((ally.mhp || 1) * _rm)); ally.mmp = Math.floor((ally.mmp || 0) * _rm); } ally.curHp = Math.max(1, Math.min(_keepHp != null ? _keepHp : ally.mhp, ally.mhp || 1)); ally.mp = Math.min(_keepMp != null ? _keepMp : ally.mmp, ally.mmp || 0); }   // 王族 CHA 強化 HP/MP，不套王者統御
 }
 // 城鎮 NPC：召喚/解除協力角色
 function allyCost(slotN) { let sum = slotSummary(slotN); return sum ? (sum.lv || 1) * 10000 : 0; }   // 招募費用 = 角色等級 × 10000
