@@ -266,7 +266,7 @@ const LEGEND_WEAPON_ANIM_FX = {
     '大地射擊':   { src:'assets/effects/legend-plus6/gaia-rage.webp?v=20260716-alpha-clean1',          h:1.40, ar:1.3261, anchorX:0.6885, anchorY:0.7174, duration:1470, motion:'native' },
     '致命落雷':   { src:'assets/effects/legend-plus6/holycrystal-wand.webp?v=20260716-alpha-clean1',  h:1.75, ar:0.6757, anchorX:0.2400, anchorY:0.6486, duration:840,  motion:'native' },
     '迅捷斬擊':   { src:'assets/effects/legend-plus6/redshadow-dual.webp?v=20260716-alpha-clean1',    h:1.30, ar:1.3235, anchorX:0.3282, anchorY:0.4344, duration:980,  motion:'native' },
-    '黑暗隕石':   { src:'assets/effects/legend-plus6/hyperion-despair.webp?v=20260716-alpha-clean1', h:1.55, ar:0.8065, anchorX:0.2400, anchorY:0.5806, duration:1470, motion:'native' },
+    '黑暗隕石':   { src:'assets/effects/legend-plus6/hyperion-despair.webp?v=20260717-hyperion-meteor-rain1', h:1.55, ar:0.8099, anchorX:0.5200, anchorY:0.6890, duration:2340, motion:'native' },
     '致命一擊':   { src:'assets/effects/legend-plus6/cronos-fear.webp?v=20260716-alpha-clean1',       h:1.45, ar:0.9118, anchorX:0.5806, anchorY:0.7059, duration:560,  motion:'native' },
     '泰坦之怒':   { src:'assets/effects/legend-plus6/titan-rage.webp?v=20260716-alpha-clean1',        h:1.35, ar:1.3673, anchorX:0.3582, anchorY:0.6122, duration:910,  motion:'native' }
 };
@@ -288,7 +288,7 @@ const _WEAPON_ANIM_FOCUS = Object.freeze({
     'gaia-rage.webp':          { x:0.5000, bottom:0.6992, ar:1, duration:1230 },
     'holycrystal-wand.webp':   { x:0.4700, bottom:0.8750 },
     'redshadow-dual.webp':     { x:0.3940, bottom:0.8484 },
-    'hyperion-despair.webp':   { x:0.5000, bottom:0.9000, ar:1, duration:1230 },
+    'hyperion-despair.webp':   { x:0.5200, bottom:0.6890, ar:0.8099, duration:2340 },
     'cronos-fear.webp':        { x:0.4859, bottom:0.8382 },
     'titan-rage.webp':         { x:0.4869, bottom:0.9107 }
 });

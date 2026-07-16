@@ -757,7 +757,73 @@ function loadEnterSelected(){
 }
 function loadImportSelected(){ importSave(_loadSelectedSlot); }
 function loadRestoreSelected(){ restoreBackup(_loadSelectedSlot); }
-function loadDeleteSelected(){
+
+// Electron 不支援 window.prompt()，打包版若沿用瀏覽器輸入框會直接得到 null，
+// 導致「刪除角色」看起來完全沒有作用。EXE 改用遊戲內建確認視窗；網頁版維持原流程。
+function _desktopRoleDeletePrompt(slot, sum, expected){
+    if(!_FS) return Promise.resolve(prompt(`即將刪除存檔 ${slot}：${sum.cls} Lv.${sum.lv} ${expected}\n\n刪除後才能在此欄位創建新角色或匯入進度。\n請輸入角色名稱「${expected}」確認刪除：`, ''));
+    return new Promise(resolve => {
+        if(document.getElementById('role-delete-confirm-modal')){ resolve(null); return; }
+        const overlay = document.createElement('div');
+        overlay.id = 'role-delete-confirm-modal';
+        Object.assign(overlay.style, {
+            position:'fixed', inset:'0', zIndex:'10000', display:'flex', alignItems:'center', justifyContent:'center',
+            padding:'16px', background:'rgba(0,0,0,.78)', backdropFilter:'blur(5px)'
+        });
+        const box = document.createElement('div');
+        Object.assign(box.style, {
+            width:'min(520px, calc(100vw - 32px))', padding:'22px', borderRadius:'14px',
+            border:'1px solid rgba(185,70,60,.9)', background:'linear-gradient(180deg,#241719,#120d10)',
+            color:'#e5e7eb', boxShadow:'0 22px 70px rgba(0,0,0,.8)'
+        });
+        const title = document.createElement('div');
+        title.textContent = '永久刪除角色';
+        Object.assign(title.style, {fontSize:'22px', fontWeight:'800', color:'#fca5a5', marginBottom:'12px'});
+        const info = document.createElement('div');
+        info.textContent = `存檔 ${slot}：${sum.cls} Lv.${sum.lv} ${expected}`;
+        Object.assign(info.style, {fontWeight:'700', color:'#f3d5a5', marginBottom:'10px'});
+        const note = document.createElement('div');
+        note.textContent = '角色存檔與角色專屬傭兵資料將刪除；共享倉庫、圖鑑與寵物名冊會保留。此操作無法復原。';
+        Object.assign(note.style, {fontSize:'14px', lineHeight:'1.6', color:'#cbd5e1', marginBottom:'16px'});
+        const label = document.createElement('label');
+        label.textContent = `請輸入角色名稱「${expected}」確認：`;
+        Object.assign(label.style, {display:'block', fontSize:'14px', marginBottom:'7px'});
+        const input = document.createElement('input');
+        input.type = 'text'; input.autocomplete = 'off'; input.spellcheck = false;
+        Object.assign(input.style, {
+            width:'100%', boxSizing:'border-box', padding:'10px 12px', borderRadius:'8px',
+            border:'1px solid #64748b', background:'#080b12', color:'#fff', fontSize:'16px', outline:'none'
+        });
+        const error = document.createElement('div');
+        Object.assign(error.style, {minHeight:'20px', marginTop:'6px', fontSize:'13px', color:'#fca5a5'});
+        const actions = document.createElement('div');
+        Object.assign(actions.style, {display:'flex', justifyContent:'flex-end', gap:'10px', marginTop:'12px'});
+        const cancel = document.createElement('button');
+        cancel.type = 'button'; cancel.textContent = '取消';
+        Object.assign(cancel.style, {padding:'9px 18px', borderRadius:'8px', border:'1px solid #64748b', background:'#263244', color:'#e2e8f0', cursor:'pointer'});
+        const remove = document.createElement('button');
+        remove.type = 'button'; remove.textContent = '確認永久刪除';
+        Object.assign(remove.style, {padding:'9px 18px', borderRadius:'8px', border:'1px solid #dc6b62', background:'#8b2523', color:'#fff', fontWeight:'800', cursor:'pointer'});
+        actions.append(cancel, remove);
+        box.append(title, info, note, label, input, error, actions);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        let done = false;
+        const finish = value => { if(done) return; done = true; document.removeEventListener('keydown', onKey); overlay.remove(); resolve(value); };
+        const submit = () => {
+            if(input.value.trim() !== expected){ error.textContent = '角色名稱不正確，請重新輸入。'; input.focus(); input.select(); return; }
+            finish(input.value);
+        };
+        const onKey = e => { if(e.key === 'Escape') finish(null); else if(e.key === 'Enter') submit(); };
+        cancel.addEventListener('click', () => finish(null));
+        remove.addEventListener('click', submit);
+        overlay.addEventListener('click', e => { if(e.target === overlay) finish(null); });
+        document.addEventListener('keydown', onKey);
+        setTimeout(() => input.focus(), 0);
+    });
+}
+
+async function loadDeleteSelected(){
     const slot = _loadSelectedSlot, sum = slotSummary(slot);
     if(!sum){ renderLoadSelect(); return; }
     const active = _roleOtherActiveSessions();
@@ -767,11 +833,11 @@ function loadDeleteSelected(){
         return;
     }
     const expected = sum.name || '未命名';
-    const typed = prompt(`即將刪除存檔 ${slot}：${sum.cls} Lv.${sum.lv} ${expected}\n\n刪除後才能在此欄位創建新角色或匯入進度。\n請輸入角色名稱「${expected}」確認刪除：`, '');
+    const typed = await _desktopRoleDeletePrompt(slot, sum, expected);
     if(typed === null) return;
     if(typed.trim() !== expected){ alert('角色名稱不正確，已取消刪除。'); return; }
     if(_roleOtherActiveSessions().length){ alert('刪除期間偵測到其他遊戲分頁，已取消刪除。請先關閉其他角色後再試。'); return; }
-    if(!confirm(`確定永久刪除「${expected}」嗎？\n角色存檔與角色專屬傭兵資料將刪除；共享倉庫、圖鑑與寵物名冊會保留。`)) return;
+    if(!_FS && !confirm(`確定永久刪除「${expected}」嗎？\n角色存檔與角色專屬傭兵資料將刪除；共享倉庫、圖鑑與寵物名冊會保留。`)) return;
     const oldPlayer = _roleReadSavePlayer(slot), fp = _roleFingerprint(oldPlayer);
     if(!_roleMarkDeleted(fp)){ alert('無法建立刪除保護，為避免舊分頁寫回角色，本次刪除已取消。'); return; }
     try { if(typeof petReleaseSlotAssignments === 'function') petReleaseSlotAssignments(slot); } catch(e){ console.warn('pet delete cleanup', e); }
@@ -1063,7 +1129,7 @@ function startGame() {
     let b = createBase[curCreate.cls];
     player.base = { str: b.str+curCreate.str, dex: b.dex+curCreate.dex, con: b.con+curCreate.con, int: b.int+curCreate.int, wis: b.wis+curCreate.wis, cha: b.cha+curCreate.cha };
     player.lv = 1; player.exp = 0; player.gold = 1000;
-    player.inv = []; player.eq = { wpn: null, helm: null, armor: null, shield: null, cloak: null, tshirt: null, gloves: null, boots: null, ring1: null, ring2: null, ring3: null, ring4: null, amulet: null, ear1: null, ear2: null, belt: null, rem_claw: null, rem_eye: null, rem_blood: null, rem_flesh: null, rem_heart: null, rem_bone: null, rem_fang: null, rem_scale: null }; player.junkPrefs = {};   // 🦴 v3.1.68 席琳遺骸 8 欄（舊存檔缺鍵無害：undefined 視同空·裝備時動態建鍵）
+    player.inv = []; player.eq = { wpn: null, helm: null, armor: null, shield: null, cloak: null, tshirt: null, gloves: null, boots: null, ring1: null, ring2: null, ring3: null, ring4: null, amulet: null, ear1: null, ear2: null, belt: null, rem_claw: null, rem_eye: null, rem_blood: null, rem_flesh: null, rem_heart: null, rem_bone: null, rem_fang: null, rem_scale: null }; player.junkPrefs = {}; player.equipProtect = null;   // 🦴 v3.1.68 席琳遺骸 8 欄；🛡️ 新角色不繼承上一角色的一次性裝備保護狀態
     player.skills = [];
     player.summon = null; player.charmed = null; player.manualCd = {}; player.hot = null; player.hots = {}; player.elfEle = null; player.buffs = { haste: 0, brave: 0, blue: 0, cautious: 0, elfcookie: 0, poly: 0, shield: 0 };
     

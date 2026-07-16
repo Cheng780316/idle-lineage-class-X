@@ -283,6 +283,27 @@ function useItem(u, silent = false) {
     let d = DB.items[item.id];
     if (d.noUse) { if(!silent) logSys(`此物品無法直接使用。`); return; }
 
+    // 🛡️ 裝備保護卷軸：先取得「一次性保護狀態」，不是直接拿來強化裝備。
+    // 下一次實際使用武器／防具強化卷軸時才消耗；一般版失敗降 1、祝福版失敗維持。
+    if (d.eff === 'equip_protect' && d.protectScroll) {
+        if (silent) return;   // 不允許自動使用，避免在玩家不知情時消耗稀有卷軸
+        if (player.equipProtect) {
+            let _old = player.equipProtect === 'blessed' ? '祝福裝備保護' : '裝備保護';
+            logSys(`<span class="text-amber-300 font-bold">目前已有「${_old}」狀態，請先完成一次武器或防具強化。</span>`);
+            return;
+        }
+        player.equipProtect = d.isB ? 'blessed' : 'normal';
+        consume(item);
+        let _label = d.isB ? '祝福裝備保護' : '裝備保護';
+        let _result = d.isB ? '失敗時裝備不消失、強化值維持不變' : '失敗時裝備不消失、強化值降低 1';
+        logSys(`<span class="${d.isB ? 'text-yellow-300' : 'text-cyan-200'} font-bold">獲得「${_label}」狀態（1次）。</span><span class="text-slate-300">下次使用武器或防具強化卷軸時，成功或失敗都會消耗；${_result}。</span>`);
+        renderStatusEffects();
+        updateUI();
+        saveGame();
+        if (!document.getElementById('item-modal').classList.contains('hidden')) closeModal();
+        return;
+    }
+
     // 🎴 卡片收集冊：翻開全螢幕書頁；卡片：登錄圖鑑（已收錄則改賣出）
     if (d.eff === 'cardbook') { if (silent) return; if (typeof openCardBook === 'function') openCardBook(); return; }
     if (d.eff === 'equipbook') { if (silent) return; if (typeof openEquipBook === 'function') openEquipBook(); return; }   // 🗡️ 裝備收集冊
@@ -857,10 +878,10 @@ function buyItem(id, qty) {
 }
 
 let activeScroll = null;
-function canUseEquipProtectScroll(d, en, scrollDef) {
+function canUseEquipProtectState(d, en, kind) {
     en = Number(en) || 0;
     if (!d || (d.type !== 'wpn' && d.type !== 'arm')) return false;
-    if (scrollDef && scrollDef.protectScroll && !scrollDef.isB) return true;
+    if (kind !== 'blessed') return true;
     return (d.type === 'wpn' && en >= 11) || (d.type === 'arm' && en >= 9);
 }
 function openEnhanceModal(scroll) {
@@ -909,9 +930,14 @@ function doEnhance(targetUid, isEq = true) {
     let scroll = activeScroll;
     activeScroll = null;
     let _scrollDef = DB.items[scroll.id] || {};
-    if (_scrollDef.protectScroll && !canUseEquipProtectScroll(d, target.en, _scrollDef)) {
-        let _limitText = _scrollDef.isB ? '祝福的 裝備保護卷軸僅能用於 +11 以上武器或 +9 以上防具。' : '裝備保護卷軸僅能用於可強化的武器或防具。';
-        logSys(`<span class="text-red-400 font-bold">${_limitText}</span>`);
+    if (_scrollDef.protectScroll) {   // 舊快取／外部呼叫防呆：保護卷軸不能再充當強化卷軸
+        logSys('<span class="text-amber-300 font-bold">請先從道具欄使用裝備保護卷軸取得保護狀態，再選擇武器或防具強化卷軸。</span>');
+        closeModal();
+        return;
+    }
+    let _protectKind = (d.type === 'wpn' || d.type === 'arm') ? (player.equipProtect || null) : null;   // 飾品強化不消耗、也不阻擋武器／防具保護狀態
+    if (_protectKind && !canUseEquipProtectState(d, target.en, _protectKind)) {
+        logSys('<span class="text-red-400 font-bold">目前的祝福裝備保護狀態僅能用於 +11 以上武器或 +9 以上防具；本次未消耗強化卷軸與保護次數。</span>');
         closeModal();
         return;
     }
@@ -929,6 +955,7 @@ function doEnhance(targetUid, isEq = true) {
     // 防呆：強化值正規化為有效數字。若 en 為 undefined/NaN，(undefined < safe) 會是 false 而誤入失敗/爆裝分支，
     //        導致看似 +0 的武器仍可能消失。此處統一視為 0，確保 +0(含未初始化 en)在安定值內必定成功、不會爆裝。
     target.en = Number(target.en) || 0;
+    if (_protectKind) player.equipProtect = null;   // 一次實際強化即消耗：成功／失敗／無變化皆同
 
     // 🏰 天堂經典衝裝規則（v3.0.76·機率單一真相 enhanceRollOutcome，見 js/01）：
     //   安定值內 100% 成功（祝福卷軸跳級到安定值以上也不套用失敗/爆裝——成功在加值前判定）；
@@ -939,12 +966,12 @@ function doEnhance(targetUid, isEq = true) {
     else if (_oc === 'break') destroy = true;
     else nochange = true;   // 武器 +9 起 1/6 無事：卷軸已消耗、強化值不變
 
-    // 🛡️ 裝備保護卷軸：任何未成功結果都不會摧毀裝備。
-    // 普通版失敗強化值-1；祝福版失敗強化值不變。
-    if (_scrollDef.protectScroll && !success) {
+    // 🛡️ 一次性裝備保護狀態：任何未成功結果都不會摧毀裝備。
+    // 普通狀態失敗強化值-1；祝福狀態失敗強化值不變。
+    if (_protectKind && !success) {
         destroy = false;
         nochange = true;
-        if (!_scrollDef.isB) {
+        if (_protectKind !== 'blessed') {
             target.en = Math.max(0, target.en - 1);
             protectedDrop = true;
         }
@@ -952,12 +979,12 @@ function doEnhance(targetUid, isEq = true) {
 
     let fn = getItemFullName(target);
     if (success) {
-        let add = (_scrollDef.isB && !_scrollDef.protectScroll) ? blessEnhanceGain(target.en) : 1;   // 🌟 一般祝福強化卷可跳級；祝福裝備保護卷成功固定+1
+        let add = _scrollDef.isB ? blessEnhanceGain(target.en) : 1;   // 🌟 祝福強化卷照原規則跳級；保護狀態不取代強化卷軸
         target.en = Math.min(_cap, target.en + add);   // 🔧 祝福卷軸跳級不超過上限
         let prefix = (target.en > (d.safe||0)) ? "持續" : "";
         let _enTxt = '+' + capEn(target.en, d);   // 🔧 顯示 +N（夾擠至強化上限）
-        let _light = (_scrollDef.protectScroll && _scrollDef.isB) ? '黃色' : '銀色';
-        logSys(`<span class="text-yellow-400 font-bold">${_enTxt} ${d.n} ${prefix}發出${_light}的光芒。</span>`);
+        let _light = _scrollDef.isB ? '黃色' : '銀色';
+        logSys(`<span class="text-yellow-400 font-bold">${_enTxt} ${d.n} ${prefix}發出${_light}的光芒。</span>${_protectKind ? '<span class="text-cyan-200">裝備保護次數已消耗。</span>' : ''}`);
     } else if (destroy) {
         logSys(`<span class="text-red-500 font-bold">${fn} 強烈的發出銀色的光芒就消失了。</span>`);
         if (isEq) {
@@ -965,7 +992,7 @@ function doEnhance(targetUid, isEq = true) {
         } else {
             player.inv = player.inv.filter(i => i.uid !== target.uid); // 碎掉背包裝備
         }
-    } else if (_scrollDef.protectScroll) {
+    } else if (_protectKind) {
         if (protectedDrop) logSys(`<span class="text-orange-300 font-bold">${fn} 強化失敗，受到裝備保護卷軸保護而沒有消失，強化值降為 ${target.en < 0 ? target.en : '+' + target.en}。</span>`);
         else logSys(`<span class="text-yellow-300 font-bold">${fn} 發出黃色的光芒；強化失敗，但受到祝福保護，強化值維持不變。</span>`);
     } else {
@@ -974,6 +1001,7 @@ function doEnhance(targetUid, isEq = true) {
     
     calcStats();
     renderTabs();
+    renderStatusEffects();   // 🛡️ 成功／失敗後立即移除已消耗的裝備保護狀態顯示（村莊也不殘留）
     closeModal();
     
     // 👇 自動存檔機制：不論成功、失敗或無變化，結算完立刻強制儲存進度！
@@ -1096,6 +1124,8 @@ function renderStatusEffects() {
     }
     if (player.statuses && player.statuses.attrWind > 0) buffs.push(`<span class="text-emerald-300 font-bold">風靈迅捷（${Math.ceil(player.statuses.attrWind / 10)}秒）</span>`);
     if (player.statuses && player.statuses.attrEarth > 0) buffs.push(`<span class="text-yellow-300 font-bold">大地守護（${Math.ceil(player.statuses.attrEarth / 10)}秒）</span>`);
+    if (player.equipProtect === 'blessed') buffs.push('<span class="text-yellow-300 font-bold">祝福裝備保護（1次）</span>');
+    else if (player.equipProtect) buffs.push('<span class="text-cyan-200 font-bold">裝備保護（1次）</span>');
 
     // 魔法技能增益：凡是 player.buffs 中對應到 DB.skills 的鍵且 >0，皆顯示（僅中文名稱，依類別上色）
     for(let k in player.buffs) {

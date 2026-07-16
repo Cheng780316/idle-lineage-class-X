@@ -1,6 +1,6 @@
 /** 遊戲核心資料庫 */
 // 🏷️ 遊戲版本號（顯示於登入頁面下方·單一真相來源）：更新版本時只改這一行，登入頁面自動同步。
-const GAME_VERSION = 'v3.4.83';
+const GAME_VERSION = 'v3.4.85';
 // ===== 💾 存檔壓縮（LZString compressToUTF16/decompressFromUTF16·MIT, Pieroxy）：localStorage 內部以 UTF-16 壓縮，省 ~89%，繞過 5MB 上限 =====
 //  ⚠️ 只壓 localStorage（存檔位/倉庫/共用桶/_bak）；匯出檔維持明文 JSON（可攜·importSave 用 JSON.parse 驗證）。_lzGet 相容舊明文存檔（無 'LZ1:' 前綴→原樣回傳）。
 var LZString = (function () {
@@ -1156,8 +1156,8 @@ const DB = {
         "scroll_weapon_c": { n: "詛咒的 對武器施法的卷軸", p: 33334, c: "c-cursed", d: "纏繞格蘭肯氣息的卷軸，會削弱武器上既有的強化魔力。", isC: true, gachaWeight: 20 },
         "scroll_armor_c": { n: "詛咒的 對盔甲施法的卷軸", p: 33334, c: "c-cursed", d: "纏繞格蘭肯氣息的卷軸，會削弱防具上既有的強化魔力。", isC: true, gachaWeight: 20 },
         "scroll_acc": { n: "對飾品施法的卷軸", p: 50000, c: "text-white", d: "專為飾品刻寫的強化卷軸，細小的器物難以承受失控的魔力。", gachaWeight: 10 },
-        "scroll_equip_protect": { n: "裝備保護卷軸", type: "misc", p: 500000, c: "text-white", img: "assets/icons/items/裝備保護卷軸.jpg", protectScroll: true, noUse: true, noSell: true, gachaWeight: 0, d: "頭目低機率掉落。所有可強化的武器與防具皆可使用；成功時強化值+1，失敗時裝備不會消失，但強化值-1（最低維持+0）。" },
-        "scroll_equip_protect_b": { n: "祝福的 裝備保護卷軸", type: "misc", p: 1000000, c: "text-yellow-300", img: "assets/icons/items/裝備保護卷軸.jpg", protectScroll: true, isB: true, noUse: true, noSell: true, gachaWeight: 0, d: "沉默洞穴可羅蘭斯製作。限+11以上武器或+9以上防具使用；成功時強化值+1，失敗時裝備不會消失，強化值維持不變。" },
+        "scroll_equip_protect": { n: "裝備保護卷軸", type: "misc", p: 500000, c: "text-white", img: "assets/icons/items/裝備保護卷軸.jpg", protectScroll: true, eff: "equip_protect", noSell: true, gachaWeight: 0, d: "使用後獲得一次裝備保護狀態。下一次使用武器或防具強化卷軸時，不論成功或失敗都會消耗保護次數；失敗時裝備不會消失，但強化值-1（最低維持+0）。頭目低機率掉落；亦可向沉默洞穴可羅蘭斯以席琳結晶×20與500萬金幣製作一般版。" },
+        "scroll_equip_protect_b": { n: "祝福的 裝備保護卷軸", type: "misc", p: 1000000, c: "text-yellow-300", img: "assets/icons/items/裝備保護卷軸.jpg", protectScroll: true, eff: "equip_protect", isB: true, noSell: true, gachaWeight: 0, d: "使用後獲得一次祝福裝備保護狀態，限下一次強化+11以上武器或+9以上防具。不論成功或失敗都會消耗保護次數；失敗時裝備不會消失，強化值維持不變。可向沉默洞穴可羅蘭斯以一般裝備保護卷軸×10與1000萬金幣製作。" },
         // ===== 🔥 屬性強化卷軸（v3.0.77 屬性強化系統）：怪物掉落·於象牙塔『碧恩』對裝備中武器使用·7% 獨立事件·失敗僅消耗卷軸 =====
         "scroll_attr_fire":  { n: "火之武器強化卷軸", type: "misc", p: 100000, c: "c-attr-fr3", noUse: true, gachaWeight: 0, d: "封存帕格里奧烈焰的卷軸，可交由象牙塔的碧恩嘗試將火之力灌入武器。" },
         "scroll_attr_water": { n: "水之武器強化卷軸", type: "misc", p: 100000, c: "c-attr-wa3", noUse: true, gachaWeight: 0, d: "封存伊娃潮汐的卷軸，可交由象牙塔的碧恩嘗試將水之力灌入武器。" },
