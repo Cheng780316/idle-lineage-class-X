@@ -610,7 +610,9 @@ function castSkillInner(skId) {
                 dmg = Math.max(1, Math.floor(magicBaseDamage(dmg, player.d, 0, true) * magicDamageCoef(player.d, magicAttrDefense(t, 'none'), sk.tier) * mrMult(Math.max(0, effMr))));
             }
             dmg = Math.max(1, Math.floor(dmg * fragileMult(t) * illuLvMult(player) * wpnEnFinalMult(player.eq.wpn, true) * elementCounterMult(sk.weaponDmg ? getWpnEle(player.eq.wpn, player.eq.wpn ? DB.items[player.eq.wpn.id] : null) : 'none', t.e)));   // 主動職業技能不套神話武器增幅
+            let _attrHpBefore = t.curHp;
             t.curHp -= dmg; t.justHit = sk.weaponDmg ? getWpnEle(player.eq.wpn, player.eq.wpn ? DB.items[player.eq.wpn.id] : null) : 'magic'; if (!sk.weaponDmg) t._spellHurt = true; mobWake(t);   // 🎬 v3.0.14 純魔法技→hurt(含頭目)
+            if (sk.mpDmgPct || sk.magScale) weaponAttrWaterRecover(player, weaponAttrActualDamage(_attrHpBefore, dmg));
             if (typeof reflectWallOnDamage === 'function' && t._reflectWall) { let _rwW = player.eq.wpn && DB.items[player.eq.wpn.id]; reflectWallOnDamage(t, dmg, sk.weaponDmg ? ((_rwW && (_rwW.isBow || _rwW.ranged)) ? 'ranged' : 'melee') : 'magic', null); }   // 🌑 v3.3.33 血壁空間：玩家技能傷害反射
             if (sk.mpDmgPct && t.st && t.st.mrhalf > 0) t.st.mrhalf = 0;   // 🔧 心靈破壞（魔法）：受一次魔法傷害後解除魔抗減半（與其他魔法路徑一致）
             logCombat(`施放 <span style="font-weight:700;color:#7dd3fc">${sk.n}</span>，對 <span class="${getMobColor(t.lv)}">${t.n}</span> 造成 ${dmg} 點傷害。`, 'skill');
@@ -726,6 +728,7 @@ function castSkillInner(skId) {
 
             let totalDmgText = [];
             let _burstDmg = 0;   // 🔧 神官魔杖·魔爆：累計本次魔法總傷害
+            let _attrWaterActual = 0;   // 💧 水屬性：本次施法所有目標的實際失血合計，整次只回魔一次
             targets.forEach((t, tidx) => {
                 // --- 魔法技能命中滿血被動怪物，賦予 3 秒延遲 ---
                 if (t.curHp === t.hp && t.beh === '被動') {
@@ -771,7 +774,9 @@ function castSkillInner(skId) {
                     if (sk.hpCost && player._setDragonblood5) totalDmg = Math.max(1, Math.floor(totalDmg * 1.2));   // 🐉 龍血5/5：HP消耗技傷害+20%
                     totalDmg = illusionMagicDmg(totalDmg, false);   // 🔮 攻擊技能下拉選單可選的一般傷害法術，不觸發幻覺2/5與5/5
                     totalDmg = Math.max(1, Math.floor(totalDmg * equipSkillDmgMult(sk, skId) * (_autoCastNow ? (_equipWpnField('autoCastDmgMult') || 1) : 1)));   // 🏺 遺物 特定技能傷害倍率（冰錐/光箭/究極光裂術 ×1.5）；🐍 枯竭魔杖：auto 施放傷害 ×autoCastDmgMult(1.5)
+                    let _attrHpBefore = t.curHp;
                     t.curHp -= totalDmg;
+                    _attrWaterActual += weaponAttrActualDamage(_attrHpBefore, totalDmg);
                     _burstDmg += totalDmg;   // 🔧 魔爆累計
                     t.justHit = (sk.ele && sk.ele !== 'none') ? sk.ele : 'magic';
                     t._spellHurt = true;   // 🎬 v3.0.14 法術傷害→hurt 動畫(含頭目·renderMobs 頭目閘放行)
@@ -793,6 +798,7 @@ function castSkillInner(skId) {
                 if(t.curHp > 0 && sk.instakill) tryInstakill(t, sk.instakill, sk.n, mapState.mobs.findIndex(m => m && m.uid === t.uid));
             });
             
+            weaponAttrWaterRecover(player, _attrWaterActual);
             logCombat(`施放 <span style="font-weight:700;color:#7dd3fc">${sk.n}</span> -> ${totalDmgText.join(" | ")}`, 'skill');
             
             targets.forEach((t) => {
@@ -823,13 +829,15 @@ function castSkillInner(skId) {
                         let _live = mapState.mobs.filter(m => m && m.curHp > 0 && !m._dead);
                         if (_live.length) {
                             let _ex = Math.max(1, Math.floor(_burstDmg * 0.3 / _live.length));   // 🔧 v2.6.63：總量30%均分給場上敵人（原每隻各吃30%）
+                            let _attrBurstActual = 0;
                             logCombat(`<span class="font-bold" style="color:#f0abfc;text-shadow:0 0 6px #c026d3;">【魔爆】</span>魔力過載爆炸，波及全場！`, 'player-special');
                             _live.forEach((m, i) => {
                                 let _d = Math.max(1, Math.floor(_ex * fragileMult(m)));
-                                _d = illusionMagicDmg(_d, true, i === 0); m.curHp -= _d; m.justHit = 'magic'; mobWake(m);   // 🔮 魔爆每次發動只回一次MP，5件仍逐目標生效
+                                _d = illusionMagicDmg(_d, true, i === 0); let _attrHpBefore = m.curHp; m.curHp -= _d; _attrBurstActual += weaponAttrActualDamage(_attrHpBefore, _d); m.justHit = 'magic'; mobWake(m);   // 🔮 魔爆每次發動只回一次MP，5件仍逐目標生效
                                 logCombat(`魔爆波及 <span class="${getMobColor(m.lv)}">${m.n}</span>，造成 ${_d} 點無屬性傷害。`, 'player');
                                 if (m.curHp <= 0) { let ri = mapState.mobs.findIndex(x => x && x.uid === m.uid); if (ri !== -1) killMob(ri); }
                             });
+                            weaponAttrWaterRecover(player, _attrBurstActual);
                         }
                         }
                     }

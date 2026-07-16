@@ -15,6 +15,7 @@ const CRAFT_RECIPES = {
     ],
     // 🏛️ 可羅蘭斯（沉默洞穴）：封印的歷史書八頁→製作武器秘笈；秘笈＋對應素材武器＋素材 → 5 件傳說武器（doCraft 會自動遞迴合成缺少的秘笈）
     npc_kororanz: [
+        { result: 'scroll_equip_protect', req: [{ id: 'sherine_crystal', cnt: 20 }, { id: 'gold', cnt: 5000000 }] },
         { result: 'scroll_equip_protect_b', req: [{ id: 'scroll_equip_protect', cnt: 10 }, { id: 'gold', cnt: 10000000 }] },
         { result: 'mat_rasta_codex', req: [{ id: 'mat_history_1', cnt: 1 }, { id: 'mat_history_2', cnt: 1 }, { id: 'mat_history_3', cnt: 1 }, { id: 'mat_history_4', cnt: 1 }, { id: 'mat_history_5', cnt: 1 }, { id: 'mat_history_6', cnt: 1 }, { id: 'mat_history_7', cnt: 1 }, { id: 'mat_history_8', cnt: 1 }] },
         { result: 'wpn_emperor_blade', req: [{ id: 'mat_rasta_codex', cnt: 1 }, { id: 'wpn_official_2h', cnt: 1 }, { id: 'mat_blackmithril_plate', cnt: 10 }, { id: 'mat_black_powder', cnt: 50 }, { id: 'mat_holy_relic', cnt: 100 }, { id: 'mat_black_blood', cnt: 50 }] },
@@ -1937,12 +1938,12 @@ window.onload = () => {
             if(d.eff === 'magicstrike') _eff.push('魔擊（攻擊時依力量觸發必中重擊）');
             if(d.meleeHitSpell)        _eff.push('命中施法（攻擊命中時施放' + (d.meleeHitSpell.skn || '附加法術') + '）');
             if(d.spellProc) {
-                let _rateText = `${d.procRateBase || 1}%${d.procRatePerEn ? `＋每強化${d.procRatePerEn}%` : ''}`;
+                let _rateText = d.procUnlockEn != null ? `+${d.procUnlockEn}起固定${d.procRateBase || 1}%` : `${d.procRateBase || 1}%${d.procRatePerEn ? `＋每強化${d.procRatePerEn}%` : ''}`;
                 _eff.push(`攻擊施法 ${_rateText}（觸發${d.spellProc.skn || '附加法術'}）`);
             }
             if(d.procSkill) {
                 let _procName = (DB.skills[d.procSkill] && DB.skills[d.procSkill].n) || '技能';
-                let _rateText = `${d.procRateBase || 1}%${d.procRatePerEn ? `＋每強化${d.procRatePerEn}%` : ''}`;
+                let _rateText = d.procUnlockEn != null ? `+${d.procUnlockEn}起固定${d.procRateBase || 1}%` : `${d.procRateBase || 1}%${d.procRatePerEn ? `＋每強化${d.procRatePerEn}%` : ''}`;
                 _eff.push(`攻擊施法 ${_rateText}（觸發${_procName}）`);
             }
             if(d.procStatusSkill) {

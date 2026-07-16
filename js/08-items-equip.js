@@ -90,29 +90,30 @@ function gainSherineRemains(remId, group, silent) {
 
 // ===== 🔥 屬性詞綴定義（v3.0.77 屬性強化系統改版：4 屬性 × 5 階，只能存在於武器） =====
 // dmg = 額外傷害+N；mp = 額外魔法點數+N（N＝1/3/5/7/9，走 recompute d.extraDmg/d.extraMp·玩家＋傭兵 buildAlly 共用）
+// 五階附加能力：火＝普攻最終傷害×2；水＝依實際普攻／魔法傷害回MP；風＝攻速+20%；地＝全傷害減免15%。
 // ele = 一般攻擊轉變的屬性（剋制走 elementCounterMult ×1.4/×0.6）；tier = 階級（第4階需武器+10、第5階需+11，見 doBianAttr）
 // 取得途徑＝屬性強化卷軸（四元素·怪物掉落）於象牙塔『碧恩』賦予，每次 7% 獨立事件，失敗僅消耗卷軸
 const ATTR_AFFIX = {
-    fr1: { n: '火之',     ele: 'fire',  tier: 1, dmg: 1, mp: 1 },
-    fr2: { n: '爆炎',     ele: 'fire',  tier: 2, dmg: 3, mp: 3 },
-    fr3: { n: '火靈',     ele: 'fire',  tier: 3, dmg: 5, mp: 5 },
-    fr4: { n: '赤炎',     ele: 'fire',  tier: 4, dmg: 7, mp: 7 },
-    fr5: { n: '帕格里奧', ele: 'fire',  tier: 5, dmg: 9, mp: 9 },
-    wa1: { n: '水之',     ele: 'water', tier: 1, dmg: 1, mp: 1 },
-    wa2: { n: '海嘯',     ele: 'water', tier: 2, dmg: 3, mp: 3 },
-    wa3: { n: '水靈',     ele: 'water', tier: 3, dmg: 5, mp: 5 },
-    wa4: { n: '霜凍',     ele: 'water', tier: 4, dmg: 7, mp: 7 },
-    wa5: { n: '伊娃',     ele: 'water', tier: 5, dmg: 9, mp: 9 },
-    wi1: { n: '風之',     ele: 'wind',  tier: 1, dmg: 1, mp: 1 },
-    wi2: { n: '暴風',     ele: 'wind',  tier: 2, dmg: 3, mp: 3 },
-    wi3: { n: '風靈',     ele: 'wind',  tier: 3, dmg: 5, mp: 5 },
-    wi4: { n: '蒼蘭',     ele: 'wind',  tier: 4, dmg: 7, mp: 7 },
-    wi5: { n: '沙哈',     ele: 'wind',  tier: 5, dmg: 9, mp: 9 },
-    ea1: { n: '地之',     ele: 'earth', tier: 1, dmg: 1, mp: 1 },
-    ea2: { n: '崩裂',     ele: 'earth', tier: 2, dmg: 3, mp: 3 },
-    ea3: { n: '地靈',     ele: 'earth', tier: 3, dmg: 5, mp: 5 },
-    ea4: { n: '輝岩',     ele: 'earth', tier: 4, dmg: 7, mp: 7 },
-    ea5: { n: '馬普勒',   ele: 'earth', tier: 5, dmg: 9, mp: 9 },
+    fr1: { n: '火之',     ele: 'fire',  tier: 1, dmg: 1, mp: 1, fireDoubleRate: 2 },
+    fr2: { n: '爆炎',     ele: 'fire',  tier: 2, dmg: 3, mp: 3, fireDoubleRate: 4 },
+    fr3: { n: '火靈',     ele: 'fire',  tier: 3, dmg: 5, mp: 5, fireDoubleRate: 6 },
+    fr4: { n: '赤炎',     ele: 'fire',  tier: 4, dmg: 7, mp: 7, fireDoubleRate: 8 },
+    fr5: { n: '帕格里奧', ele: 'fire',  tier: 5, dmg: 9, mp: 9, fireDoubleRate: 10 },
+    wa1: { n: '水之',     ele: 'water', tier: 1, dmg: 1, mp: 1, waterMpPct: 1.0 },
+    wa2: { n: '海嘯',     ele: 'water', tier: 2, dmg: 3, mp: 3, waterMpPct: 1.5 },
+    wa3: { n: '水靈',     ele: 'water', tier: 3, dmg: 5, mp: 5, waterMpPct: 2.0 },
+    wa4: { n: '霜凍',     ele: 'water', tier: 4, dmg: 7, mp: 7, waterMpPct: 2.5 },
+    wa5: { n: '伊娃',     ele: 'water', tier: 5, dmg: 9, mp: 9, waterMpPct: 3.0 },
+    wi1: { n: '風之',     ele: 'wind',  tier: 1, dmg: 1, mp: 1, windHasteRate: 5, windHastePct: 20, windHasteSec: 1 },
+    wi2: { n: '暴風',     ele: 'wind',  tier: 2, dmg: 3, mp: 3, windHasteRate: 5, windHastePct: 20, windHasteSec: 2 },
+    wi3: { n: '風靈',     ele: 'wind',  tier: 3, dmg: 5, mp: 5, windHasteRate: 5, windHastePct: 20, windHasteSec: 3 },
+    wi4: { n: '蒼蘭',     ele: 'wind',  tier: 4, dmg: 7, mp: 7, windHasteRate: 5, windHastePct: 20, windHasteSec: 4 },
+    wi5: { n: '沙哈',     ele: 'wind',  tier: 5, dmg: 9, mp: 9, windHasteRate: 5, windHastePct: 20, windHasteSec: 5 },
+    ea1: { n: '地之',     ele: 'earth', tier: 1, dmg: 1, mp: 1, earthGuardRate: 5, earthGuardPct: 15, earthGuardSec: 1 },
+    ea2: { n: '崩裂',     ele: 'earth', tier: 2, dmg: 3, mp: 3, earthGuardRate: 5, earthGuardPct: 15, earthGuardSec: 2 },
+    ea3: { n: '地靈',     ele: 'earth', tier: 3, dmg: 5, mp: 5, earthGuardRate: 5, earthGuardPct: 15, earthGuardSec: 3 },
+    ea4: { n: '輝岩',     ele: 'earth', tier: 4, dmg: 7, mp: 7, earthGuardRate: 5, earthGuardPct: 15, earthGuardSec: 4 },
+    ea5: { n: '馬普勒',   ele: 'earth', tier: 5, dmg: 9, mp: 9, earthGuardRate: 5, earthGuardPct: 15, earthGuardSec: 5 },
 };
 const ATTR_ELE_PREFIX = { fire: 'fr', water: 'wa', wind: 'wi', earth: 'ea' };   // 元素 → 代碼字首（碧恩賦予/升階用）
 // 舊12代碼 → 新代碼（名稱身分不變：火之→fr1、爆炎→fr2、火靈→fr3…）。讀取路徑自動解析（含倉庫舊資料，零寫入）；
@@ -856,9 +857,11 @@ function buyItem(id, qty) {
 }
 
 let activeScroll = null;
-function canUseEquipProtectScroll(d, en) {
+function canUseEquipProtectScroll(d, en, scrollDef) {
     en = Number(en) || 0;
-    return !!d && ((d.type === 'wpn' && en >= 11) || (d.type === 'arm' && en >= 9));
+    if (!d || (d.type !== 'wpn' && d.type !== 'arm')) return false;
+    if (scrollDef && scrollDef.protectScroll && !scrollDef.isB) return true;
+    return (d.type === 'wpn' && en >= 11) || (d.type === 'arm' && en >= 9);
 }
 function openEnhanceModal(scroll) {
     activeScroll = scroll;
@@ -906,8 +909,9 @@ function doEnhance(targetUid, isEq = true) {
     let scroll = activeScroll;
     activeScroll = null;
     let _scrollDef = DB.items[scroll.id] || {};
-    if (_scrollDef.protectScroll && !canUseEquipProtectScroll(d, target.en)) {
-        logSys('<span class="text-red-400 font-bold">裝備保護卷軸僅能用於 +11 以上武器或 +9 以上防具。</span>');
+    if (_scrollDef.protectScroll && !canUseEquipProtectScroll(d, target.en, _scrollDef)) {
+        let _limitText = _scrollDef.isB ? '祝福的 裝備保護卷軸僅能用於 +11 以上武器或 +9 以上防具。' : '裝備保護卷軸僅能用於可強化的武器或防具。';
+        logSys(`<span class="text-red-400 font-bold">${_limitText}</span>`);
         closeModal();
         return;
     }
@@ -921,7 +925,7 @@ function doEnhance(targetUid, isEq = true) {
         target = singleItem; 
     }
     
-    let success = false, destroy = false, nochange = false;
+    let success = false, destroy = false, nochange = false, protectedDrop = false;
     // 防呆：強化值正規化為有效數字。若 en 為 undefined/NaN，(undefined < safe) 會是 false 而誤入失敗/爆裝分支，
     //        導致看似 +0 的武器仍可能消失。此處統一視為 0，確保 +0(含未初始化 en)在安定值內必定成功、不會爆裝。
     target.en = Number(target.en) || 0;
@@ -941,7 +945,7 @@ function doEnhance(targetUid, isEq = true) {
         destroy = false;
         nochange = true;
         if (!_scrollDef.isB) {
-            target.en = Math.max(-1, target.en - 1);
+            target.en = Math.max(0, target.en - 1);
             protectedDrop = true;
         }
     }
@@ -1090,6 +1094,8 @@ function renderStatusEffects() {
             if (_n >= 2) buffs.push(`<span class="c-sherine font-bold">${_g} ${_n}/5</span>`);
         }
     }
+    if (player.statuses && player.statuses.attrWind > 0) buffs.push(`<span class="text-emerald-300 font-bold">風靈迅捷（${Math.ceil(player.statuses.attrWind / 10)}秒）</span>`);
+    if (player.statuses && player.statuses.attrEarth > 0) buffs.push(`<span class="text-yellow-300 font-bold">大地守護（${Math.ceil(player.statuses.attrEarth / 10)}秒）</span>`);
 
     // 魔法技能增益：凡是 player.buffs 中對應到 DB.skills 的鍵且 >0，皆顯示（僅中文名稱，依類別上色）
     for(let k in player.buffs) {

@@ -312,6 +312,7 @@ function tick() {
         if (player.statuses[k] > 0 && k !== 'poisonDmg' && k !== 'poisonTick' && k !== 'burnDmg' && k !== 'burnTick' && k !== 'scaldDmg' && k !== 'scaldTick' && k !== 'bleedDmg' && k !== 'bleedTick') {
             player.statuses[k]--;
             if(k === 'cleave' && player.statuses.cleave === 0) calcStats();   // 🔧 切割到期：重算攻速
+            if(k === 'attrWind' && player.statuses.attrWind === 0) calcStats();   // 🌪️ 風屬性迅捷到期：還原攻速
             if(k === 'evilAura' && player.statuses.evilAura === 0) calcStats();   // 🔧 邪靈之氣到期：還原 AC/ER
             if(k === 'stun' || k === 'freeze' || k === 'stone' || k === 'paralyze' || k === 'sleep') canAct = false;
         }
@@ -1185,7 +1186,9 @@ function procLightArrow(t) {
     if (typeof equipSkillDmgMult === 'function') d = Math.max(1, Math.floor(d * equipSkillDmgMult(sk, 'sk_lightarrow')));   // 🏺 v3.2.42 稽核修：共鳴光箭也吃技能傷害倍率遺物（光束強化魔杖 skillDmgMult 自身 proc 原本不生效）
     d = Math.max(1, Math.floor(d * rlFuryMult()));   // 🔮 紅獅5/5＋😡狂怒5/5：最終傷害
     d = illusionMagicDmg(d, false);   // 🔮 共鳴本身已有回魔，不觸發幻覺2/5與5/5
+    let _attrHpBefore = t.curHp;
     t.curHp -= d;
+    weaponAttrWaterRecover(player, weaponAttrActualDamage(_attrHpBefore, d));
     t.justHit = 'magic';
     if (t.st && t.st.mrhalf > 0) t.st.mrhalf = 0;
     mobWake(t);
@@ -1214,7 +1217,9 @@ function procMoonburst(t) {
     mbDmg = Math.max(1, Math.floor(mbDmg * fragileMult(t) * _cm));   // 🔮 脆弱（白鳥5）＋⚔️屬性剋制 ×1.4/×0.6
     mbDmg = Math.max(1, Math.floor(mbDmg * enhanceWpnFinalMult(en, player.eq.wpn && DB.items[player.eq.wpn.id])));   // 🔧 武器強化 +11~+20：最終傷害倍率
     mbDmg = Math.max(1, Math.floor(mbDmg * rlFuryMult()));   // 🔮 紅獅5/5＋😡狂怒5/5：最終傷害
+    let _attrHpBefore = t.curHp;
     t.curHp -= mbDmg;
+    weaponAttrWaterRecover(player, weaponAttrActualDamage(_attrHpBefore, mbDmg));
     t.justHit = 'wind';
     logCombat(`<span class="font-bold" style="color:#67e8f9;text-shadow:0 0 6px #06b6d4;">【月光爆裂】</span>對 <span class="${getMobColor(t.lv)}">${t.n}</span> 造成 ${mbDmg} 點風屬性傷害！${counterTxt}`, 'player-special');
     if (t.curHp <= 0) {
@@ -1432,7 +1437,10 @@ function dragonExtraAttackProc(target) {
         let res = getPhysicalDmg(dice, t, wpn, null, false, false, false);
         if (!res.hit) { logCombat(`<span class="font-bold" style="color:#fbbf24;">【額外攻擊】</span>對 <span class="${getMobColor(t.lv)}">${t.n}</span> 未命中。`, 'miss'); continue; }
         // 🏅 鎖刃精通：「每層弱點曝光最終傷害+10%」僅屠宰者生效，額外攻擊不套用
+        res.dmg = weaponAttrNormalDamage(player, player.eq.wpn, res.dmg);
+        let _attrHpBefore = t.curHp;
         t.curHp -= res.dmg; t.justHit = getWpnEle(player.eq.wpn, wpn); mobWake(t);
+        weaponAttrAfterNormalHit(player, player.eq.wpn, weaponAttrActualDamage(_attrHpBefore, res.dmg));
         if (t.curHp > 0) { wearHardSkin(t, player.eq.wpn ? player.eq.wpn.id : null, res.heavy, false, true, player.classicMode); applyPlayerWeakExpose(t); }
         if (wpn.vampPct && res.dmg > 0) player.hp = Math.min(player.mhp, player.hp + Math.floor(res.dmg * wpn.vampPct));
         let mark = (res.heavy && res.crit) ? '會心一擊' : (res.crit ? '爆擊' : (res.heavy ? '重擊' : ''));
@@ -1459,7 +1467,10 @@ function procCombo(t, fullDmg) {
         }
     }
     let dmg = Math.max(1, Math.floor(_cdmg * (fullDmg ? (player._setShadow5 ? 2.0 : 1.0) : (player._setShadow5 ? 1.0 : 0.5))));   // 🔧 雙擊(fullDmg)：完整一般攻擊·暗影5/5傷害加倍(×2)；爆擊精通額外攻擊(legacy)：×0.5·暗影5/5×1.0
+    dmg = weaponAttrNormalDamage(player, player.eq.wpn, dmg);
+    let _attrHpBefore = t.curHp;
     t.curHp -= dmg;
+    weaponAttrAfterNormalHit(player, player.eq.wpn, weaponAttrActualDamage(_attrHpBefore, dmg));
     t.justHit = getWpnEle(player.eq.wpn, wpn);
     mobWake(t);
     if (t.curHp > 0) wearHardSkin(t, player.eq.wpn ? player.eq.wpn.id : null, res.heavy, false, true, player.classicMode);   // 連擊亦為一般攻擊：依武器消磨硬皮
@@ -1498,8 +1509,10 @@ function dualWieldOffhandAttack(t) {
     if (!res.hit) { logCombat(`<span class="font-bold" style="color:#fbbf24;">【迅猛雙斧】</span>副手追擊 <span class="${getMobColor(t.lv)}">${t.n}</span> 未命中。`, 'miss'); return; }
     let dmg = res.dmg;
     if (player.skills.includes('sk_warrior_berserk') && Math.random() < 0.05) dmg *= 2;   // ⚔️ 狂暴：副手亦為一般攻擊
-    dmg = Math.max(1, dmg);
+    dmg = weaponAttrNormalDamage(player, player.eq.offwpn, Math.max(1, dmg));
+    let _attrHpBefore = t.curHp;
     t.curHp -= dmg; t.justHit = getWpnEle(player.eq.offwpn, owpn); mobWake(t);
+    weaponAttrAfterNormalHit(player, player.eq.offwpn, weaponAttrActualDamage(_attrHpBefore, dmg));
     if (t.curHp > 0) wearHardSkin(t, player.eq.offwpn.id, res.heavy, false, true, player.classicMode);
     let mark = (res.heavy && res.crit) ? '會心一擊' : (res.crit ? '爆擊' : (res.heavy ? '重擊' : ''));
     logCombat(`<span class="font-bold" style="color:#fbbf24;text-shadow:0 0 6px #d97706;">【迅猛雙斧】</span>副手 ${owpn.n} 追擊 <span class="${getMobColor(t.lv)}">${t.n}</span>，造成 ${dmg} 點傷害${mark?'（'+mark+'!）':''}。`, 'player');
@@ -1622,6 +1635,66 @@ function mpOnHitAmount(wpn, en) {
     if (wpn.mpOnHitAmt != null) return wpn.mpOnHitAmt;
     return (wpn.mpOnHitBase || 1) + Math.max(0, (en || 0) - 6);
 }
+// ===== 四屬性武器五階附加能力（玩家／傭兵共用） =====
+function weaponAttrAffix(inst) {
+    return (inst && typeof getAttrAffix === 'function') ? getAttrAffix(inst.attr) : null;
+}
+function weaponAttrActualDamage(beforeHp, damage) {
+    return Math.max(0, Math.min(Math.max(0, Number(beforeHp) || 0), Math.max(0, Math.floor(Number(damage) || 0))));
+}
+function weaponAttrActorLabel(actor) {
+    return actor === player ? '' : `協力·${actor && actor._allyName ? actor._allyName : '傭兵'}·`;
+}
+// 火屬性只在「一般武器打擊」的所有既有倍率完成後再乘二；技能、連射、DoT、武器魔法不走此函式。
+function weaponAttrNormalDamage(actor, inst, damage) {
+    let aff = weaponAttrAffix(inst), out = Math.max(1, Math.floor(Number(damage) || 1));
+    if (aff && aff.fireDoubleRate > 0 && Math.random() * 100 < aff.fireDoubleRate) {
+        out = Math.max(1, out * 2);
+        logCombat(`<span class="font-bold" style="color:#fb923c;text-shadow:0 0 6px #dc2626;">【${weaponAttrActorLabel(actor)}烈焰爆發】</span>本次一般攻擊最終傷害加倍！`, 'player-special');
+    }
+    return out;
+}
+// 水屬性以本次事件實際扣除的 HP 合計回魔；多段／範圍魔法由呼叫端合計後只呼叫一次。
+function weaponAttrWaterRecover(actor, actualDamage, inst) {
+    if (!actor) return 0;
+    inst = inst || (actor.eq && actor.eq.wpn);
+    let aff = weaponAttrAffix(inst);
+    if (!aff || !(aff.waterMpPct > 0) || !(actualDamage > 0)) return 0;
+    let want = Math.min(50, Math.max(1, Math.floor(actualDamage * aff.waterMpPct / 100)));
+    let oldMp = Number(actor.mp) || 0, maxMp = Math.max(0, Number(actor.mmp) || 0);
+    actor.mp = Math.min(maxMp, oldMp + want);
+    let gained = Math.max(0, actor.mp - oldMp);
+    if (gained > 0) {
+        logCombat(`<span class="font-bold" style="color:#60a5fa;text-shadow:0 0 6px #2563eb;">【${weaponAttrActorLabel(actor)}潮汐汲取】</span>依實際傷害恢復 ${gained} 點 MP。`, 'heal', actor === player ? undefined : 'mercenary');
+        if (actor === player && typeof updateUI === 'function') updateUI();
+    }
+    return gained;
+}
+// 一般攻擊命中後：水回魔；風／地各自以 5% 觸發，重複觸發只刷新時間。
+function weaponAttrAfterNormalHit(actor, inst, actualDamage) {
+    if (!actor || !(actualDamage > 0)) return;
+    let aff = weaponAttrAffix(inst);
+    if (!aff) return;
+    weaponAttrWaterRecover(actor, actualDamage, inst);
+    if (aff.windHasteRate > 0 && Math.random() * 100 < aff.windHasteRate) {
+        let ticks = Math.max(10, (aff.windHasteSec || aff.tier || 1) * 10);
+        if (actor === player) {
+            if (!actor.statuses) actor.statuses = {};
+            let wasActive = (actor.statuses.attrWind || 0) > 0;
+            actor.statuses.attrWind = ticks;
+            if (!wasActive && typeof calcStats === 'function') calcStats();
+        } else actor._attrWindTicks = ticks;
+        logCombat(`<span class="font-bold" style="color:#86efac;text-shadow:0 0 6px #16a34a;">【${weaponAttrActorLabel(actor)}風靈迅捷】</span>攻擊速度提高20%，持續 ${aff.windHasteSec || aff.tier} 秒。`, 'player-special');
+    }
+    if (aff.earthGuardRate > 0 && Math.random() * 100 < aff.earthGuardRate) {
+        let ticks = Math.max(10, (aff.earthGuardSec || aff.tier || 1) * 10);
+        if (actor === player) {
+            if (!actor.statuses) actor.statuses = {};
+            actor.statuses.attrEarth = ticks;
+        } else actor._attrEarthTicks = ticks;
+        logCombat(`<span class="font-bold" style="color:#facc15;text-shadow:0 0 6px #a16207;">【${weaponAttrActorLabel(actor)}大地守護】</span>受到的非固定傷害降低15%，持續 ${aff.earthGuardSec || aff.tier} 秒。`, 'player-special');
+    }
+}
 // 🔮 幻術士 奇古獸一般攻擊：（奇古獸骰＋魔法傷害＋額外傷害）× 原版方向 SP／屬性防禦係數，100%命中、受目標MR減免（奇古獸精通無視MR）。
 //    觸發路徑：裝備奇古獸(wpn.qigu)恆走此式；或 魔劍精通 + 任意非弓「且非魔杖」武器亦套用此式。屬性詞綴→對應屬性(剋屬性+6)。
 // 🔮 幻術士專屬加成：所有傷害(奇古獸普攻/特效/傷害技能/立方/幻覺召喚物)最終 ×(1+等級/50)；非幻術士回 1（玩家傳 player、傭兵傳 ally）
@@ -1646,7 +1719,10 @@ function qiguPlayerAttack(target, wpn) {
     dmg = Math.max(1, Math.floor(dmg * wpnEnFinalMult(player.eq.wpn)));   // 武器強化 +11~+20 最終倍率
     dmg = Math.max(1, Math.floor(dmg * rlFuryMult()));   // 🔮 紅獅5/5＋😡狂怒5/5
     dmg = Math.max(1, Math.floor(dmg * fragileMult(target) * illuLvMult(player)));   // 🔮 脆弱/破甲；🔮 幻術士等級加成 ×(1+等級/50)
+    dmg = weaponAttrNormalDamage(player, player.eq.wpn, dmg);
+    let _attrHpBefore = target.curHp;
     target.curHp -= dmg;
+    weaponAttrAfterNormalHit(player, player.eq.wpn, weaponAttrActualDamage(_attrHpBefore, dmg));
     target.justHit = (ele !== 'none') ? ele : 'magic';
     if (target.st && target.st.mrhalf > 0) target.st.mrhalf = 0;
     mobWake(target);
@@ -1658,7 +1734,9 @@ function qiguPlayerAttack(target, wpn) {
         if ((_last == null || _now - _last >= 10) && Math.random() < 0.20) {
             target._qiguMentalTick = _now;
             let _rd = Math.max(1, Math.floor(dmg * 0.75)), _mp = Math.max(1, Math.floor((player.mmp || 1) * 0.02));
+            let _attrResHpBefore = target.curHp;
             target.curHp -= _rd; target.justHit = 'magic'; mobWake(target);
+            weaponAttrWaterRecover(player, weaponAttrActualDamage(_attrResHpBefore, _rd));
             player.mp = Math.min(player.mmp, player.mp + _mp);
             if (typeof playSpellFx === 'function') { try { playSpellFx('精神共鳴', target); } catch(e){} }
             logCombat(`<span class="font-bold" style="color:#e9d5ff;text-shadow:0 0 7px #9333ea;">【精神共鳴】</span>對 <span class="${getMobColor(target.lv)}">${target.n}</span> 追加 ${_rd} 點魔法傷害，恢復 ${_mp} 點 MP。`, 'player-special');
@@ -1691,7 +1769,9 @@ function qiguWeaponProc(target, wpn) {
         label = '心靈破壞';
     } else return;
     dmg = Math.max(1, Math.floor(dmg * fragileMult(target) * illuLvMult(player) * enhanceWpnFinalMult(en, wpn)));   // 🔮 幻術士等級加成 ×(1+等級/50)；🔧 武器強化 +11~+20 最終倍率
+    let _attrHpBefore = target.curHp;
     target.curHp -= dmg; target.justHit = 'magic'; mobWake(target);
+    weaponAttrWaterRecover(player, weaponAttrActualDamage(_attrHpBefore, dmg));
     logCombat(`<span class="font-bold" style="color:#a78bfa;text-shadow:0 0 6px #7c3aed;">【${label}】</span>對 <span class="${getMobColor(target.lv)}">${target.n}</span> 造成 ${dmg} 點傷害！`, cls);
     if (target.curHp <= 0) killMob(mapState.targetIdx); else renderMobs();
 }

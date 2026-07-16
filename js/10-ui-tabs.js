@@ -1050,12 +1050,14 @@ function buildItemDescHTML(item) {
         if (d.meleeHitSpell)        _eff.push('命中施法（攻擊命中時施放' + (d.meleeHitSpell.skn || '附加法術') + '）');
         if (d.spellProc) {
             let _spellRate = (d.procRateBase || 1) + (d.procRatePerEn || 0) * capWpnEn(item.en || 0);
-            _eff.push(`攻擊施法 ${_spellRate}%（觸發${d.spellProc.skn || '附加法術'}）`);
+            if (d.procUnlockEn != null && capWpnEn(item.en || 0) < d.procUnlockEn) _eff.push(`攻擊施法：尚未解鎖（+${d.procUnlockEn}起固定${d.procRateBase || 1}%觸發${d.spellProc.skn || '附加法術'}）`);
+            else _eff.push(`攻擊施法 ${_spellRate}%（觸發${d.spellProc.skn || '附加法術'}）`);
         }
         if (d.procSkill) {
             let _procName = (DB.skills[d.procSkill] && DB.skills[d.procSkill].n) || '技能';
             let _procRate = (d.procRateBase || 1) + (d.procRatePerEn || 0) * capWpnEn(item.en || 0);
-            _eff.push(`攻擊施法 ${_procRate}%（觸發${_procName}）`);
+            if (d.procUnlockEn != null && capWpnEn(item.en || 0) < d.procUnlockEn) _eff.push(`攻擊施法：尚未解鎖（+${d.procUnlockEn}起固定${d.procRateBase || 1}%觸發${_procName}）`);
+            else _eff.push(`攻擊施法 ${_procRate}%（觸發${_procName}）`);
         }
         if (d.procStatusSkill) {
             let _statusName = (DB.skills[d.procStatusSkill.skId] && DB.skills[d.procStatusSkill.skId].n) || '異常狀態';
@@ -1187,7 +1189,12 @@ function buildItemDescHTML(item) {
     if(_aff) {
         let eleName = { fire:'火', water:'水', wind:'風', earth:'地' }[_aff.ele];
         let counterName = { fire:'地', water:'火', wind:'水', earth:'風' }[_aff.ele];
-        desc += `<br><span class="c-attr-${attrCanon(item.attr)}">${_aff.n}（屬性第${_aff.tier}階）：額外傷害+${_aff.dmg}、額外魔法點數+${_aff.mp}，一般攻擊轉為${eleName}屬性（剋${counterName} ×1.4）。</span>`;   // 🔥 v3.0.77 五階制
+        let _attrExtra = '';
+        if (_aff.fireDoubleRate) _attrExtra = `；烈焰爆發：一般攻擊${_aff.fireDoubleRate}%機率最終傷害×2`;
+        else if (_aff.waterMpPct) _attrExtra = `；潮汐汲取：普攻、傷害魔法與武器魔法依實際傷害×${_aff.waterMpPct}%恢復MP（每次上限50）`;
+        else if (_aff.windHasteRate) _attrExtra = `；風靈迅捷：一般攻擊${_aff.windHasteRate}%機率攻速+${_aff.windHastePct}%、持續${_aff.windHasteSec}秒（刷新、不疊加）`;
+        else if (_aff.earthGuardRate) _attrExtra = `；大地守護：一般攻擊${_aff.earthGuardRate}%機率非固定傷害減免${_aff.earthGuardPct}%、持續${_aff.earthGuardSec}秒（刷新、不疊加）`;
+        desc += `<br><span class="c-attr-${attrCanon(item.attr)}">${_aff.n}（屬性第${_aff.tier}階）：額外傷害+${_aff.dmg}、額外魔法點數+${_aff.mp}，一般攻擊轉為${eleName}屬性（剋${counterName} ×1.4）${_attrExtra}。</span>`;   // 🔥 五階屬性＋附加能力
     }
 
     // 🛡️ 適用職業：以職業 logo 顯示可裝備此裝備的職業（騎士/妖精/法師/黑暗妖精/幻術士；黑暗妖精走 darkEquipOk 真實規則）
@@ -1345,9 +1352,8 @@ function showEnhanceOptions(uid, isEq) {
     let scrollNorm, scrollBless, scrollCurse;
     let _heldProtect = player.inv.find(i => i.id === 'scroll_equip_protect');
     let _heldProtectBless = player.inv.find(i => i.id === 'scroll_equip_protect_b');
-    let _protectEligible = canUseEquipProtectScroll(d, item.en);
-    let scrollProtect = _protectEligible ? _heldProtect : null;
-    let scrollProtectBless = _protectEligible ? _heldProtectBless : null;
+    let scrollProtect = canUseEquipProtectScroll(d, item.en, DB.items.scroll_equip_protect) ? _heldProtect : null;
+    let scrollProtectBless = canUseEquipProtectScroll(d, item.en, DB.items.scroll_equip_protect_b) ? _heldProtectBless : null;
     let scrollNormId = ''; // 🌟 紀錄該裝備對應的一般卷軸 ID
     let scrollCurseId = ''; // 詛咒卷軸 ID（武器/盔甲）
 
@@ -1382,7 +1388,7 @@ function showEnhanceOptions(uid, isEq) {
     
     // 武器/防具：如果一般／祝福／詛咒卷軸全都沒有，直接跳錯
     if (!scrollNorm && !scrollBless && !scrollCurse && !scrollProtect && !scrollProtectBless) {
-        if (_heldProtect || _heldProtectBless) logSys('<span class="text-red-400 font-bold">裝備保護卷軸僅能用於 +11 以上武器或 +9 以上防具。</span>');
+        if (_heldProtectBless) logSys('<span class="text-red-400 font-bold">祝福的 裝備保護卷軸僅能用於 +11 以上武器或 +9 以上防具；一般裝備保護卷軸可用於所有可強化武器與防具。</span>');
         else logSys(`<span class="text-red-400 font-bold">強化卷軸不足。</span>`);
         return;
     }
@@ -2366,10 +2372,15 @@ function renderSquadPanel() {
             el.style.width = Math.min(100, Math.max(0, pct)) + '%';
             let t = document.getElementById('squad-exp-txt-' + s); if (t) t.innerText = pct >= 100 ? '滿' : pct.toFixed(1) + '%';   // 不即時升級→累積超過一級顯「滿」（解雇可回收）
         }
-        if ((el = document.getElementById('squad-status-' + s))) {   // 🤝 Phase4：傭兵異常狀態小字（無狀態時空白不佔版面）
-            let _ss = a.statuses || {}, _out = [];
+        if ((el = document.getElementById('squad-status-' + s))) {   // 🤝 傭兵狀態小字：同時顯示屬性武器的短效增益與異常狀態
+            let _ss = a.statuses || {}, _out = [], _buff = [];
             [['stun', '暈眩'], ['freeze', '冰凍'], ['stone', '石化'], ['paralyze', '麻痺'], ['sleep', '沉睡'], ['silence', '沉默'], ['magicseal', '魔封'], ['poison', '中毒'], ['burn', '灼燒'], ['scald', '燙傷'], ['bleed', '出血'], ['slowAtk', '緩速']].forEach(p => { if ((_ss[p[0]] || 0) > 0) _out.push(p[1]); });
-            el.textContent = _out.length ? ('⚠ ' + _out.join('·')) : '';
+            if ((a._attrWindTicks || 0) > 0) _buff.push('風靈迅捷');
+            if ((a._attrEarthTicks || 0) > 0) _buff.push('大地守護');
+            let _parts = [];
+            if (_buff.length) _parts.push('▲ ' + _buff.join('·'));
+            if (_out.length) _parts.push('⚠ ' + _out.join('·'));
+            el.textContent = _parts.join('｜');
         }
     });
 }
