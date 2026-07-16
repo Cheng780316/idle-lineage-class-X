@@ -323,7 +323,7 @@ function castSkill(skId) {
         if (player.mp < _before) manaMasteryRefund(_before - player.mp);
     }
     if (r) { try { playSpellCast(DB.skills[skId] ? DB.skills[skId].n : null); } catch(e){} }   // 🔊 音效：施法成功才出聲（依技能名對應專屬施展音，查無→通用魔法音）
-    if (r && typeof playSelfFx === 'function' && DB.skills[skId] && isSupportSkill(DB.skills[skId])) {   // 🙏 v2.7.48 自我增益特效：buff→玩家頭上(overHead)·heal→被治療目標身上（未註冊靜默略過）
+    if (r && typeof playSelfFx === 'function' && DB.skills[skId] && isSupportSkill(DB.skills[skId]) && !DB.skills[skId].drain) {   // 🙏 目標型魔力奪取排除玩家頭上的通用輔助特效
         try {
             let _sk = DB.skills[skId];
             let _anchor = (_sk.type === 'heal' && typeof _partyMemberRect === 'function') ? _partyMemberRect(_lastHealFxTarget || player) : null;   // 🩹 治癒特效疊在實際受益者身上；其餘 buff 走 playSelfFx 內 overHead（玩家頭上）
@@ -426,6 +426,7 @@ function castSkillInner(skId) {
             if(!_t || _t.curHp <= 0) return false;   // 沒有目標：不施放、不耗 HP
             player.mp -= cost;
             player.hp = Math.max(1, player.hp - (sk.hpCost || 0));
+            if(typeof playSpellFx === 'function') { try { playSpellFx(sk.n, _t); } catch(e){} }   // 命中／失敗都固定在怪物身上播放
             if(abnormalMagicHit(_t)) {
                 let gain = roll(1, Math.max(1, Math.floor((_t.lv || 1) / 2)));   // 🔧 吸取量＝1D(怪物等級/2)
                 player.mp = Math.min(player.mmp, player.mp + gain);

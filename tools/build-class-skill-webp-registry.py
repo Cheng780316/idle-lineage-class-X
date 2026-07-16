@@ -15,7 +15,14 @@ SOURCE = ROOT / "client-animation-extract" / "all-class-skill-effects"
 OUTPUT = ROOT / "assets" / "effects" / "class-skills"
 REGISTRY = ROOT / "js" / "class-skill-anim.js"
 
-ASSET_VERSION = "20260716-class-vfx-fix1"
+ASSET_VERSION = "20260716-class-vfx-fix2"
+
+# 實際施放邏輯會指定怪物的技能，即使資料表把它們歸在輔助／轉換類，
+# 動圖仍必須固定在目標錨點，避免玩家與傭兵頭上多播一份。
+PLACEMENT_OVERRIDES = {
+    "迷魅術": "target",
+    "魔力奪取": "target",
+}
 
 TARGET_WORDS = (
     "目標", "命中", "爆發", "落雷", "衝擊", "地面", "傷害", "擊中", "爆裂",
@@ -153,7 +160,10 @@ def build() -> None:
             "width": max(1, int(canvas[0] or 1)),
             "height": max(1, int(canvas[1] or 1)),
             "duration": duration,
-            "placement": "target" if anim.get("_skill_type") == "atk" else "caster",
+            "placement": PLACEMENT_OVERRIDES.get(
+                skill,
+                "target" if anim.get("_skill_type") == "atk" else "caster",
+            ),
             "focusX": round(focus_x, 4),
             "focusY": round(focus_y, 4),
         }

@@ -852,6 +852,7 @@ function allyCastMagic(ally, sk) {
     let d = ally.d || {};
     let targets = (sk.target === 'all') ? mapState.mobs.filter(m => m && m.curHp > 0) : [getTarget()].filter(m => m && m.curHp > 0);
     if (!targets.length) return;
+    if (typeof playActorSkillFx === 'function') playActorSkillFx(ally, sk, targets);
     let mageMult = 1.0;
     let texts = [], _burstDmg = 0;   // 🔧 神官魔杖·魔爆：累計本次魔法總傷害
     targets.forEach(t => {
@@ -937,6 +938,23 @@ function allyCastMagic(ally, sk) {
             }
         }
     }
+    // 🪄 傭兵成功施放攻擊魔法後，額外判定一次武器 procSkill。
+    // 同一行動最多一次；迴響與武器魔法本身不再連鎖，也不重算上方既有魔爆。
+    if (_burstDmg > 0 && !ally._echoing && !ally._spellWeaponProcActive) {
+        let _wi = ally.eq && ally.eq.wpn, _pw = _wi ? DB.items[_wi.id] : null;
+        if (_pw && _pw.procSkill) {
+            let _en = capWpnEn(_wi.en);
+            let _rate = (_pw.procRateBase || 1) + (_pw.procRatePerEn != null ? _pw.procRatePerEn : 1) * _en;
+            if (Math.random() * 100 < _rate) {
+                let _pt = _allyProcTarget(targets[0]);
+                if (_pt) {
+                    ally._spellWeaponProcActive = true;
+                    try { allyProcFreeMagicSkill(ally, _pt, _pw.procSkill, _en, false, _pw); }
+                    finally { ally._spellWeaponProcActive = false; }
+                }
+            }
+        }
+    }
     // 🆕 v2.6.52 修「複製法師／回魔武器傭兵 藍量永遠見底」：傭兵每回合只做「一個」動作(施法 or 普攻)，一直施法就從不觸發武器 on-hit 回魔(玩家是普攻＋施法並行·普攻每擊持續回魔→本體一放招就回滿)。故施法後補「回魔類武器特效」：瑪那魔杖(mp_drain)/惡魔王魔杖(mpOnHit) 命中回 MP、共鳴法器(int/60 免費光箭回魔)。只補回魔·不套其餘傷害 proc(魔擊/月光/娃娃免費魔法·避免遞迴與失衡)。迴響(echo)為免費再施放·不重複觸發。
     if (!ally._echoing) {
         let _wi = ally.eq && ally.eq.wpn, _w = _wi ? DB.items[_wi.id] : null;
@@ -981,6 +999,7 @@ function allyCastNonDamage(ally, sk) {
     if (_allyRoyalFreeCast) cost = 0;   // 👑 v2.7.94 王族魔法精通：免MP額外施放（allyRoyalFreeCast·鏡像玩家 js/07:302 _royalFreeCast）
     if ((ally.mp || 0) < cost) return false;
     ally.mp -= cost; allyManaMasteryRefund(ally, cost);
+    let _skillFxPlayed = (typeof playActorSkillFx === 'function') && playActorSkillFx(ally, sk, targets);
     let _sv = player; player = ally;   // 以傭兵自身魔法命中判定（applyMobStatus/tryInstakill 內部讀 player）
     let _ikKills = [];                  // 🔧 即死成功的目標 uid：延後到還原 player 後再 killMob（結算與 UI 歸真實玩家）
     try {
@@ -989,7 +1008,7 @@ function allyCastNonDamage(ally, sk) {
             if (!t || t.curHp <= 0) return;
             if (sk.status) {
                 let _statusLanded = applyMobStatus(t, sk.status, sk.n, magicDamageCoef(d, 0));
-                if (_statusLanded && sk.n === '破壞盔甲' && typeof playArmorBreakRedFx === 'function') playArmorBreakRedFx(t);
+                if (_statusLanded && sk.n === '破壞盔甲' && !_skillFxPlayed && typeof playArmorBreakRedFx === 'function') playArmorBreakRedFx(t);
             }
             if (sk.instakill && t.curHp > 0) { let idx = mapState.mobs.findIndex(m => m && m.uid === t.uid); if (idx !== -1 && tryInstakill(t, sk.instakill, sk.n, idx, true)) _ikKills.push(t.uid); }
         });
@@ -1016,6 +1035,7 @@ function allyCastPhysicalSkill(ally, sk) {
     if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
     if ((ally.mp || 0) < cost) return false;
     ally.mp -= cost; allyManaMasteryRefund(ally, cost);
+    if (sk.n !== '衝擊之暈' && typeof playActorSkillFx === 'function') playActorSkillFx(ally, sk, [t]);
     let hits = sk.hits || 1, totalDmg = 0, landed = 0, logHits = [];
     let _royalMult = royalAllyMult();   // 👑 換身前先取王族魅力加成（換身期間 player=ally 會讀到傭兵自身職業，故先快照主玩家的倍率）
     let _sv = player; player = ally;   // 異常命中(applyMobStatus/tryInstakill)以傭兵自身判定
@@ -1036,7 +1056,10 @@ function allyCastPhysicalSkill(ally, sk) {
             let _stunMythPct = (sk.stun && typeof mythStatusSuccessPct === 'function') ? mythStatusSuccessPct(ally, 'stun', sk.n) : 0;
             if (sk.stun && (sk.stunChance == null || Math.random() * 100 < Math.min(95, sk.stunChance * 100 + _stunMythPct))) {
                 let _stunLanded = applyMobStatus(t, { kind: 'stun', pbase: sk.stun, dur: 6, skipMythStatus: true, hitOff: ((wpn && wpn.stunHitBonus) ? Math.round(wpn.stunHitBonus / 5) : 0) + weaponSpecialHitBonus(ally.eq && ally.eq.wpn, wpn) }, sk.n);
-                if (_stunLanded && sk.n === '衝擊之暈' && typeof playShockStunHitFx === 'function') playShockStunHitFx(t);
+                if (_stunLanded && sk.n === '衝擊之暈') {
+                    let _played = (typeof playActorSkillFx === 'function') && playActorSkillFx(ally, sk, [t]);
+                    if (!_played && typeof playShockStunHitFx === 'function') playShockStunHitFx(t);
+                }
             }   // 🏛️ 傭兵持真．冥皇執行劍：衝擊之暈暈眩命中率 +20%；🛡️ v2.6.69 審計#3：補鏡像 stunChance(10%) 前置骰（原漏→傭兵每擊必判暈＝玩家10倍）
             if (sk.status) applyMobStatus(t, sk.status, sk.n);
             if (t.curHp > 0 && sk.instakill) { let idx = mapState.mobs.findIndex(m => m && m.uid === t.uid); if (idx !== -1) tryInstakill(t, sk.instakill, sk.n, idx, true); }   // 🔧 deferKill：換身期間不結算，由下方還原 player 後的 killMob 處理
@@ -1706,10 +1729,12 @@ function allyDarkAct(ally) {
         if (ally._setApprentice5 && (ally.mp || 0) < (ally.mmp || 0) * 0.3) cost = Math.max(1, Math.ceil(cost / 2));   // 🔮 學徒 5/5（傭兵）：MP<30% 耗魔減半
         if (sk && sk.status && !(t.st && t.st[sk.status.kind] > 0) && (ally.mp || 0) >= cost) {
             ally.mp -= cost; allyManaMasteryRefund(ally, cost);
+            if (typeof _allySpriteTrigger === 'function') _allySpriteTrigger(ally, 'skill', sk.n);
+            let _armorBreakFxPlayed = (typeof playActorSkillFx === 'function') && playActorSkillFx(ally, sk, [t]);
             logCombat(`<span class="text-emerald-300 font-bold">【協力·${ally._allyName}】</span>施放 ${sk.n}，撕裂 <span class="${getMobColor(t.lv)}">${t.n}</span> 的防護！（受傷提高，持續 ${sk.status.dur||8} 秒）`, 'magic');
             let _armorBreakLanded = false;
             let _sv = player; player = ally; try { _armorBreakLanded = applyMobStatus(t, sk.status, sk.n); } finally { player = _sv; }   // 以傭兵自身魔法命中判定
-            if (_armorBreakLanded && typeof playArmorBreakRedFx === 'function') playArmorBreakRedFx(t);
+            if (_armorBreakLanded && !_armorBreakFxPlayed && typeof playArmorBreakRedFx === 'function') playArmorBreakRedFx(t);
             return;
         }
     } else if (ally._atkSkill === 'sk_dark_crit') {
@@ -1999,6 +2024,8 @@ function allyCastCrush(ally, sk) {
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
     if ((ally.mp || 0) < cost) return false;
     ally.mp -= cost; allyManaMasteryRefund(ally, cost);
+    if (typeof _allySpriteTrigger === 'function') _allySpriteTrigger(ally, 'skill', sk.n);
+    if (typeof playActorSkillFx === 'function') playActorSkillFx(ally, sk, [t]);
     // 🦴 骷髏毀壞（傭兵）：先即死判定（起死回生式·vs不死非BOSS·以傭兵魔法命中換身判定）；成功則擊殺、不造成傷害（粉碎能量無 instakill→跳過）
     if (sk.instakill) {
         let _sv = player; player = ally; let _ok = false;
@@ -2033,6 +2060,8 @@ function allyCastFixedStatus(ally, sk) {
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
     if ((ally.mp || 0) < cost) return false;
     ally.mp -= cost; allyManaMasteryRefund(ally, cost);
+    if (typeof _allySpriteTrigger === 'function') _allySpriteTrigger(ally, 'skill', sk.n);
+    if (typeof playActorSkillFx === 'function') playActorSkillFx(ally, sk, [t]);
     let _fixedChance = Math.min(0.95, fs.chance + (typeof mythStatusSuccessPct === 'function' ? mythStatusSuccessPct(ally, fs.kind, sk.n) / 100 : 0));
     if (Math.random() < _fixedChance) {
         if (!t.st) t.st = newMobStatus();
@@ -2055,8 +2084,9 @@ function allyCastSlaughter(ally, sk) {
         cost = _allyWpnFullHpMpHalf(ally, cost);   // 🏺 v3.1.80 巫師的黑暗魔導書（傭兵）：滿血時攻擊技 MP 減半
     if ((ally.mp || 0) < cost) return false;
     ally.mp -= cost; allyManaMasteryRefund(ally, cost);
-    let _clientSlaughterFx = (typeof playClientSkillAnimatedFx === 'function')
-        && playClientSkillAnimatedFx('屠宰者', t, ally);
+    if (typeof _allySpriteTrigger === 'function') _allySpriteTrigger(ally, 'skill', sk.n);
+    let _clientSlaughterFx = (typeof playActorSkillFx === 'function')
+        && playActorSkillFx(ally, sk, [t]);
     if (!_clientSlaughterFx && typeof playTtmiSkillFx === 'function') playTtmiSkillFx('屠宰者', t);
     let layers = t.weakExpose || 0, bonus = layers > 0 ? 10 * layers : 0;
     let consume = layers > 0 && !allyHasMastery(ally, 'k_weakness');   // 🏅 弱點精通（傭兵）：屠宰者不消耗弱點曝光
@@ -2090,6 +2120,8 @@ function allyCastMpDmg(ally, sk) {
     let spend = Math.max(1, Math.floor((ally.mmp || 0) * sk.mpDmgPct));
     if ((ally.mp || 0) < spend) return false;
     ally.mp -= spend; allyManaMasteryRefund(ally, spend);
+    if (typeof _allySpriteTrigger === 'function') _allySpriteTrigger(ally, 'skill', sk.n);
+    if (typeof playActorSkillFx === 'function') playActorSkillFx(ally, sk, [t]);
     let dmg = spend;
     let effMr = (t.st && t.st.mrhalf > 0) ? (t.mr / 2) : t.mr;
     if (t.st && (t.st.confuse > 0 || t.st.panic > 0)) effMr -= 10;   // 🔮 混亂/恐慌：MR -10（與玩家心靈破壞一致）
@@ -2107,6 +2139,9 @@ function allyCastMpDmg(ally, sk) {
 // 🔧 會心一擊（傭兵版）：必定命中、套用物理傷害公式、固定 ×10（需 MP 滿）；只消耗全部 MP，不扣 HP
 function allyDarkCrit(ally, t) {
     let wpn = (ally.eq && ally.eq.wpn) ? DB.items[ally.eq.wpn.id] : null;
+    let sk = DB.skills.sk_dark_crit;
+    if (typeof _allySpriteTrigger === 'function') _allySpriteTrigger(ally, 'skill', sk && sk.n);
+    if (sk && typeof playActorSkillFx === 'function') playActorSkillFx(ally, sk, [t]);
     let dice = wpn ? (t.s === 'L' ? wpn.dmgL : wpn.dmgS) : 2;
     ally.buffs = ally.buffs || {}; ally.statuses = ally.statuses || {}; ally.eq = ally.eq || {};   // 安全：getPhysicalDmg 會取用 player.buffs/statuses/eq
     let _sv = player; player = ally; let base;
@@ -2189,38 +2224,14 @@ function allyHpSkillPct(ally) { return (ally && ally._hpSkillPct != null) ? ally
 function allyCastMpPct(ally) { return (ally && ally._castMpPct != null) ? ally._castMpPct : 0; }   // 🆕 v2.6.27 施法MP門檻（MP% 高於此值才施放攻擊技·0=不限；玩家於傭兵技能設定調整）
 // 🔄 傭兵轉換技能(type:'convert')施放：比照玩家 castSkill convert 分支，改用 ally.curHp/ally.mp。魔力奪取(drain)需目標＋換身判定異常命中吸MP；心靈/魂體轉換直接扣HP換MP。
 function allyCastConvert(ally, sk) {
-    // 🙏 v3.4.38 施法動作＋SELF_FX（原本四個施法函式只有這支沒掛·三個轉換技能 心靈轉換/魂體轉換/魔力奪取 在 SELF_FX 皆有註冊）。
-    //    X 軸沿用 _partyMemberRect(ally)（.party-sprite 容器·水平置中）；Y 軸改以實際 pm-body 頂端為基準——
-    //    容器 rect 含影子層且各職業 sprite 高度不一，直接用會讓 overHead 特效忽高忽低。
-    let _playConvertVfx = () => {
+    // 轉換技能也走共用播放入口；魔力奪取傳入怪物，其他轉換技則綁施法者可見本體。
+    let _playConvertVfx = (target) => {
         if (typeof _allySpriteTrigger === 'function') _allySpriteTrigger(ally, 'skill', sk.n);
-        if (typeof playSelfFx !== 'function') return;
-        if (typeof _vfxMute === 'function' && _vfxMute()) return;   // ⚡ 補跑(state.ff)/關特效：先擋掉·否則下方 getBoundingClientRect 會在掛機補跑時逐次強制重排
-        try {
-            let anchor = (typeof _partyMemberRect === 'function') ? _partyMemberRect(ally) : null;
-            let st = (typeof _allySpriteStates !== 'undefined') ? _allySpriteStates[String(ally._slot)] : null;
-            let bd = st && st.imgs && st.imgs.bd;
-            let bodyRect = (bd && bd.isConnected) ? bd.getBoundingClientRect() : null;
-            // 尺寸基準與 playSelfFx 一致：#mob-list 高（怪物站立帶·恆定）→ 取不到才退 #battle-view 高
-            let ml = document.getElementById('mob-list');
-            let mobRect = ml && ml.getBoundingClientRect();
-            let bv = document.getElementById('battle-view');
-            let battleRect = bv && bv.getBoundingClientRect();
-            let refH = (mobRect && mobRect.height > 0) ? mobRect.height : ((battleRect && battleRect.height) || 0);
-            let cfg = (typeof SELF_FX !== 'undefined') ? SELF_FX[sk.n] : null;
-            let fxH = refH * ((cfg && cfg.h) || 0.5);
-            // playSelfFx 對 overHead 會再算 top = anchor.top - fxH×0.55；此處餵 bodyRect.top + fxH×0.35
-            // → 最終 top = bodyRect.top - fxH×0.20（特效有 20% 高度露出 pm-body 上緣）。
-            // ⚠️ bottom 必須一起帶：cfg.overHead 為假時 playSelfFx 走 pr.bottom - fxH，缺欄位會算出 NaN。
-            if (anchor && bodyRect && fxH > 0) {
-                anchor = { left: anchor.left, width: anchor.width, top: bodyRect.top + fxH * 0.35, bottom: bodyRect.bottom };
-            }
-            playSelfFx(sk.n, anchor);
-        } catch (e) {}
+        if (typeof playActorSkillFx === 'function') playActorSkillFx(ally, sk, target ? [target] : []);
     };
     if (sk.drain) {
         let t = getTarget(); if (!t || t.curHp <= 0) return;   // 魔力奪取：無目標不施放、不耗 HP
-        _playConvertVfx();   // 確認有效目標後才播（無目標時不空放動作/特效）
+        _playConvertVfx(t);   // 命中與失敗都固定在怪物錨點播放，不再出現在傭兵頭上
         ally.curHp = Math.max(1, (ally.curHp || 0) - (sk.hpCost || 0));
         let _sv = player; player = ally; let _hit = false;
         try { _hit = abnormalMagicHit(t); } finally { player = _sv; }
