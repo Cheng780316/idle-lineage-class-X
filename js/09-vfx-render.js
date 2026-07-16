@@ -2512,7 +2512,8 @@ function playTripleRingFx(actor) {
         el.style.position = 'fixed'; el.style.pointerEvents = 'none';
         el.style.width = canvasW + 'px'; el.style.height = canvasH + 'px';
         el.style.left = (anchor.head.x - canvasW * (56 / 104)) + 'px';
-        el.style.top = (anchor.head.y - size * 0.42 - canvasH * (15 / 152)) + 'px';
+        // 光圈中心提高到頭頂：主角色與傭兵都由同一個可見本體 head 錨點計算。
+        el.style.top = (anchor.head.y - size * 0.60 - canvasH * (15 / 152)) + 'px';
         el.style.objectFit = 'contain'; el.style.zIndex = '31';
         layer.appendChild(el);
         setTimeout(() => { try { el.remove(); } catch (_) {} }, 500);
