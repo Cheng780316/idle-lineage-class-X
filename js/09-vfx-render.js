@@ -1310,9 +1310,12 @@ function _vfxCastProjectiles(before, ele) {
 const ARROW_FX_MS = 200;      // 飛行時間（略長於法術拋射物 180ms→箭矢看得出軌跡）
 let _arrowFxCache = {};       // dir(0-7) → Image（預載·避免首發閃爍）
 (function _preloadArrowFx() { for (let d = 0; d < 8; d++) { let im = new Image(); im.src = 'assets/fx/箭矢/arrow_d' + d + '.png'; _arrowFxCache[d] = im; } })();
+const ISTI_TRIPLE_ARROW_FX_SRC = 'assets/effects/triple-arrow-fly-client.webp?v=20260718-isti-triple1';
+let _istiTripleArrowFx = new Image(); _istiTripleArrowFx.src = ISTI_TRIPLE_ARROW_FX_SRC;
 // 持弓的一般攻擊呼叫（js/04 playerAttack／js/03 rapidfireProc／js/06 allyAttackOnce／allyRapidfire）
 //   delayMs：連射每箭錯開發射，免得整束箭疊在同一條線上
-function playArrowFx(who, target, delayMs) {
+//   tripleShot：三重矢專用；依詩蒂變身時改用客戶端新版三重矢飛箭，其餘射擊維持一般箭矢。
+function playArrowFx(who, target, delayMs, tripleShot) {
     try {
         if (_vfxMute() || !who || !target) return;   // 🚀 v3.2.65 補跑期間不生成箭矢（避免回前景爆量）
         if (who !== player) return;   // 🏹 v3.2.65 傭兵/隊員 sprite 位置動態難可靠對位（發射點常錯位）→僅玩家射出可見箭矢，傭兵不播（傷害判定不受影響）
@@ -1332,16 +1335,21 @@ function playArrowFx(who, target, delayMs) {
             let tx = rect.left + rect.width / 2, ty = rect.top + rect.height * 0.45;
             // 🏹 v3.2.12 依射手→目標螢幕向量選 8 方向箭圖（箭頭即朝目標）
             let _dir = (typeof _vec2dir === 'function') ? _vec2dir(tx - sx, ty - sy) : 0;
-            let img = _arrowFxCache[_dir]; if (!img) return;
+            let _istiTriple = !!tripleShot && who === player && typeof _playerMorphName === 'function'
+                && _playerMorphName() === '天鵝的騎士依詩蒂';
+            let img = _istiTriple ? _istiTripleArrowFx : _arrowFxCache[_dir]; if (!img) return;
             let el = document.createElement('img');
-            el.className = 'vfx-arrow'; el.src = img.src; el.alt = ''; el.draggable = false;
+            el.className = 'vfx-arrow' + (_istiTriple ? ' vfx-isti-triple-arrow' : ''); el.src = img.src; el.alt = ''; el.draggable = false;
             el.style.left = sx + 'px'; el.style.top = sy + 'px';
+            if (_istiTriple) { el.style.width = '104px'; el.style.height = '80px'; el.style.objectFit = 'contain'; }
             layer.appendChild(el);
             let dx = tx - sx, dy = ty - sy;
+            // 來源飛箭朝右上（-45°）；依實際目標向量旋轉，但保留 WebP 內三幀箭光動畫。
+            let rot = _istiTriple ? (' rotate(' + ((Math.atan2(dy, dx) * 180 / Math.PI) + 45).toFixed(1) + 'deg)') : '';
             el.animate(
-                [ { transform: 'translate(-50%,-50%)', opacity: .95 },
-                  { transform: 'translate(calc(-50% + ' + dx.toFixed(1) + 'px), calc(-50% + ' + dy.toFixed(1) + 'px))', opacity: 1 } ],
-                { duration: ARROW_FX_MS, easing: 'cubic-bezier(.35,.05,.6,1)' }
+                [ { transform: 'translate(-50%,-50%)' + rot, opacity: .95 },
+                  { transform: 'translate(calc(-50% + ' + dx.toFixed(1) + 'px), calc(-50% + ' + dy.toFixed(1) + 'px))' + rot, opacity: 1 } ],
+                { duration: _istiTriple ? 280 : ARROW_FX_MS, easing: 'cubic-bezier(.35,.05,.6,1)' }
             ).onfinish = () => el.remove();
         };
         if (delayMs > 0) setTimeout(fire, delayMs); else fire();
@@ -2561,6 +2569,8 @@ function playTripleCastSprite(actor) {
 function playTripleRingFx(actor) {
     try {
         let isPlayer = actor === player;
+        // 依詩蒂的三重矢使用弓攻擊動作＋飛箭，不疊加頭頂施法光圈。
+        if (isPlayer && typeof _playerMorphName === 'function' && _playerMorphName() === '天鵝的騎士依詩蒂') return;
         let st = isPlayer ? _pmState : (actor && actor._slot != null ? _allySpriteStates[String(actor._slot)] : null);
         if (!st || !st.el || !st.el.isConnected || !st.imgs || !st.imgs.bd) return;
         let anchor = _actorVisibleAnchor(actor); if (!anchor) return;
@@ -2601,6 +2611,8 @@ function _pmCurActivePrio() {   // 目前「仍在播放中」動作的權重（
 }
 function _playerMorphTrigger(k, skId) {   // js/04 attack／castSkill·manualCast 包裝 skill／HP-delta hurt 呼叫（🗡️ v3.0.67 職業形態亦適用·呼叫端零改動）
     let form = _playerBattleForm(); if (!form) return;
+    // 依詩蒂施放三重矢時直接拉弓射擊，不播放通用施法動作。
+    if (k === 'skill' && form.morphName === '天鵝的騎士依詩蒂' && (skId === 'sk_elf_triple' || skId === '三重矢')) k = 'attack';
     let st = _pmState;
     if (st.act === 'death') return;   // 死亡鎖定：復活前不接受任何動作（最高權重）
     let newP = _PM_PRIO[k] || 0, curP = _pmCurActivePrio();   // 🎬 v3.0.106 依權重決定是否打斷（hurt>skill>attack）
