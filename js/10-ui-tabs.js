@@ -1292,8 +1292,12 @@ function openModal(item, isEq, slot) {
         }
     }
 
-    // 👇 修改：為武器、防具、飾品加入專屬的「強化」按鈕 (加入 !d.isArrow 防呆，箭矢不顯示強化按鈕)
-    if (((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance) {   // 🔧 已達淬鍊（強化上限）：隱藏強化按鈕；🏛️ 無法強化的裝備（古老系列）不顯示強化鈕
+    // 武器／防具／飾品的卷軸操作統一放進「強化」視窗。已達強化上限或不能強化的裝備，
+    // 只要持有可對該件裝備使用的賦予祝福卷軸，仍保留入口。
+    let _grantScrollHere = player.inv.find(i => DB.items[i.id] && DB.items[i.id].blessGrant === d.type);
+    let _canGrantHere = !!(_grantScrollHere && typeof canGrantEquipmentBless === 'function' && canGrantEquipmentBless(item, d.type));
+    let _canEnhanceHere = ((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance;
+    if (_canEnhanceHere || _canGrantHere) {
         act += `<button class="col-span-2 w-full btn border-purple-700 bg-purple-900 hover:bg-purple-800 text-purple-200 py-3 text-lg font-bold mt-2" onclick="showEnhanceOptions('${item.uid}', ${isEq})">強化</button>`;
     }
 
@@ -1348,42 +1352,36 @@ function showEnhanceOptions(uid, isEq) {
     let item = isEq ? Object.values(player.eq).find(e => e && e.uid === uid) : player.inv.find(i => i.uid === uid);
     if (!item) return;
     let d = DB.items[item.id];
+    let canEnhance = !d.noEnhance && !isMaxEnhanced(item);
     
     let scrollNorm, scrollBless, scrollCurse;
     let scrollNormId = ''; // 🌟 紀錄該裝備對應的一般卷軸 ID
     let scrollCurseId = ''; // 詛咒卷軸 ID（武器/盔甲）
 
-    if (d.type === 'wpn') {
+    if (canEnhance && d.type === 'wpn') {
         scrollNormId = 'scroll_weapon';
         scrollNorm = player.inv.find(i => i.id === 'scroll_weapon');
         scrollBless = player.inv.find(i => i.id === 'scroll_weapon_b');
         scrollCurseId = 'scroll_weapon_c';
         scrollCurse = player.inv.find(i => i.id === 'scroll_weapon_c');
-    } else if (d.type === 'arm') {
+    } else if (canEnhance && d.type === 'arm') {
         scrollNormId = 'scroll_armor';
         scrollNorm = player.inv.find(i => i.id === 'scroll_armor');
         scrollBless = player.inv.find(i => i.id === 'scroll_armor_b');
         scrollCurseId = 'scroll_armor_c';
         scrollCurse = player.inv.find(i => i.id === 'scroll_armor_c');
-    } else if (d.type === 'acc') {
+    } else if (canEnhance && d.type === 'acc') {
         scrollNormId = 'scroll_acc';
         scrollNorm = player.inv.find(i => i.id === 'scroll_acc');
     }
-    
-    // 飾品特殊處理：若有卷軸直接點爆，不用選
-    if (d.type === 'acc') {
-        if (!scrollNorm) {
-            logSys(`<span class="text-red-400 font-bold">強化卷軸不足。</span>`);
-            return;
-        }
-        activeScroll = scrollNorm;
-        doEnhance(item.uid, isEq);
-        return;
-    }
-    
-    // 武器/防具：如果一般／祝福／詛咒卷軸全都沒有，直接跳錯
-    if (!scrollNorm && !scrollBless && !scrollCurse) {
-        logSys(`<span class="text-red-400 font-bold">強化卷軸不足。</span>`);
+
+    let protectNorm = canEnhance && (d.type === 'wpn' || d.type === 'arm') ? player.inv.find(i => i.id === 'scroll_equip_protect') : null;
+    let protectBless = canEnhance && (d.type === 'wpn' || d.type === 'arm') ? player.inv.find(i => i.id === 'scroll_equip_protect_b') : null;
+    let grantScroll = player.inv.find(i => DB.items[i.id] && DB.items[i.id].blessGrant === d.type);
+    let canGrant = !!(grantScroll && typeof canGrantEquipmentBless === 'function' && canGrantEquipmentBless(item, d.type));
+
+    if (!scrollNorm && !scrollBless && !scrollCurse && !protectNorm && !protectBless && !grantScroll && !player.equipProtect) {
+        logSys(`<span class="text-red-400 font-bold">沒有可用於這件裝備的強化、保護或賦予祝福卷軸。</span>`);
         return;
     }
     
@@ -1394,9 +1392,10 @@ function showEnhanceOptions(uid, isEq) {
     let _protectHint = _protectKind === 'blessed'
         ? '<br><span class="text-yellow-300 font-bold">祝福裝備保護（1次）：本次強化後消耗；失敗不消失、強化不變。</span>'
         : (_protectKind ? '<br><span class="text-cyan-200 font-bold">裝備保護（1次）：本次強化後消耗；失敗不消失、強化-1。</span>' : '');
-    document.getElementById('modal-item-desc').innerHTML = "請選擇你要使用的強化卷軸：" + _protectHint;
+    document.getElementById('modal-item-desc').innerHTML = "請選擇要使用的卷軸：" + _protectHint;
     
     let act = '';
+    if (scrollNorm || scrollBless || scrollCurse) act += `<div class="col-span-2 text-sm font-bold text-slate-300 border-b border-slate-700 pb-1">裝備強化</div>`;
     if (scrollNorm) {
         act += `<button class="col-span-2 w-full btn border-slate-600 bg-slate-800 hover:bg-slate-700 py-3 text-base font-bold text-white shadow" onclick="executeEnhance('${scrollNorm.uid}', '${item.uid}', ${isEq})">使用 ${DB.items[scrollNorm.id].n} (擁有: ${scrollNorm.cnt})</button>`;
     }
@@ -1405,6 +1404,20 @@ function showEnhanceOptions(uid, isEq) {
     }
     if (scrollCurse) {
         act += `<button class="col-span-2 w-full btn border-red-800 bg-red-950 hover:bg-red-900 py-3 text-base font-bold c-cursed shadow" onclick="executeCurseDeEnhance('${item.uid}', ${isEq}, '${scrollCurseId}')">使用 ${DB.items[scrollCurse.id].n} (擁有: ${scrollCurse.cnt})｜強化值 -1</button>`;
+    }
+
+    if (protectNorm || protectBless || grantScroll) act += `<div class="col-span-2 text-sm font-bold text-purple-300 border-b border-purple-800 pb-1 mt-2">裝備保護與賦予祝福</div>`;
+    if (!_protectKind && protectNorm) {
+        act += `<button class="col-span-2 w-full btn border-cyan-700 bg-cyan-950 hover:bg-cyan-900 py-3 text-base font-bold text-cyan-200 shadow" onclick="activateEquipProtectFromEnhance('${protectNorm.uid}', '${item.uid}', ${isEq})">啟用 ${DB.items[protectNorm.id].n} (擁有: ${protectNorm.cnt})｜失敗保留裝備、強化-1</button>`;
+    }
+    if (!_protectKind && protectBless) {
+        let protectBlessOk = canUseEquipProtectState(d, item.en, 'blessed');
+        let protectBlessReq = d.type === 'wpn' ? '+11以上武器' : '+9以上防具';
+        act += `<button class="col-span-2 w-full btn py-3 text-base font-bold shadow ${protectBlessOk ? 'border-yellow-600 bg-yellow-950 hover:bg-yellow-900 text-yellow-300' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed'}" ${protectBlessOk ? `onclick="activateEquipProtectFromEnhance('${protectBless.uid}', '${item.uid}', ${isEq})"` : 'disabled'}>啟用 ${DB.items[protectBless.id].n} (擁有: ${protectBless.cnt})｜${protectBlessOk ? '失敗強化不變' : `限${protectBlessReq}`}</button>`;
+    }
+    if (grantScroll) {
+        let grantRate = Math.round((DB.items[grantScroll.id].blessRate || 0) * 100);
+        act += `<button class="col-span-2 w-full btn py-3 text-base font-bold shadow ${canGrant ? 'border-purple-600 bg-purple-950 hover:bg-purple-900 text-purple-200' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed'}" ${canGrant ? `onclick="doGrantEquipmentBless('${grantScroll.uid}', '${item.uid}', ${isEq})"` : 'disabled'}>使用 ${DB.items[grantScroll.id].n} (擁有: ${grantScroll.cnt})｜${canGrant ? `成功率 ${grantRate}%` : '已祝福／詛咒或不可賦予'}</button>`;
     }
 
     // 🌟 一鍵強化到指定值：右側可選目標強化值（預設＝安定值），逐級嘗試，過程中任一階失敗即視為失敗（爆裝）
@@ -1426,6 +1439,32 @@ function showEnhanceOptions(uid, isEq) {
     act += `<button class="col-span-2 w-full btn py-3 bg-slate-700 text-lg font-bold mt-2" onclick="returnToItemModal('${item.uid}', ${isEq})">返回</button>`;
     
     document.getElementById('modal-actions').innerHTML = act;
+}
+
+// 從指定裝備的強化視窗啟用一次性保護；啟用後保留在同一視窗，讓玩家接著選一般／祝福強化卷軸。
+function activateEquipProtectFromEnhance(scrollUid, targetUid, isEq) {
+    let scroll = player.inv.find(i => i.uid === scrollUid);
+    let sd = scroll && DB.items[scroll.id];
+    let target = isEq ? Object.values(player.eq).find(e => e && e.uid === targetUid) : player.inv.find(i => i.uid === targetUid);
+    let td = target && DB.items[target.id];
+    if (!scroll || !sd || !sd.protectScroll || !target || !td) return;
+    if (player.equipProtect) {
+        logSys('<span class="text-amber-300 font-bold">目前已有裝備保護狀態，請先完成一次單次強化。</span>');
+        showEnhanceOptions(targetUid, isEq);
+        return;
+    }
+    let kind = sd.isB ? 'blessed' : 'normal';
+    if (!canUseEquipProtectState(td, target.en, kind)) {
+        logSys('<span class="text-red-400 font-bold">祝福的 裝備保護卷軸僅能用於 +11 以上武器或 +9 以上防具。</span>');
+        return;
+    }
+    player.equipProtect = kind;
+    consume(scroll);
+    let label = sd.isB ? '祝福裝備保護' : '裝備保護';
+    let result = sd.isB ? '失敗時裝備不消失、強化值維持不變' : '失敗時裝備不消失、強化值降低 1';
+    logSys(`<span class="${sd.isB ? 'text-yellow-300' : 'text-cyan-200'} font-bold">已為 ${getItemFullName(target)} 啟用「${label}」（1次）。</span><span class="text-slate-300">接著選擇一張強化卷軸；成功或失敗都會消耗保護次數，${result}。</span>`);
+    renderStatusEffects(); updateUI(); saveGame();
+    showEnhanceOptions(targetUid, isEq);
 }
 
 // 👇 一鍵強化到指定值：逐級嘗試直到目標值。安定值前必定成功；安定值起依天堂經典衝裝規則（enhanceRollOutcome js/01），
