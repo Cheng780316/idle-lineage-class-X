@@ -842,6 +842,12 @@
         #vfx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 35; overflow: hidden; }   /* 🎚️ v3.0.73 掛在 #app-stage 內(見 js/09 _vfxLayer)：z-index 35＝高於戰鬥內容(怪/站位/狀態列 z≤30)、低於所有開啟式 UI(收集冊45/收藏46/物品modal50/浮動裝備70/浮動倉庫72)→死亡殘影等狩獵動畫不再蓋到這些介面·無 UI 時仍正常疊在背景/怪之上 */
         /* 🔧 v3.1.48 修：收藏面板 #collection-panel 用的 Tailwind 任意值 class `z-[46]` 未被預編譯靜態 CSS 收錄(z-[45] 有→四本收集冊正常)→computed z:auto→掉到與戰鬥 sprite 同一 #app-stage stacking context 且被其 positive z(玩家 sprite z:2、怪 z:1~5)蓋過→面板與背景模糊都被角色/怪物動態壓在下面。改用 ID 選擇器明確給 z-index(特異性勝過任何 class)，確保收藏面板(含 backdrop-blur)蓋在所有戰鬥動態之上。 */
         #collection-panel { z-index: 46; }
+        /* 收藏限定：官方 32px/JPG 道具圖示自帶純黑底，screen 讓黑色與收藏卡片底色融合，
+           並保留彩色道具本體；不套用到背包、商店、製作或物品詳細視窗。 */
+        #misc-book img.misc-book-black-matte {
+            background: transparent !important;
+            mix-blend-mode: screen;
+        }
         /* ⚔️ v3.4.19 清晰 RPG 傷害飄字：寬度適中的粗黑體＋銳利單層描邊；取消斜體、厚重疊影與大光暈，優先確保快速戰鬥中可讀。 */
         .vfx-dmg {
             position:absolute; transform:translate(-50%,-50%);

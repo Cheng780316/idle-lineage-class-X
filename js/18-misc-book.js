@@ -19,6 +19,18 @@ const MISC_BOOK_EXCLUDED = {
     new_item_bless_acc: true
 };
 
+// 這些新增圖示來自沒有 Alpha 通道的官方 JPG／32px 圖檔，四周黑色是原圖背景。
+// 收藏卡片使用 screen 混色只排除黑底；背包、商店與物品詳細視窗維持原樣。
+const MISC_BOOK_BLACK_MATTE = {
+    scroll_magicbarrier: true,
+    scroll_equip_protect: true,
+    scroll_equip_protect_b: true,
+    heart_antaras: true,
+    heart_valakas: true,
+    heart_fafurion: true,
+    heart_lindvior: true
+};
+
 // ---- 將一個道具分到類別 key（回傳 null＝不收錄：裝備/怪物卡片/收集冊本體）----
 function miscCatKey(id, d) {
     if (!d) return null;
@@ -198,13 +210,14 @@ function renderMiscBook() {
         var d = DB.items[id]; var got = miscDexHas(id);
         var imgUrl = (typeof getIconUrl === 'function') ? getIconUrl(d) : (d.img || '');
         var silh = got ? '' : ' card-silhouette';
+        var blackMatte = MISC_BOOK_BLACK_MATTE[id] ? ' misc-book-black-matte' : '';
         var glow = (got && typeof getGlowClass === 'function') ? getGlowClass({ id: id }, d) : '';                 // 🌟 祝福(金)/詛咒(紅)卷軸對應光芒
         var nameCol = (got && typeof getItemColor === 'function') ? getItemColor({ id: id }) : (d.c || 'text-white');   // 祝福的=c-blessed金、詛咒的=c-cursed紅
         var nameHtml = got
             ? '<div class="text-xs font-bold ' + nameCol + ' truncate" title="' + (d.n || '') + '">' + (d.n || '') + '</div>'
             : '<div class="text-xs font-bold text-slate-500">？？？</div>';
         return '<div class="relative bg-slate-800/70 border ' + (got ? 'border-slate-600' : 'border-slate-700/60') + ' rounded-lg p-2 flex flex-col items-center gap-1 w-[112px]' + (got ? ' tip-host cursor-help' : '') + '"' + (got ? ' data-tip-id="' + id + '"' : '') + '>' +
-            '<img src="' + imgUrl + '" alt="' + (d.n || '') + '" class="w-14 h-14 object-contain' + silh + (glow ? ' ' + glow : '') + '" onerror="this.onerror=null;this.src=\'https://placehold.co/56x56/1e293b/334155?text=%3F\';">' +
+            '<img src="' + imgUrl + '" alt="' + (d.n || '') + '" class="w-14 h-14 object-contain' + silh + blackMatte + (glow ? ' ' + glow : '') + '" onerror="this.onerror=null;this.src=\'https://placehold.co/56x56/1e293b/334155?text=%3F\';">' +
             '<div class="text-center w-full">' + nameHtml + '</div>' +
             '</div>';
     }).join('');
