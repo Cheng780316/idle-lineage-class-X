@@ -724,6 +724,16 @@
         ['水精靈王', 'bk_elf_muddywater', 0.01],
         ['黑長者', 'bk_elf_muddywater', 0.1],
     ].forEach(function (r) { (MOB_DROPS[r[0]] = MOB_DROPS[r[0]] || []).push([r[1], r[2]]); });
+    // 🐉 四大龍心：各龍 1% 掉落，供席琳神殿製作哈爾巴斯之心。
+    [
+        ['安塔瑞斯', 'heart_antaras'],
+        ['巴拉卡斯', 'heart_valakas'],
+        ['法利昂', 'heart_fafurion'],
+        ['林德拜爾', 'heart_lindvior'],
+    ].forEach(function (r) {
+        MOB_DROPS[r[0]] = MOB_DROPS[r[0]] || [];
+        if (!MOB_DROPS[r[0]].some(function (x) { return x[0] === r[1]; })) MOB_DROPS[r[0]].push([r[1], 1]);
+    });
     // 🏺 v3.1.15：潛行者的祕密箱子 改由「密密」掉落（原艾爾摩法師取消，該怪僅保留凋零法師的護身符）；巨大鱷魚的狩獵牙 改由「巨大鱷魚」掉落（原格利芬取消，該怪僅保留獅鷲的鋒利鷹爪）。
 
     // 區域額外掉落（眠龍洞穴1~3樓=zone_15/16/17、妖精森林周邊=zone_01 所有怪物）
