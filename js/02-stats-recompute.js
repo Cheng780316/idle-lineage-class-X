@@ -697,6 +697,15 @@ function applyDollCursor() {
 //       mgd=魔法傷害, sp=額外魔法點數, mpr=MP自然恢復量, ac=AC(負值代表AC-x),
 //       er=ER, mr=MR, spd=攻擊速度加快(%)
 // 顏色：Lv49以下白色、Lv50~51淡黃色、Lv52以上金色
+const LV90_MORPH_APM = Object.freeze({
+    '單手劍':150, '單手鈍器':103, '雙手鈍器':103,
+    '弓':100, '十字弓':100,
+    '單手矛':111, '雙手矛':111,
+    '魔杖':150, '匕首':131, '雙手劍':103,
+    '雙刀':120, '鋼爪':120, '奇古獸':120,
+    '鎖鏈劍':111, '雙斧':120
+});
+
 const POLY_TIERS = [
     { min:0, max:9, color:"text-white", forms:[
         { n:"哥布林", lv:2, atk:23, wlk:19, cast:10, stun:5 },
@@ -790,6 +799,11 @@ const POLY_TIERS = [
         { n:"死亡", lv:70, atk:18, wlk:24, cast:10, stun:7 },
         { n:"反王肯恩", lv:75, atk:20, wlk:18, cast:11, stun:6 },
         { n:"烈焰的死亡騎士", lv:80, apm:{ '單手劍':120,'單手鈍器':103,'雙手鈍器':103,'弓':90,'十字弓':90,'單手矛':111,'雙手矛':111,'魔杖':120,'匕首':131,'雙手劍':103,'雙刀':120,'鋼爪':120,'奇古獸':120,'鎖鏈劍':111,'雙斧':120 }, wlk:16, cast:7, stun:2 },   // 🌑 v3.4.67 逐武器種類 APM 攻速（用戶「變身速度」CSV·6000/APM/100=秒）
+        { n:"月亮騎士絲莉安", lv:90, apm:LV90_MORPH_APM, wlk:12.8, cast:6, stun:2, md:5, mh:5 },
+        { n:"影子騎士格立特", lv:90, apm:LV90_MORPH_APM, wlk:12.8, cast:6, stun:2, md:5, mh:5 },
+        { n:"鋼鐵騎士阿頓", lv:90, apm:LV90_MORPH_APM, wlk:12.8, cast:6, stun:2, md:5, mh:5 },
+        { n:"天鵝的騎士依詩蒂", lv:90, apm:LV90_MORPH_APM, wlk:12.8, cast:6, stun:2, rd:5, rh:5 },
+        { n:"幸運的魔法師宙斯", lv:90, apm:LV90_MORPH_APM, wlk:12.8, cast:6, stun:2, mgd:5, sp:5, mpr:5 },
     ]},
 ];
 
