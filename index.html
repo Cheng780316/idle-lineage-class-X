@@ -231,7 +231,15 @@
         <div id="col-center" class="flex-1 flex flex-col gap-4">
             <div id="map-view-panel" class="panel">
                 <div class="panel-header flex justify-between items-center">
-    <span class="text-xl flex items-center gap-4">冒險地圖 <span id="status-alerts" class="text-sm font-normal"></span> <span id="siege-timer" class="hidden text-base font-bold text-red-300 anim-flash"></span></span>
+    <span class="text-xl flex items-center gap-3">
+        <span>冒險地圖</span>
+        <span id="map-knowledge-actions" class="flex items-center gap-2">
+            <button type="button" onclick="if(window.AFK_DEX_API) AFK_DEX_API.goto({})" class="bg-amber-800 hover:bg-amber-700 px-2.5 py-1 text-amber-100 font-bold border border-amber-500 rounded text-sm shadow-md whitespace-nowrap" title="搜尋怪物、地圖與掉落物">掉落搜尋</button>
+            <button type="button" onclick="if(window.AFK_WIKI_API) AFK_WIKI_API.goto({tab:'equipbook'})" class="bg-indigo-800 hover:bg-indigo-700 px-2.5 py-1 text-indigo-100 font-bold border border-indigo-500 rounded text-sm shadow-md whitespace-nowrap" title="開啟遊戲百科">百科</button>
+        </span>
+        <span id="status-alerts" class="text-sm font-normal"></span>
+        <span id="siege-timer" class="hidden text-base font-bold text-red-300 anim-flash"></span>
+    </span>
     
     <!-- 👇 新增一個 flex 容器把按鈕跟地圖選單包起來 -->
     <div class="flex items-center gap-3">
@@ -573,5 +581,8 @@
 <script src="js/21-relic-book.js?v=v3.1.7"></script>
     <script src="js/23-summons.js?v=20260716-upstream-sync1"></script>
     <script src="js/22-pets.js?v=20260716-upstream-sync1"></script>
+    <script src="js/24-afk-extradata.js?v=20260717-knowledge1"></script>
+    <script src="js/25-afk-dex.js?v=20260717-knowledge1"></script>
+    <script src="js/26-afk-wiki.js?v=20260717-knowledge1"></script>
 </body>
 </html>
