@@ -1292,13 +1292,33 @@ function openModal(item, isEq, slot) {
         }
     }
 
-    // 武器／防具／飾品的卷軸操作統一放進「強化」視窗。已達強化上限或不能強化的裝備，
-    // 只要持有可對該件裝備使用的賦予祝福卷軸，仍保留入口。
+    // 強化、裝備保護、賦予祝福分成三個獨立入口。第二排固定左保護、右祝福，
+    // 避免玩家操作特殊卷軸時誤觸「一鍵強化到指定值」。
     let _grantScrollHere = player.inv.find(i => DB.items[i.id] && DB.items[i.id].blessGrant === d.type);
     let _canGrantHere = !!(_grantScrollHere && typeof canGrantEquipmentBless === 'function' && canGrantEquipmentBless(item, d.type));
     let _canEnhanceHere = ((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance;
-    if (_canEnhanceHere || _canGrantHere) {
+    if (_canEnhanceHere) {
         act += `<button class="col-span-2 w-full btn border-purple-700 bg-purple-900 hover:bg-purple-800 text-purple-200 py-3 text-lg font-bold mt-2" onclick="showEnhanceOptions('${item.uid}', ${isEq})">強化</button>`;
+    }
+    let _protectEligibleHere = _canEnhanceHere && (d.type === 'wpn' || d.type === 'arm');
+    let _protectNormHere = _protectEligibleHere ? player.inv.find(i => i.id === 'scroll_equip_protect') : null;
+    let _protectBlessHere = _protectEligibleHere ? player.inv.find(i => i.id === 'scroll_equip_protect_b') : null;
+    let _showProtectHere = _protectEligibleHere && (player.equipProtect || _protectNormHere || _protectBlessHere);
+    let _showGrantHere = !!_grantScrollHere;
+    if (_showProtectHere || _showGrantHere) {
+        act += '<div class="col-span-2 grid grid-cols-2 gap-2 mt-2">';
+        if (player.equipProtect) {
+            let _protectActiveLabel = player.equipProtect === 'blessed' ? '祝福裝備保護已啟用（1次）' : '裝備保護已啟用（1次）';
+            act += `<button class="w-full btn border-amber-700 bg-amber-950 text-amber-300 py-3 text-base font-bold cursor-not-allowed" disabled>${_protectActiveLabel}</button>`;
+        } else if (_showProtectHere) {
+            act += `<button class="w-full btn border-cyan-700 bg-cyan-950 hover:bg-cyan-900 text-cyan-200 py-3 text-base font-bold" onclick="showEquipProtectOptions('${item.uid}', ${isEq})">裝備保護</button>`;
+        } else {
+            act += '<span></span>';
+        }
+        if (_showGrantHere) {
+            act += `<button class="w-full btn py-3 text-base font-bold ${_canGrantHere ? 'border-purple-600 bg-purple-950 hover:bg-purple-900 text-purple-200' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed'}" ${_canGrantHere ? `onclick="showGrantBlessOptions('${item.uid}', ${isEq})"` : 'disabled'}>賦予祝福</button>`;
+        }
+        act += '</div>';
     }
 
     // 廢品勾選（所有背包道具：武器/防具/飾品/藥水/卷軸/魔法書/技能書/材料/試煉道具等）：
@@ -1375,13 +1395,8 @@ function showEnhanceOptions(uid, isEq) {
         scrollNorm = player.inv.find(i => i.id === 'scroll_acc');
     }
 
-    let protectNorm = canEnhance && (d.type === 'wpn' || d.type === 'arm') ? player.inv.find(i => i.id === 'scroll_equip_protect') : null;
-    let protectBless = canEnhance && (d.type === 'wpn' || d.type === 'arm') ? player.inv.find(i => i.id === 'scroll_equip_protect_b') : null;
-    let grantScroll = player.inv.find(i => DB.items[i.id] && DB.items[i.id].blessGrant === d.type);
-    let canGrant = !!(grantScroll && typeof canGrantEquipmentBless === 'function' && canGrantEquipmentBless(item, d.type));
-
-    if (!scrollNorm && !scrollBless && !scrollCurse && !protectNorm && !protectBless && !grantScroll && !player.equipProtect) {
-        logSys(`<span class="text-red-400 font-bold">沒有可用於這件裝備的強化、保護或賦予祝福卷軸。</span>`);
+    if (!scrollNorm && !scrollBless && !scrollCurse) {
+        logSys(`<span class="text-red-400 font-bold">沒有可用於這件裝備的強化卷軸。</span>`);
         return;
     }
     
@@ -1406,20 +1421,6 @@ function showEnhanceOptions(uid, isEq) {
         act += `<button class="col-span-2 w-full btn border-red-800 bg-red-950 hover:bg-red-900 py-3 text-base font-bold c-cursed shadow" onclick="executeCurseDeEnhance('${item.uid}', ${isEq}, '${scrollCurseId}')">使用 ${DB.items[scrollCurse.id].n} (擁有: ${scrollCurse.cnt})｜強化值 -1</button>`;
     }
 
-    if (protectNorm || protectBless || grantScroll) act += `<div class="col-span-2 text-sm font-bold text-purple-300 border-b border-purple-800 pb-1 mt-2">裝備保護與賦予祝福</div>`;
-    if (!_protectKind && protectNorm) {
-        act += `<button class="col-span-2 w-full btn border-cyan-700 bg-cyan-950 hover:bg-cyan-900 py-3 text-base font-bold text-cyan-200 shadow" onclick="activateEquipProtectFromEnhance('${protectNorm.uid}', '${item.uid}', ${isEq})">啟用 ${DB.items[protectNorm.id].n} (擁有: ${protectNorm.cnt})｜失敗保留裝備、強化-1</button>`;
-    }
-    if (!_protectKind && protectBless) {
-        let protectBlessOk = canUseEquipProtectState(d, item.en, 'blessed');
-        let protectBlessReq = d.type === 'wpn' ? '+11以上武器' : '+9以上防具';
-        act += `<button class="col-span-2 w-full btn py-3 text-base font-bold shadow ${protectBlessOk ? 'border-yellow-600 bg-yellow-950 hover:bg-yellow-900 text-yellow-300' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed'}" ${protectBlessOk ? `onclick="activateEquipProtectFromEnhance('${protectBless.uid}', '${item.uid}', ${isEq})"` : 'disabled'}>啟用 ${DB.items[protectBless.id].n} (擁有: ${protectBless.cnt})｜${protectBlessOk ? '失敗強化不變' : `限${protectBlessReq}`}</button>`;
-    }
-    if (grantScroll) {
-        let grantRate = Math.round((DB.items[grantScroll.id].blessRate || 0) * 100);
-        act += `<button class="col-span-2 w-full btn py-3 text-base font-bold shadow ${canGrant ? 'border-purple-600 bg-purple-950 hover:bg-purple-900 text-purple-200' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed'}" ${canGrant ? `onclick="doGrantEquipmentBless('${grantScroll.uid}', '${item.uid}', ${isEq})"` : 'disabled'}>使用 ${DB.items[grantScroll.id].n} (擁有: ${grantScroll.cnt})｜${canGrant ? `成功率 ${grantRate}%` : '已祝福／詛咒或不可賦予'}</button>`;
-    }
-
     // 🌟 一鍵強化到指定值：右側可選目標強化值（預設＝安定值），逐級嘗試，過程中任一階失敗即視為失敗（爆裝）
     let safe = d.safe || 0;
     if (scrollNorm && (d.type === 'wpn' || d.type === 'arm') && !_protectKind) {
@@ -1441,7 +1442,69 @@ function showEnhanceOptions(uid, isEq) {
     document.getElementById('modal-actions').innerHTML = act;
 }
 
-// 從指定裝備的強化視窗啟用一次性保護；啟用後保留在同一視窗，讓玩家接著選一般／祝福強化卷軸。
+// 裝備保護獨立選單：與「一鍵強化到指定值」分頁，降低誤觸風險。
+function showEquipProtectOptions(uid, isEq) {
+    let item = isEq ? Object.values(player.eq).find(e => e && e.uid === uid) : player.inv.find(i => i.uid === uid);
+    if (!item) return;
+    let d = DB.items[item.id];
+    if (!d || (d.type !== 'wpn' && d.type !== 'arm') || d.noEnhance || isMaxEnhanced(item)) {
+        logSys('<span class="text-red-400 font-bold">這件裝備目前無法使用裝備保護卷軸。</span>');
+        return;
+    }
+    let protectNorm = player.inv.find(i => i.id === 'scroll_equip_protect');
+    let protectBless = player.inv.find(i => i.id === 'scroll_equip_protect_b');
+    if (!protectNorm && !protectBless && !player.equipProtect) {
+        logSys('<span class="text-red-400 font-bold">背包中沒有裝備保護卷軸。</span>');
+        return;
+    }
+
+    document.getElementById('modal-item-name').innerHTML = `裝備保護 ${getItemFullName(item)}`;
+    document.getElementById('modal-item-name').className = 'text-xl font-bold mb-3 border-b border-slate-600 pb-3 text-cyan-200';
+    document.getElementById('modal-item-desc').innerHTML = player.equipProtect
+        ? '目前已有一次裝備保護狀態；完成下一次單次強化後即會消耗。'
+        : '請選擇要啟用的裝備保護卷軸。啟用後會先返回裝備視窗，再由「強化」進行一次單次強化。';
+
+    let act = '';
+    if (player.equipProtect) {
+        let activeText = player.equipProtect === 'blessed'
+            ? '祝福裝備保護已啟用｜失敗時強化值不變'
+            : '裝備保護已啟用｜失敗時保留裝備、強化-1';
+        act += `<button class="col-span-2 w-full btn border-amber-700 bg-amber-950 text-amber-300 py-3 text-base font-bold cursor-not-allowed" disabled>${activeText}</button>`;
+    } else {
+        if (protectNorm) {
+            act += `<button class="col-span-2 w-full btn border-cyan-700 bg-cyan-950 hover:bg-cyan-900 py-3 text-base font-bold text-cyan-200 shadow" onclick="activateEquipProtectFromEnhance('${protectNorm.uid}', '${item.uid}', ${isEq})">啟用 ${DB.items[protectNorm.id].n} (擁有: ${protectNorm.cnt})｜失敗保留裝備、強化-1</button>`;
+        }
+        if (protectBless) {
+            let protectBlessOk = canUseEquipProtectState(d, item.en, 'blessed');
+            let protectBlessReq = d.type === 'wpn' ? '+11以上武器' : '+9以上防具';
+            act += `<button class="col-span-2 w-full btn py-3 text-base font-bold shadow ${protectBlessOk ? 'border-yellow-600 bg-yellow-950 hover:bg-yellow-900 text-yellow-300' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed'}" ${protectBlessOk ? `onclick="activateEquipProtectFromEnhance('${protectBless.uid}', '${item.uid}', ${isEq})"` : 'disabled'}>啟用 ${DB.items[protectBless.id].n} (擁有: ${protectBless.cnt})｜${protectBlessOk ? '失敗強化不變' : `限${protectBlessReq}`}</button>`;
+        }
+    }
+    act += `<button class="col-span-2 w-full btn py-3 bg-slate-700 text-lg font-bold mt-2" onclick="returnToItemModal('${item.uid}', ${isEq})">返回</button>`;
+    document.getElementById('modal-actions').innerHTML = act;
+}
+
+// 賦予祝福獨立選單：固定由裝備視窗第二排右側進入，不與任何強化按鈕混放。
+function showGrantBlessOptions(uid, isEq) {
+    let item = isEq ? Object.values(player.eq).find(e => e && e.uid === uid) : player.inv.find(i => i.uid === uid);
+    if (!item) return;
+    let d = DB.items[item.id];
+    let scroll = d ? player.inv.find(i => DB.items[i.id] && DB.items[i.id].blessGrant === d.type) : null;
+    if (!scroll) {
+        logSys('<span class="text-red-400 font-bold">背包中沒有適用於這件裝備的賦予祝福卷軸。</span>');
+        return;
+    }
+    let canGrant = typeof canGrantEquipmentBless === 'function' && canGrantEquipmentBless(item, d.type);
+    let rate = Math.round((DB.items[scroll.id].blessRate || 0) * 100);
+    document.getElementById('modal-item-name').innerHTML = `賦予祝福 ${getItemFullName(item)}`;
+    document.getElementById('modal-item-name').className = 'text-xl font-bold mb-3 border-b border-slate-600 pb-3 text-purple-300';
+    document.getElementById('modal-item-desc').innerHTML = `使用 ${DB.items[scroll.id].n} 嘗試將這件裝備轉化為祝福裝備。失敗只消耗卷軸，裝備不會消失。`;
+    let act = `<button class="col-span-2 w-full btn py-3 text-base font-bold shadow ${canGrant ? 'border-purple-600 bg-purple-950 hover:bg-purple-900 text-purple-200' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed'}" ${canGrant ? `onclick="doGrantEquipmentBless('${scroll.uid}', '${item.uid}', ${isEq})"` : 'disabled'}>使用 ${DB.items[scroll.id].n} (擁有: ${scroll.cnt})｜${canGrant ? `成功率 ${rate}%` : '已祝福／詛咒或不可賦予'}</button>`;
+    act += `<button class="col-span-2 w-full btn py-3 bg-slate-700 text-lg font-bold mt-2" onclick="returnToItemModal('${item.uid}', ${isEq})">返回</button>`;
+    document.getElementById('modal-actions').innerHTML = act;
+}
+
+// 從獨立的裝備保護選單啟用一次性保護；啟用後返回裝備視窗，再由玩家主動進入「強化」。
 function activateEquipProtectFromEnhance(scrollUid, targetUid, isEq) {
     let scroll = player.inv.find(i => i.uid === scrollUid);
     let sd = scroll && DB.items[scroll.id];
@@ -1450,7 +1513,7 @@ function activateEquipProtectFromEnhance(scrollUid, targetUid, isEq) {
     if (!scroll || !sd || !sd.protectScroll || !target || !td) return;
     if (player.equipProtect) {
         logSys('<span class="text-amber-300 font-bold">目前已有裝備保護狀態，請先完成一次單次強化。</span>');
-        showEnhanceOptions(targetUid, isEq);
+        returnToItemModal(targetUid, isEq);
         return;
     }
     let kind = sd.isB ? 'blessed' : 'normal';
@@ -1462,9 +1525,9 @@ function activateEquipProtectFromEnhance(scrollUid, targetUid, isEq) {
     consume(scroll);
     let label = sd.isB ? '祝福裝備保護' : '裝備保護';
     let result = sd.isB ? '失敗時裝備不消失、強化值維持不變' : '失敗時裝備不消失、強化值降低 1';
-    logSys(`<span class="${sd.isB ? 'text-yellow-300' : 'text-cyan-200'} font-bold">已為 ${getItemFullName(target)} 啟用「${label}」（1次）。</span><span class="text-slate-300">接著選擇一張強化卷軸；成功或失敗都會消耗保護次數，${result}。</span>`);
+    logSys(`<span class="${sd.isB ? 'text-yellow-300' : 'text-cyan-200'} font-bold">已為 ${getItemFullName(target)} 啟用「${label}」（1次）。</span><span class="text-slate-300">請回到這件裝備的「強化」選擇一張單次強化卷軸；成功或失敗都會消耗保護次數，${result}。</span>`);
     renderStatusEffects(); updateUI(); saveGame();
-    showEnhanceOptions(targetUid, isEq);
+    returnToItemModal(targetUid, isEq);
 }
 
 // 👇 一鍵強化到指定值：逐級嘗試直到目標值。安定值前必定成功；安定值起依天堂經典衝裝規則（enhanceRollOutcome js/01），
