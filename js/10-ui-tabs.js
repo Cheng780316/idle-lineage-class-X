@@ -1294,30 +1294,38 @@ function openModal(item, isEq, slot) {
 
     // 強化、裝備保護、賦予祝福分成三個獨立入口。第二排固定左保護、右祝福，
     // 避免玩家操作特殊卷軸時誤觸「一鍵強化到指定值」。
-    let _grantScrollHere = player.inv.find(i => DB.items[i.id] && DB.items[i.id].blessGrant === d.type);
-    let _canGrantHere = !!(_grantScrollHere && typeof canGrantEquipmentBless === 'function' && canGrantEquipmentBless(item, d.type));
+    let _scrollCountHere = id => player.inv.reduce((sum, i) => sum + (i.id === id ? (Number(i.cnt) || 1) : 0), 0);
+    let _grantIdHere = ({ wpn: 'new_item_bless_wpn', arm: 'new_item_bless_arm', acc: 'new_item_bless_acc' })[d.type] || '';
+    let _grantCountHere = _grantIdHere ? _scrollCountHere(_grantIdHere) : 0;
+    let _canGrantHere = _grantCountHere > 0 && typeof canGrantEquipmentBless === 'function' && canGrantEquipmentBless(item, d.type);
     let _canEnhanceHere = ((d.type === 'wpn' && !d.isArrow) || d.type === 'arm' || d.type === 'acc') && !isMaxEnhanced(item) && !d.noEnhance;
     if (_canEnhanceHere) {
         act += `<button class="col-span-2 w-full btn border-purple-700 bg-purple-900 hover:bg-purple-800 text-purple-200 py-3 text-lg font-bold mt-2" onclick="showEnhanceOptions('${item.uid}', ${isEq})">強化</button>`;
     }
-    let _protectEligibleHere = _canEnhanceHere && (d.type === 'wpn' || d.type === 'arm');
-    let _protectNormHere = _protectEligibleHere ? player.inv.find(i => i.id === 'scroll_equip_protect') : null;
-    let _protectBlessHere = _protectEligibleHere ? player.inv.find(i => i.id === 'scroll_equip_protect_b') : null;
-    let _showProtectHere = _protectEligibleHere && (player.equipProtect || _protectNormHere || _protectBlessHere);
-    let _showGrantHere = !!_grantScrollHere;
-    if (_showProtectHere || _showGrantHere) {
+    let _showSpecialScrollRow = (d.type === 'wpn' || d.type === 'arm' || d.type === 'acc') && !d.isArrow && !d.doll && !d.remains && !isRelic(d);
+    if (_showSpecialScrollRow) {
+        let _protectApplicableHere = d.type === 'wpn' || d.type === 'arm';
+        let _protectNormCountHere = _scrollCountHere('scroll_equip_protect');
+        let _protectBlessCountHere = _scrollCountHere('scroll_equip_protect_b');
+        let _protectBlessLevelOk = _protectApplicableHere && canUseEquipProtectState(d, item.en, 'blessed');
+        let _canProtectHere = _protectApplicableHere && !d.noEnhance && !isMaxEnhanced(item) && !player.equipProtect
+            && (_protectNormCountHere > 0 || (_protectBlessCountHere > 0 && _protectBlessLevelOk));
+        let _protectStateHere = player.equipProtect
+            ? (player.equipProtect === 'blessed' ? '祝福保護已啟用' : '保護已啟用')
+            : (!_protectApplicableHere ? '此類裝備不適用'
+                : (d.noEnhance ? '無法強化'
+                    : (isMaxEnhanced(item) ? `已達 +${enhanceCap(d)}`
+                        : ((_protectNormCountHere <= 0 && _protectBlessCountHere <= 0) ? '卷軸數量為 0'
+                            : (!_canProtectHere ? (d.type === 'wpn' ? '祝福版限 +11 以上' : '祝福版限 +9 以上') : '選擇保護卷軸')))));
+        let _grantStateHere = _canGrantHere ? '選擇賦予卷軸'
+            : (_grantCountHere <= 0 ? '卷軸數量為 0'
+                : (item.bless === true ? '裝備已祝福'
+                    : (item.bless === 'cursed' ? '詛咒裝備不可使用' : '此裝備不可賦予')));
         act += '<div class="col-span-2 grid grid-cols-2 gap-2 mt-2">';
-        if (player.equipProtect) {
-            let _protectActiveLabel = player.equipProtect === 'blessed' ? '祝福裝備保護已啟用（1次）' : '裝備保護已啟用（1次）';
-            act += `<button class="w-full btn border-amber-700 bg-amber-950 text-amber-300 py-3 text-base font-bold cursor-not-allowed" disabled>${_protectActiveLabel}</button>`;
-        } else if (_showProtectHere) {
-            act += `<button class="w-full btn border-cyan-700 bg-cyan-950 hover:bg-cyan-900 text-cyan-200 py-3 text-base font-bold" onclick="showEquipProtectOptions('${item.uid}', ${isEq})">裝備保護</button>`;
-        } else {
-            act += '<span></span>';
-        }
-        if (_showGrantHere) {
-            act += `<button class="w-full btn py-3 text-base font-bold ${_canGrantHere ? 'border-purple-600 bg-purple-950 hover:bg-purple-900 text-purple-200' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed'}" ${_canGrantHere ? `onclick="showGrantBlessOptions('${item.uid}', ${isEq})"` : 'disabled'}>賦予祝福</button>`;
-        }
+        act += `<button class="w-full btn py-2 text-base font-bold flex flex-col items-center justify-center ${_canProtectHere ? 'border-cyan-700 bg-cyan-950 hover:bg-cyan-900 text-cyan-200' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed'}" ${_canProtectHere ? `onclick="showEquipProtectOptions('${item.uid}', ${isEq})"` : 'disabled'}>`
+            + `<span>裝備保護</span><span class="text-xs font-normal mt-1">一般 ${_protectNormCountHere.toLocaleString()}｜祝福 ${_protectBlessCountHere.toLocaleString()}</span><span class="text-xs font-normal">${_protectStateHere}</span></button>`;
+        act += `<button class="w-full btn py-2 text-base font-bold flex flex-col items-center justify-center ${_canGrantHere ? 'border-purple-600 bg-purple-950 hover:bg-purple-900 text-purple-200' : 'border-slate-700 bg-slate-800 text-slate-500 cursor-not-allowed'}" ${_canGrantHere ? `onclick="showGrantBlessOptions('${item.uid}', ${isEq})"` : 'disabled'}>`
+            + `<span>賦予祝福</span><span class="text-xs font-normal mt-1">持有 ${_grantCountHere.toLocaleString()}</span><span class="text-xs font-normal">${_grantStateHere}</span></button>`;
         act += '</div>';
     }
 
