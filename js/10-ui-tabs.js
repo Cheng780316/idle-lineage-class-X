@@ -1470,7 +1470,7 @@ function showEquipProtectOptions(uid, isEq) {
     document.getElementById('modal-item-name').className = 'text-xl font-bold mb-3 border-b border-slate-600 pb-3 text-cyan-200';
     document.getElementById('modal-item-desc').innerHTML = player.equipProtect
         ? '目前已有一次裝備保護狀態；完成下一次單次強化後即會消耗。'
-        : '請選擇要啟用的裝備保護卷軸。啟用後會先返回裝備視窗，再由「強化」進行一次單次強化。';
+        : '請選擇要啟用的裝備保護卷軸。啟用後會直接進入強化卷軸選擇畫面；保護期間不顯示一鍵強化。';
 
     let act = '';
     if (player.equipProtect) {
@@ -1512,7 +1512,7 @@ function showGrantBlessOptions(uid, isEq) {
     document.getElementById('modal-actions').innerHTML = act;
 }
 
-// 從獨立的裝備保護選單啟用一次性保護；啟用後返回裝備視窗，再由玩家主動進入「強化」。
+// 從獨立的裝備保護選單啟用一次性保護；啟用後直接進入單次強化卷軸選擇。
 function activateEquipProtectFromEnhance(scrollUid, targetUid, isEq) {
     let scroll = player.inv.find(i => i.uid === scrollUid);
     let sd = scroll && DB.items[scroll.id];
@@ -1533,9 +1533,9 @@ function activateEquipProtectFromEnhance(scrollUid, targetUid, isEq) {
     consume(scroll);
     let label = sd.isB ? '祝福裝備保護' : '裝備保護';
     let result = sd.isB ? '失敗時裝備不消失、強化值維持不變' : '失敗時裝備不消失、強化值降低 1';
-    logSys(`<span class="${sd.isB ? 'text-yellow-300' : 'text-cyan-200'} font-bold">已為 ${getItemFullName(target)} 啟用「${label}」（1次）。</span><span class="text-slate-300">請回到這件裝備的「強化」選擇一張單次強化卷軸；成功或失敗都會消耗保護次數，${result}。</span>`);
+    logSys(`<span class="${sd.isB ? 'text-yellow-300' : 'text-cyan-200'} font-bold">已為 ${getItemFullName(target)} 啟用「${label}」（1次）。</span><span class="text-slate-300">請選擇一張單次強化卷軸；成功或失敗都會消耗保護次數，${result}。</span>`);
     renderStatusEffects(); updateUI(); saveGame();
-    returnToItemModal(targetUid, isEq);
+    showEnhanceOptions(targetUid, isEq);
 }
 
 // 👇 一鍵強化到指定值：逐級嘗試直到目標值。安定值前必定成功；安定值起依天堂經典衝裝規則（enhanceRollOutcome js/01），
