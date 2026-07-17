@@ -1165,13 +1165,13 @@ function buildItemDescHTML(item) {
     if(item.bless) {
         if(item.bless === 'cursed') {
             let _ct;
-            if(d.type === 'wpn') _ct = '額外傷害-1，命中-1，額外魔法點數-2';
-            else { let _acc = (d.slot==='ring'||d.slot==='amulet'||d.slot==='belt'||d.slot==='ear'); _ct = _acc ? '防禦(AC)+1，魔防(MR)-1' : '防禦(AC)+1，傷害減免-1'; }
+            if(d.type === 'wpn') _ct = '額外傷害-2，額外魔法點數-3，額外命中-2';
+            else { let _acc = (d.slot==='ring'||d.slot==='amulet'||d.slot==='belt'||d.slot==='ear'); _ct = _acc ? '防禦(AC)+1，魔防(MR)-2，HP-5，MP-3' : '防禦(AC)+1，傷害減免-1，HP-10'; }
             desc += `<br><span class="c-cursed">詛咒的：${_ct}</span>`;
         } else {
             let _bt;
-            if(d.type === 'wpn') _bt = '額外傷害+1，額外魔法點數+2，額外命中+1';
-            else { let _acc = (d.slot==='ring'||d.slot==='amulet'||d.slot==='belt'||d.slot==='ear'); _bt = _acc ? '防禦(AC)-1，魔防(MR)+1' : '防禦(AC)-1，傷害減免+1'; }
+            if(d.type === 'wpn') _bt = '額外傷害+2，額外魔法點數+3，額外命中+2';
+            else { let _acc = (d.slot==='ring'||d.slot==='amulet'||d.slot==='belt'||d.slot==='ear'); _bt = _acc ? '防禦(AC)-1，魔防(MR)+2，HP+5，MP+3' : '防禦(AC)-1，傷害減免+1，HP+10'; }
             desc += `<br><span class="text-yellow-400">祝福的：${_bt}</span>`;
         }
     }

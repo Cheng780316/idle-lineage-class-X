@@ -279,8 +279,8 @@ function recomputeStats() {
         if(w.mpRPerEn)      d.mpR      += _wEn * w.mpRPerEn;        // 🔮 每強化+1 → MP自然恢復量（冥想奇古獸）
         if(w.mdmgEnFrom7Max3) d.magicDmg += Math.min(3, Math.max(0, _wEn - 6));   // 🔧 巴風特魔杖：強化+7 魔法傷害+1，之後每+1再+1，最高+3
         // 武器祝福/遠古：依規格計入（同時影響遠近距離）
-        // 祝福的武器：額外傷害+1、額外魔法點數+2、額外命中+1
-        applyBlessStats(d, p.eq.wpn.bless, 'wpn');   // 祝福的/詛咒的
+        // 祝福的武器：額外傷害+2、額外魔法點數+3、額外命中+2
+        applyBlessStats(d, p.eq.wpn.bless, 'wpn', p);   // 祝福的/詛咒的
         // 遠古武器：額外傷害+2、魔法傷害+1
         applyAncStats(d, p.eq.wpn.anc, 'wpn');   // 遠古系變體能力
         // 🔥 屬性詞綴（v3.0.77 五階制）：額外傷害+N、額外魔法點數+N（N=1/3/5/7/9·ATTR_AFFIX js/08）；一般攻擊轉屬性走 getWpnEle/elementCounterMult
@@ -291,7 +291,7 @@ function recomputeStats() {
 
     // ⚔️ 迅猛雙斧副手武器：祝福/遠古/屬性比照主武器計入 global d（與其他裝備一致疊加；玩家＋傭兵 buildAlly 換身共用本函式）。剋制屬性仍走 getPhysicalDmg 副手揮擊（用 offwpn 自身屬性）
     if (p.eq.offwpn) {
-        applyBlessStats(d, p.eq.offwpn.bless, 'wpn'); applyAncStats(d, p.eq.offwpn.anc, 'wpn');
+        applyBlessStats(d, p.eq.offwpn.bless, 'wpn', p); applyAncStats(d, p.eq.offwpn.anc, 'wpn');
         let _oAtt = getAttrAffix(p.eq.offwpn.attr);
         if (_oAtt) { d.extraDmg += _oAtt.dmg; d.extraMp += _oAtt.mp; }   // 🔥 副手屬性詞綴：額外傷害/魔法點數
     }
@@ -372,8 +372,8 @@ d.mr += (baseMr + bonusMr);
         }
         if((ed.eff && ed.eff === 'haste') || ed.equipHaste) p._equipHaste = true;   // 不再借用 buffs.haste 計時通道，避免卸裝後永久加速殘留；🔧 equipHaste：eff 已被 combo/連射等佔用時仍可賦予加速
         
-        // 祝福的：防具→AC-1、傷害減免+1；飾品→AC-1、MR+1
-        applyBlessStats(d, e.bless, (ed.slot==='ring'||ed.slot==='amulet'||ed.slot==='belt'||ed.slot==='ear') ? 'acc' : 'arm');   // 祝福的/詛咒的
+        // 祝福的：防具→AC-1、傷害減免+1、HP+10；飾品→AC-1、MR+2、HP+5、MP+3
+        applyBlessStats(d, e.bless, (ed.slot==='ring'||ed.slot==='amulet'||ed.slot==='belt'||ed.slot==='ear') ? 'acc' : 'arm', p);   // 祝福的/詛咒的
         applyAncStats(d, e.anc, (ed.slot==='ring'||ed.slot==='amulet'||ed.slot==='belt'||ed.slot==='ear') ? 'acc' : 'arm');   // 遠古系變體能力
         // 🔥 v3.0.77 屬性詞綴改版：只能存在於武器（額外傷害/魔法點數，於上方武器區塊計入）；舊防具/飾品屬性詞綴（元素抗性+MR）已廢除並由 loadGame 清除
         if(ed.set && !_setSeen[e.id]) { _setSeen[e.id] = true; setCheck[ed.set] = (setCheck[ed.set]||0) + 1; }   // 🔧 以「不重複物品」計件：兩枚同款戒指只算 1 件，杜絕灌水湊套裝

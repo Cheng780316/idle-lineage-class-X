@@ -230,12 +230,12 @@ function ancColorClass(anc) {   // 遠古=紫、永恆=紅、不朽=綠、太初
 // 祝福系：祝福的(bless=true) / 詛咒的(bless='cursed')
 function blessName(bless) { return !bless ? '' : (bless === 'cursed' ? '詛咒的' : '祝福的'); }
 function blessColorClass(bless) { return (bless === 'cursed') ? 'c-cursed' : 'c-blessed'; }
-function applyBlessStats(d, bless, slot) {   // slot: 'wpn' | 'arm' | 'acc'；詛咒的＝祝福的負鏡像
+function applyBlessStats(d, bless, slot, p) {   // slot: 'wpn' | 'arm' | 'acc'；詛咒的＝祝福的負鏡像
     if (!bless) return;
     let sg = (bless === 'cursed') ? -1 : 1;
-    if (slot === 'wpn') { d.extraDmg += sg*1; d.extraHit += sg*1; d.extraMp += sg*2; }   // 武器：傷害/命中/額外魔法點數
-    else if (slot === 'arm') { d.ac -= sg*1; d.dr += sg*1; }                              // 防具：AC(祝-1/詛+1)、傷害減免
-    else { d.ac -= sg*1; d.mr += sg*1; }                                                  // 飾品：AC、MR
+    if (slot === 'wpn') { d.extraDmg += sg*2; d.extraHit += sg*2; d.extraMp += sg*3; }   // 武器：傷害+2／命中+2／額外魔法點數+3
+    else if (slot === 'arm') { d.ac -= sg*1; d.dr += sg*1; if (p) p.mhp += sg*10; }      // 防具：AC-1／減傷+1／HP+10
+    else { d.ac -= sg*1; d.mr += sg*2; if (p) { p.mhp += sg*5; p.mmp += sg*3; } }         // 飾品：AC-1／MR+2／HP+5／MP+3
 }
 function applyAncStats(d, anc, slot) {   // slot: 'wpn' | 'arm' | 'acc'
     if (!anc) return;
@@ -282,6 +282,13 @@ function useItem(u, silent = false) {
     if (item.id === 'scroll_revive') { if(!silent) logSys(`復活卷軸無法從道具欄使用，死亡時可於畫面下方點選『原地復活』。`); return; }
     let d = DB.items[item.id];
     if (d.noUse) { if(!silent) logSys(`此物品無法直接使用。`); return; }
+
+    // ✨ 賦予祝福卷軸：選擇背包或裝備欄中的一般裝備；失敗只消耗卷軸，成功保留原有強化／屬性／詞綴。
+    if (d.blessGrant) {
+        if (silent) return;   // 稀有卷軸不允許自動使用
+        openBlessGrantModal(item);
+        return;
+    }
 
     // 🛡️ 裝備保護卷軸：先取得「一次性保護狀態」，不是直接拿來強化裝備。
     // 下一次實際使用武器／防具強化卷軸時才消耗；一般版失敗降 1、祝福版失敗維持。
@@ -883,6 +890,63 @@ function canUseEquipProtectState(d, en, kind) {
     if (!d || (d.type !== 'wpn' && d.type !== 'arm')) return false;
     if (kind !== 'blessed') return true;
     return (d.type === 'wpn' && en >= 11) || (d.type === 'arm' && en >= 9);
+}
+
+// ===== ✨ 賦予武器／盔甲／飾品祝福卷軸 =====
+const BLESS_GRANT_TYPE_LABEL = { wpn: '武器', arm: '防具', acc: '飾品' };
+function canGrantEquipmentBless(item, type) {
+    if (!item || item.bless) return false;   // 已祝福或詛咒皆不可直接覆蓋
+    let d = DB.items[item.id];
+    if (!d || d.type !== type || isRelic(d)) return false;
+    if (d.isArrow || d.doll || d.remains) return false;   // 箭矢、魔法娃娃、席琳遺骸不是祝福目標
+    return true;
+}
+function openBlessGrantModal(scroll) {
+    let sd = scroll && DB.items[scroll.id];
+    if (!sd || !sd.blessGrant) return;
+    let type = sd.blessGrant, rate = Math.round((sd.blessRate || 0) * 100);
+    let eqTargets = Object.values(player.eq || {}).filter(it => canGrantEquipmentBless(it, type));
+    let invTargets = player.inv.filter(it => it.uid !== scroll.uid && canGrantEquipmentBless(it, type));
+    document.getElementById('modal-item-name').innerHTML = `${sd.n}（成功率 ${rate}%）`;
+    document.getElementById('modal-item-name').className = 'text-xl font-bold mb-3 border-b border-slate-600 pb-3 text-purple-300';
+    document.getElementById('modal-item-desc').innerHTML = `選擇要轉化的${BLESS_GRANT_TYPE_LABEL[type] || '裝備'}。失敗只消耗卷軸；成功後保留強化值、屬性與其他詞綴。<br><span class="text-red-300">詛咒裝備必須先由碧恩解除詛咒。</span>`;
+    let act = '';
+    eqTargets.forEach(it => {
+        act += `<button class="w-full btn border-amber-700 bg-amber-950/70 hover:bg-amber-900 py-2 text-base font-bold ${getItemColor(it)}" onclick="doGrantEquipmentBless('${scroll.uid}','${it.uid}',true)">裝備中｜${getItemFullName(it)}</button>`;
+    });
+    invTargets.forEach(it => {
+        act += `<button class="w-full btn border-slate-600 bg-slate-800 hover:bg-slate-700 py-2 text-base font-bold ${getItemColor(it)}" onclick="doGrantEquipmentBless('${scroll.uid}','${it.uid}',false)">背包｜${getItemFullName(it)}</button>`;
+    });
+    if (!act) act = `<p class="text-slate-400">沒有可賦予祝福的一般${BLESS_GRANT_TYPE_LABEL[type] || '裝備'}。</p>`;
+    document.getElementById('modal-actions').innerHTML = act;
+    document.getElementById('item-modal').classList.remove('hidden');
+}
+function doGrantEquipmentBless(scrollUid, targetUid, isEq) {
+    let scroll = player.inv.find(i => i.uid === scrollUid);
+    let sd = scroll && DB.items[scroll.id];
+    if (!scroll || !sd || !sd.blessGrant) { logSys('<span class="text-red-400">賦予祝福卷軸已不存在。</span>'); closeModal(); return; }
+    let target = isEq ? Object.values(player.eq || {}).find(i => i && i.uid === targetUid) : player.inv.find(i => i.uid === targetUid);
+    if (!canGrantEquipmentBless(target, sd.blessGrant)) {
+        logSys('<span class="text-red-400">這件裝備無法賦予祝福，或目前已帶有祝福／詛咒。</span>'); closeModal(); return;
+    }
+    let beforeName = getItemFullName(target), rate = Number(sd.blessRate) || 0;
+    consume(scroll);   // 成功或失敗都先消耗 1 張
+    if (Math.random() < rate) {
+        let blessed = target;
+        if (!isEq && (target.cnt || 1) > 1) {
+            target.cnt -= 1;
+            blessed = { ...target, uid: uid(), cnt: 1, bless: true };
+            let same = player.inv.find(i => i.uid !== target.uid && sameItemSig(i, blessed));
+            if (same) { same.cnt = (same.cnt || 1) + 1; blessed = same; }
+            else player.inv.push(blessed);
+        } else {
+            target.bless = true;
+        }
+        logSys(`<span class="text-yellow-300 font-bold">賦予祝福成功！</span>${beforeName} 綻放金色光芒，轉化為 ${getItemFullName(blessed)}。`);
+    } else {
+        logSys(`<span class="text-slate-400">賦予祝福失敗，只消耗了 1 張 ${sd.n}；${beforeName} 安然無恙。</span>`);
+    }
+    calcStats(); renderTabs(true); updateUI(); saveGame(); closeModal();
 }
 function openEnhanceModal(scroll) {
     activeScroll = scroll;

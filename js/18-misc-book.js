@@ -12,12 +12,7 @@ const MISC_CATEGORIES = [
     { key: 'special', name: '其他' }
 ];
 
-// 已停用且無獲取管道的舊道具：保留物品定義供舊存檔辨識，但永不列入收集冊、完成數或全收集加成。
-const MISC_BOOK_EXCLUDED = {
-    new_item_bless_wpn: true,
-    new_item_bless_arm: true,
-    new_item_bless_acc: true
-};
+const MISC_BOOK_EXCLUDED = {};
 
 // 這些新增圖示來自沒有 Alpha 通道的官方 JPG／32px 圖檔，四周黑色是原圖背景。
 // 收藏卡片使用 screen 混色只排除黑底；背包、商店與物品詳細視窗維持原樣。
@@ -74,8 +69,8 @@ const OBTAINABLE_MISC = (function buildObtainableMisc() {
     } catch (e) {}
     // (e) 地區獵殺加成道具（const 在 js/01 為閉包內·此處內聯）
     ['new_item_164', 'new_item_195', 'new_item_165'].forEach(add);
-    // (f) 兌換/特殊取得的卷軸（gachaWeight0·掃描器漏掉·顯式補）：祝福的卷軸(伊賽馬利)、解除詛咒卷軸
-    ['scroll_weapon_b', 'scroll_armor_b', 'new_item_uncurse'].forEach(add);
+    // (f) 兌換/特殊取得的卷軸（gachaWeight0·掃描器漏掉·顯式補）：祝福施法卷、碧恩製作的賦予祝福卷、解除詛咒卷
+    ['scroll_weapon_b', 'scroll_armor_b', 'new_item_bless_wpn', 'new_item_bless_arm', 'new_item_bless_acc', 'new_item_uncurse'].forEach(add);
     return S;
 })();
 function miscObtainable(id) { return !!OBTAINABLE_MISC[id]; }
@@ -125,7 +120,6 @@ function miscCollectionBonus(p, d) {
 
 // ---- 無法獲得但仍有用途的卷軸 → 預設「圖鑑已開通」(計入收集·讓卷軸類仍可完成) ----
 //   new_item_uncurse 既有持有者仍可用、無新來源所以全模式開通；祝福的施法卷軸 scroll_*_b 仍可由伊賽馬利兌換→只在經典開通。
-//   已停用的三種賦予祝福卷軸由 MISC_BOOK_EXCLUDED 完全排除，不再用自動開通方式佔據收集冊格位。
 //   🏛️v3.0.83 傳統模式已取消：經典+傳統的強化卷軸自動開通分支移除（施法卷軸已恢復全模式可取得）。
 const MISC_SCROLL_UNCURSE = ['new_item_uncurse'];
 const MISC_SCROLL_BLESSED = ['scroll_weapon_b', 'scroll_armor_b'];

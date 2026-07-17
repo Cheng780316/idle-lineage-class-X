@@ -984,6 +984,30 @@ const ATTR_SCROLLS = {
     wind:  { id: 'scroll_attr_wind',  n: '風之武器強化卷軸', btn: 'bg-green-900 border-green-500 text-green-200 hover:bg-green-800' },
     earth: { id: 'scroll_attr_earth', n: '地之武器強化卷軸', btn: 'bg-amber-900 border-amber-600 text-amber-200 hover:bg-amber-800' },
 };
+// ✨ 碧恩製作「賦予祝福卷軸」：材料可由背包＋共用倉庫合併扣除。
+const BIAN_BLESS_RECIPES = {
+    wpn: { result: 'new_item_bless_wpn', rate: 30, req: [{ id: 'scroll_weapon', cnt: 500 }, { id: 'sherine_crystal', cnt: 5 }, { id: 'gold', cnt: 5000000 }] },
+    arm: { result: 'new_item_bless_arm', rate: 30, req: [{ id: 'scroll_armor', cnt: 500 }, { id: 'sherine_crystal', cnt: 5 }, { id: 'gold', cnt: 5000000 }] },
+    acc: { result: 'new_item_bless_acc', rate: 40, req: [{ id: 'scroll_acc', cnt: 20 }, { id: 'sherine_crystal', cnt: 10 }, { id: 'gold', cnt: 10000000 }] },
+};
+function bianBlessCount(id) {
+    if (typeof invCountId === 'function') return invCountId(id);
+    if (id === 'gold') return player.gold || 0;
+    return player.inv.filter(i => i.id === id).reduce((s, i) => s + (i.cnt || 0), 0);
+}
+function doBianBlessCraft(kind) {
+    let rec = BIAN_BLESS_RECIPES[kind]; if (!rec) return;
+    let lack = rec.req.filter(m => bianBlessCount(m.id) < m.cnt);
+    if (lack.length) {
+        logSys(`<span class="text-red-400 font-bold">製作材料不足：</span>${lack.map(m => `${m.id === 'gold' ? '金幣' : DB.items[m.id].n} ${bianBlessCount(m.id).toLocaleString()}/${m.cnt.toLocaleString()}`).join('、')}`);
+        return;
+    }
+    rec.req.forEach(m => consumeMaterialById(m.id, m.cnt));
+    gainItem(rec.result, 1, true, true);
+    logSys(`<span class="text-purple-300 font-bold">碧恩製作完成：</span>${DB.items[rec.result].n} ×1（賦予成功率 ${rec.rate}%）。`);
+    renderTabs(true); updateUI(); saveGame();
+    let el = document.getElementById('interaction-content'); if (el) renderBianAttr(el);
+}
 function doBianAttr(slotKey, ele) {
     let item = player.eq[slotKey];
     if (!item) { logSys('該欄位沒有裝備武器。'); return; }
@@ -1058,8 +1082,25 @@ function renderBianAttr(el) {
             <button class="btn py-1 px-2 text-sm font-bold shrink-0 bg-cyan-800 border-cyan-500 text-cyan-100" onclick="doBianUncurse('${k}')">解除詛咒</button>
         </div>`;
     }).join('');
+    let blessCraftRows = Object.keys(BIAN_BLESS_RECIPES).map(kind => {
+        let rec = BIAN_BLESS_RECIPES[kind], out = DB.items[rec.result];
+        let canMake = rec.req.every(m => bianBlessCount(m.id) >= m.cnt);
+        let reqHtml = rec.req.map(m => {
+            let n = m.id === 'gold' ? '金幣' : DB.items[m.id].n;
+            let have = bianBlessCount(m.id), ok = have >= m.cnt;
+            return `<span class="${ok ? 'text-emerald-300' : 'text-red-300'}">${n} ${have.toLocaleString()}/${m.cnt.toLocaleString()}</span>`;
+        }).join(' ＋ ');
+        return `<div class="bg-slate-800/60 border border-purple-800 rounded p-2 flex flex-col gap-1">
+            <div class="flex items-center justify-between gap-2"><span class="text-purple-300 font-bold">${out.n}</span><button class="btn py-1 px-3 text-sm font-bold ${canMake ? 'bg-purple-800 border-purple-500 text-purple-100 hover:bg-purple-700' : 'bg-slate-700 border-slate-600 text-slate-500 cursor-not-allowed'}" ${canMake ? `onclick="doBianBlessCraft('${kind}')"` : 'disabled'}>製作 1 張</button></div>
+            <div class="text-xs">${reqHtml}</div><div class="text-xs text-slate-400">使用成功率 ${rec.rate}%；失敗只消耗卷軸，裝備不消失。</div>
+        </div>`;
+    }).join('');
     el.innerHTML = `
         <div class="flex flex-col gap-2 p-1">
+            <div class="text-purple-200 font-bold border-b border-purple-800 pb-1">賦予祝福卷軸製作</div>
+            <div class="text-xs text-slate-400">製作材料可從背包與共用倉庫合併扣除。製作完成後，從道具欄使用卷軸並選擇一般裝備。</div>
+            ${blessCraftRows}
+            <div class="text-amber-200 font-bold border-b border-amber-800 pb-1 mt-2">武器屬性強化</div>
             <div class="text-slate-300 text-sm leading-relaxed">碧恩：我能將四大元素之力銘刻於你手中的武器。每次賦予皆為獨立事件，<b>成功率 7%</b>；失敗僅消耗卷軸，武器不會消失。</div>
             <div class="text-xs text-slate-400">無屬性成功→第1階；同屬性成功→提升1階（最高5階）；<b>不同屬性成功→變成該屬性第1階</b>。衝第4階需武器+10以上、第5階需+11以上。第1~5階：額外傷害/額外魔法點數 +1/+3/+5/+7/+9，一般攻擊轉為該屬性。</div>
             <div class="text-xs text-slate-400">持有卷軸：<span class="c-attr-fr3">火 ${cnt('scroll_attr_fire')}</span>｜<span class="c-attr-wa3">水 ${cnt('scroll_attr_water')}</span>｜<span class="c-attr-wi3">風 ${cnt('scroll_attr_wind')}</span>｜<span class="c-attr-ea3">地 ${cnt('scroll_attr_earth')}</span></div>
