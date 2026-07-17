@@ -273,12 +273,14 @@ function _expReqOldV1(lv) {
     if (lv >= 49)  return 36065092;
     return EXP_T[lv];
 }
+const DEFAULT_WEB_REWARD_RATES = Object.freeze({ exp: 10, gold: 10, drop: 5 });
 function runtimeRewardMult(kind) {
-    let rates = (typeof window !== 'undefined') ? window.fableDesktopRates : null;
-    let value = rates ? Number(rates[kind]) : 1;
+    let desktopRates = (typeof window !== 'undefined') ? window.fableDesktopRates : null;
+    let rates = desktopRates || DEFAULT_WEB_REWARD_RATES;
+    let value = Number(rates[kind]);
     return Number.isFinite(value) && value > 0 ? value : 1;
 }
-function getExpGainMult(lv) { return lv >= 100 ? 0 : 1; }   // ⚠️v2.6.40 取消高等經驗遞減（恆全額）；滿等(100)仍不獲得。EXE 獎勵倍率另由 runtimeRewardMult 套用。
+function getExpGainMult(lv) { return lv >= 100 ? 0 : 1; }   // ⚠️v2.6.40 取消高等經驗遞減（恆全額）；滿等(100)仍不獲得。平台獎勵倍率另由 runtimeRewardMult 套用。
 
 const DB = {
         items: {
