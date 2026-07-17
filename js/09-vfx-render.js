@@ -2319,7 +2319,7 @@ function _playerBattleForm() {   // 主玩家戰場形態：變身優先 → 職
         let face = fixedLv90 ? 'R' : ((typeof player !== 'undefined' && player && player._face3) || 'R');
         let folder = m;
         return { key: 'morph:' + folder, domKey: 'morph:' + m, base: 'assets/morphanim/' + encodeURIComponent(folder) + '/', wpn: null, morphName: m, face: face,
-            assetRev: fixedLv90 ? '20260718-lv90-fixed-ne1' : null };
+            assetRev: fixedLv90 ? '20260718-lv90-static-idle1' : null };
     }
     return _classForm((typeof player !== 'undefined') ? player : null, false);
 }
@@ -2336,8 +2336,9 @@ function _battleSpriteProbe(form) {
     let probeSeq = (target, key, pfx, minF) => {   // 🚀 平行探測（滑動窗口·見 _probeFramesWin）
         _probeFramesWin(i => form.base + pfx + i + '.png' + (form.assetRev ? '?v=' + form.assetRev : ''), MOB_ANIM_MAX_FRAMES, minF || 2, frames => {
             let cfg = form.morphName && LV90_MORPH_BATTLE_TUNING[form.morphName];
-            if (frames && key === 'attack' && cfg && cfg.attackFrames) {
-                frames = cfg.attackFrames.map(index => frames[index]).filter(Boolean);
+            let frameList = cfg && (key === 'idle' ? cfg.idleFrames : (key === 'attack' ? cfg.attackFrames : null));
+            if (frames && frameList) {
+                frames = frameList.map(index => frames[index]).filter(Boolean);
             }
             target[key] = frames; finish();
         });
@@ -2367,11 +2368,11 @@ let _pmState = { act: null, t: 0, prevHp: null, name: null, el: null, imgs: null
 // 以待機本體腳底錨點對齊一般隊員的 42px 站位基準；長武器及光效不參與角色定位。
 const LV90_MORPH_BASELINE = 42;
 const LV90_MORPH_BATTLE_TUNING = Object.freeze({
-    '月亮騎士絲莉安':  { scale: 0.44, anchor: { R:[198.5,246.5], F:[193.5,249],   L:[165,265.5] } },
-    '影子騎士格立特':  { scale: 0.58, attackFrames:[5,7,9,11,13], anchor: { R:[151.5,240], F:[149.5,231.5], L:[143.5,243] } },
-    '鋼鐵騎士阿頓':    { scale: 0.46, anchor: { R:[203.5,245],   F:[191,248.5],   L:[163,265] } },
-    '天鵝的騎士依詩蒂': { scale: 0.56, anchor: { R:[199.5,203],   F:[195.5,204.5], L:[202.5,207] } },
-    '幸運的魔法師宙斯': { scale: 0.40, anchor: { R:[156,243],     F:[140,247.5],   L:[125,265] } }
+    '月亮騎士絲莉安':  { scale: 0.50, idleFrames:[6], anchor: { R:[198.5,246.5], F:[193.5,249],   L:[165,265.5] } },
+    '影子騎士格立特':  { scale: 0.58, idleFrames:[0], attackFrames:[5,7,9,11,13], anchor: { R:[151.5,240], F:[149.5,231.5], L:[143.5,243] } },
+    '鋼鐵騎士阿頓':    { scale: 0.46, idleFrames:[6], anchor: { R:[203.5,245],   F:[191,248.5],   L:[163,265] } },
+    '天鵝的騎士依詩蒂': { scale: 0.56, idleFrames:[0], anchor: { R:[199.5,203],   F:[195.5,204.5], L:[202.5,207] } },
+    '幸運的魔法師宙斯': { scale: 0.46, idleFrames:[0], anchor: { R:[156,243],     F:[140,247.5],   L:[125,265] } }
 });
 // 🎯 共用「角色可見本體錨點」：掃描當前職業／性別／變身／動作影格的 alpha，
 // 將透明畫布裁成實際可見範圍，再提供頭部、身體、腳底三個螢幕座標。
