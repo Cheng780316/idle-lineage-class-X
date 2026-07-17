@@ -410,30 +410,31 @@ d.mr += (baseMr + bonusMr);
             }
         });
     }
-    p._setPoly = null;   // 套裝變身僅在穿著時生效；每次重算先清除，卸下套裝即消失
+    p._setPoly = null;   // 套裝／武器強制變身僅在裝備時生效；每次重算先清除
+    p._setPolySource = null;   // 'set'=套裝（80級或控制戒指可用卷軸覆蓋）／'weapon'=武器（仍強制）
     if(setCheck['leather'] >= 4) { d.ac -= 3; }   // 皮套裝（原作未實作，依 DB.sets 補上）
     if(setCheck['bone'] >= 3) { d.ac -= 2; p.mhp += 10; }
-    if(setCheck['dk'] >= 4) { d.ac -= 4; p._setPoly = Object.assign({}, SET_POLY_FORMS.dk); }   // 🔧 死亡騎士套裝：變身升級為 真‧死亡騎士
+    if(setCheck['dk'] >= 4) { d.ac -= 4; p._setPoly = Object.assign({}, SET_POLY_FORMS.dk); p._setPolySource = 'set'; }   // 🔧 死亡騎士套裝：變身升級為 真‧死亡騎士
     if(setCheck['silver'] >= 4) { d.ac -= 3; }
     if(setCheck['oasis'] >= 4) { d.ac -= 3; }
     if(setCheck['gnome'] >= 3) { d.ac -= 1; p.mhp += 5; }
     if(setCheck['mage'] >= 2) { p.mmp += 50; d.mpR += 1; }   // 🧙 法師套裝：MP+50、MP自然恢復+1
-    if(setCheck['kurt'] >= 4) { d.ac -= 4; p._setPoly = Object.assign({}, SET_POLY_FORMS.kurt); }   // 🔧 克特套裝：變身升級為 真‧克特
+    if(setCheck['kurt'] >= 4) { d.ac -= 4; p._setPoly = Object.assign({}, SET_POLY_FORMS.kurt); p._setPolySource = 'set'; }   // 🔧 克特套裝：變身升級為 真‧克特
     if(setCheck['steel'] >= 5) { d.ac -= 2; d.dr += 2; }
     if(setCheck['mr'] >= 3) { d.mr += 5; }
     if(setCheck['guard'] >= 3) { d.ac -= 1; }
     if(setCheck['kinglord'] >= 4) { p.mhp += 30; p.mmp += 30; d.hpR += 10; d.mpR += 10; d.cha += 3; }   // 🔧 四大軍王套裝：HP/MP+30、HP/MP自然恢復+10、魅力+3
-    if(setCheck['demon'] >= 4) { d.ac -= 2; d.hpR += 5; p._setPoly = Object.assign({}, SET_POLY_FORMS.demon); }   // 🗼 惡魔套裝：AC-2、HP自然恢復+5、變身惡魔（額外傷害/命中/魔法傷害/MP/攻速由變身提供）
-    if(setCheck['darkelf'] >= 3) { d.ac -= 3; d.hpR -= 2; d.mpR -= 7; p._setPoly = Object.assign({}, SET_POLY_FORMS.darkelf); }   // 🏝️ 黑暗妖精套裝：AC-3、HP自然恢復-2、MP自然恢復-7、變身高等黑暗精靈（遠距離傷害/命中+5、攻速+30%）（力量-2/敏捷+2 已於 Phase 1 前 _setEarly 提前套用→吃進近/遠戰鬥值）
+    if(setCheck['demon'] >= 4) { d.ac -= 2; d.hpR += 5; p._setPoly = Object.assign({}, SET_POLY_FORMS.demon); p._setPolySource = 'set'; }   // 🗼 惡魔套裝：AC-2、HP自然恢復+5、變身惡魔（額外傷害/命中/魔法傷害/MP/攻速由變身提供）
+    if(setCheck['darkelf'] >= 3) { d.ac -= 3; d.hpR -= 2; d.mpR -= 7; p._setPoly = Object.assign({}, SET_POLY_FORMS.darkelf); p._setPolySource = 'set'; }   // 🏝️ 黑暗妖精套裝：AC-3、HP自然恢復-2、MP自然恢復-7、變身高等黑暗精靈（遠距離傷害/命中+5、攻速+30%）（力量-2/敏捷+2 已於 Phase 1 前 _setEarly 提前套用→吃進近/遠戰鬥值）
     if(setCheck['orin'] >= 2) { d.ac -= 5; p.mhp += 50; }   // 🔱 歐林西瑪套裝：AC-5、HP+50（全六屬性+1 已於 Phase 1 前 _setEarly 提前套用→吃進 AC/MR/HP/MP/傷害等衍生值）
     if(setCheck['icequeen_charm'] >= 3) { d.ac -= 5; p.mhp += 100; d.mpR += 4; d.resWater += 20; }   // ❄️👸 冰之女王魅力套裝（公主限定）：AC-5、HP+100、MP自然恢復+4、水屬性抗性+20（力量+2/魅力+2 已於 Phase 1 前提前套用）
     if(setCheck['frost'] >= 3) { d.ac -= 5; p.mhp += 100; d.hpR += 8; d.mpR += 4; d.mr += 15; d.resWater += 20; }   // ❄️ 寒冰套裝（王族／龍騎士）：AC-5、HP+100、HP自然恢復+8、MP自然恢復+4、MR+15、水屬性抗性+20（體質+3 已於 Phase 1 前提前套用）
     if(setCheck['bluepirate'] >= 4) { d.ac -= 1; p.mhp += 10; }   // 🏴‍☠️ 藍海賊套裝（頭巾＋皮盔甲＋手套＋長靴）：AC-1、HP+10（智力+1 已於 Phase 1 前提前套用）
     if(setCheck['emperor'] >= 5) { d.ac -= 20; p.mhp += 100; p.mmp += 20; d.hpR += 10; d.atkSpdPct += 30; d.meleeDmg += 5; d.rangedDmg += 5; }   // 🌑 v3.3.33 真‧冥皇套裝（披風/鎧甲/面甲/護手/鋼靴 5 件·黑暗妖精聖地.md）：防禦-20、HP+100、MP+20、HP自然恢復+10、攻速額外+30%（atkSpdPct 管線·與加速/勇敢藥水乘算堆疊）、額外傷害+5（近/遠皆加）
     // 🌑 v3.4.0 受詛咒的真．冥皇執行劍：裝備時變身 死亡騎士（走 _setPoly 管線＝卸下即消失·速度覆蓋沿 POLY_TIERS 死亡騎士；套裝變身優先於本劍故加 !p._setPoly 守衛）
-    if(!p._setPoly && p.eq && p.eq.wpn && p.eq.wpn.id === 'wpn_cursed_emperor_blade') { let _ceb = findPolyForm('死亡騎士'); if(_ceb) p._setPoly = makePolyState(_ceb.form, _ceb.color); }
+    if(!p._setPoly && p.eq && p.eq.wpn && p.eq.wpn.id === 'wpn_cursed_emperor_blade') { let _ceb = findPolyForm('死亡騎士'); if(_ceb) { p._setPoly = makePolyState(_ceb.form, _ceb.color); p._setPolySource = 'weapon'; } }
     // 🌑 v3.4.67 解除詛咒的真死亡騎士．冥皇執行劍：裝備時變身 真死亡騎士 冥皇丹特斯（equip-only·per-weapon APM 攻速·套裝變身優先故加 !p._setPoly 守衛）
-    if(!p._setPoly && p.eq && p.eq.wpn && p.eq.wpn.id === 'wpn_uncursed_emperor_blade') { p._setPoly = Object.assign({}, DANTES_POLY_FORM); }
+    if(!p._setPoly && p.eq && p.eq.wpn && p.eq.wpn.id === 'wpn_uncursed_emperor_blade') { p._setPoly = Object.assign({}, DANTES_POLY_FORM); p._setPolySource = 'weapon'; }
 
     // ===== 🔮 席琳套裝效果：⚠️v3.1.68 改「席琳遺骸」計件——只掃 8 格遺骸欄（SHERINE_REMAINS·欄位鍵=物品id）=====
     // 每格遺骸必附一種席琳詞綴(seteff)，相同組名的遺骸格數達 2/3/5 → 發動效果（門檻/效果不變）。
@@ -511,7 +512,7 @@ d.mr += (baseMr + bonusMr);
     { let _rw = p.eq.wpn ? getWeaponTags(p.eq.wpn.id) : []; if(p.mastery === 'k_royal_sword' && (_rw.includes('單手劍') || _rw.includes('雙手劍'))) spdMult *= (1/1.5); }   // 👑 劍術精通：裝單手劍／雙手劍攻速+50%
     { let _iw = p.eq.wpn ? DB.items[p.eq.wpn.id] : null; if(p.cls === 'illusion' && _iw && !_iw.isBow && ((p.mastery === 'i_qigu' && _iw.qigu) || (p.mastery === 'i_magicsword' && !_iw.qigu && !isWandWeapon(_iw)))) spdMult *= (1/1.3); }   // 🔮 奇古獸精通(裝奇古獸)／魔劍精通(裝非奇古獸·排除魔杖)：攻速+30%
     if(d.atkSpdPct !== 0) spdMult *= (1 / (1 + d.atkSpdPct / 100));   // 🏺 遺物 綠色妖鬼的指甲 +20%／🏺 鎧甲守衛的笨重巨劍 -50%（負值＝攻速變慢·間隔加倍·v3.1.52 由 >0 改 !==0 使負值生效）
-    { let _polySpd = 0; if (p.poly || p._setPoly) { try { for (let _k in p.eq) { let _e = p.eq[_k]; if (_e && DB.items[_e.id] && DB.items[_e.id].polyAtkSpdPct) _polySpd += DB.items[_e.id].polyAtkSpdPct; } } catch (e) {} } if (_polySpd > 0) spdMult *= (1 / (1 + _polySpd / 100)); }   // 🏺 v3.2.17 浣熊的變身葉：變身狀態時攻擊速度 +20%（需裝備·限變身期間）
+    { let _polySpd = 0; if (getActivePolyForm(p)) { try { for (let _k in p.eq) { let _e = p.eq[_k]; if (_e && DB.items[_e.id] && DB.items[_e.id].polyAtkSpdPct) _polySpd += DB.items[_e.id].polyAtkSpdPct; } } catch (e) {} } if (_polySpd > 0) spdMult *= (1 / (1 + _polySpd / 100)); }   // 🏺 v3.2.17 浣熊的變身葉：變身狀態時攻擊速度 +20%（需裝備·限變身期間）
     { let _mhw = p.eq.wpn ? DB.items[p.eq.wpn.id] : null; if(d.meleeHaste > 0 && _mhw && !_mhw.isBow && !_mhw.ranged) spdMult *= (1 / (1 + d.meleeHaste / 100)); }   // 🏺 遺物 狂野的鬃毛外套：裝備近距離武器時攻速 +meleeHaste%
     if(p.buffs.blue > 0) d.mpR += getWisBlueBonus(d.wis);          // 藍色藥水：依精神提升MP恢復
     if(p.buffs.cautious > 0 || (_mercPots && p.cls === 'mage')) { d.magicDmg += 2; d.mpR += 2; }      // 慎重藥水；法師傭兵常駐
@@ -550,8 +551,8 @@ d.mr += (baseMr + bonusMr);
         if(p.elfEle === 'wind')  d.resWind  += 50;
     }
 
-    // 變身：套裝變身（_setPoly，僅穿著套裝時生效、卸下立即消失）優先於藥水變身（buffs.poly 計時）
-    let _polyForm = p._setPoly || ((p.buffs.poly > 0 && p.poly) ? p.poly : null);
+    // 變身：套裝預設優先；80級或持有控制戒指時，計時中的卷軸變身可覆蓋套裝。武器強制變身不受此解鎖影響。
+    let _polyForm = getActivePolyForm(p);
     if(_polyForm) {
         let pf = _polyForm;
         // 🆕 v3.0.28 速度覆蓋（凡有 atk 者皆套用）：POLY_TIERS 速度型變身、及套裝變身 SET_POLY_FORMS（現在也帶 atk/wlk/cast/stun）。
@@ -813,13 +814,28 @@ const SET_POLY_FORMS = {
 const DANTES_POLY_FORM = { n: "真死亡騎士 冥皇丹特斯", lv: 99, apm: { '單手劍':124,'單手鈍器':103,'雙手鈍器':103,'弓':90,'十字弓':90,'單手矛':111,'雙手矛':111,'魔杖':120,'匕首':131,'雙手劍':103,'雙刀':120,'鋼爪':120,'奇古獸':120,'鎖鏈劍':111,'雙斧':120 }, wlk: 16, cast: 7, stun: 2, c: "text-yellow-300" };
 
 // 是否持有「變形控制戒指」(acc_117)
-// 🔧 改為「背包攜帶即可觸發」：裝備中或背包內任一處有戒指都算持有，不需佔用戒指欄位
-function hasPolyRing() {
+// 🔧 「身上持有」沿用既有規則：裝備中或背包內任一處有戒指都算持有，不需佔用戒指欄位。
+function hasPolyRing(actor) {
+    let p = actor || player;
     // 🐾 v3.2.17 浣熊的變身葉（relic_raccoon_leaf·頭盔遺物）：「需裝備」才可選擇變身（不同於戒指的攜帶即可）
-    let _leaf = false; try { for (let k in player.eq) { let e = player.eq[k]; if (e && e.id === 'relic_raccoon_leaf') { _leaf = true; break; } } } catch (e) {}
+    let _leaf = false; try { for (let k in p.eq) { let e = p.eq[k]; if (e && e.id === 'relic_raccoon_leaf') { _leaf = true; break; } } } catch (e) {}
     return _leaf
-        || [player.eq.ring1, player.eq.ring2, player.eq.ring3, player.eq.ring4].some(e => e && e.id === 'acc_117')
-        || (player.inv && player.inv.some(i => i && i.id === 'acc_117' && (i.cnt || 0) > 0));
+        || (p.eq && [p.eq.ring1, p.eq.ring2, p.eq.ring3, p.eq.ring4].some(e => e && e.id === 'acc_117'))
+        || (p.inv && p.inv.some(i => i && i.id === 'acc_117' && (i.cnt || 0) > 0));
+}
+// 80級起可自行選擇變身；未滿80級則需持有變形控制戒指（或裝備浣熊的變身葉）。
+function canChoosePolyForm(actor) {
+    let p = actor || player;
+    return !!(p && ((p.lv || 0) >= 80 || hasPolyRing(p)));
+}
+// 唯一的有效變身入口：套裝預設鎖定；符合自由變身條件且卷軸仍有效時，改採玩家選定變身。
+// 武器強制變身（_setPolySource='weapon'）不允許以此規則覆蓋。
+function getActivePolyForm(actor) {
+    let p = actor || player;
+    if (!p) return null;
+    let timed = (p.buffs && p.buffs.poly > 0 && p.poly) ? p.poly : null;
+    let canOverrideSet = p._setPoly && p._setPolySource === 'set' && timed && canChoosePolyForm(p);
+    return canOverrideSet ? timed : (p._setPoly || timed || null);
 }
 // 是否持有傳送控制戒指 (acc_116)
 // 🔧 改為「背包攜帶即可觸發」：裝備中或背包內任一處有戒指都算持有，不需佔用戒指欄位
@@ -926,12 +942,14 @@ function openPolySelect(uid) {
         modal.innerHTML =
             '<div class="absolute inset-0 bg-black/60" onclick="closePolyModal()"></div>' +
             '<div class="panel border-slate-500 p-5 relative w-[440px] max-h-[80vh] flex flex-col">' +
-              '<div class="panel-header rounded-md mb-3">變形控制戒指 — 選擇變身</div>' +
+              '<div id="poly-modal-title" class="panel-header rounded-md mb-3">選擇變身</div>' +
               '<div id="poly-modal-list" class="flex flex-col gap-2 overflow-y-auto pr-1"></div>' +
               '<button class="btn mt-4" onclick="closePolyModal()">取消</button>' +
             '</div>';
         document.body.appendChild(modal);
     }
+    let titleEl = modal.querySelector('#poly-modal-title');
+    if (titleEl) titleEl.textContent = (player.lv || 0) >= 80 ? '80級自由變身 — 選擇變身' : '變形控制戒指 — 選擇變身';
     let listEl = modal.querySelector('#poly-modal-list');
     // 🆕 v3.0.31 變形控制戒指：可選「自己等級（含）以下」全部變身（不再限於當前等級帶）；高等在前、同等依攻擊快慢
     let avail = [];

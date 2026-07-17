@@ -448,8 +448,8 @@ function tick() {
                     //    基準 5 秒下 ×0.8＝4 秒（與舊制 −1 秒等值·手感不變）；但在已被加速到很快時只按比例縮短，
                     //    不再像減法那樣把結果打成負數 → 舊制可觸底 0.1 秒(1 tick)＝怪一死立刻補位，已修正。
                     //    全項目相乘故所有加速一律「按比例」疊加；下限 5 tick＝0.5 秒（全加成極限約 6 tick／0.6 秒，此 clamp 為安全底線）。
-                    let _pfW = (player._setPoly && player._setPoly.wlk) ? player._setPoly.wlk          // 套裝變身優先（與 js/02 變身套用同優先序）
-                             : ((player.buffs.poly > 0 && player.poly && player.poly.wlk) ? player.poly.wlk : 16);   // 卷軸變身移動速度；未變身＝16
+                    let _activePolyW = (typeof getActivePolyForm === 'function') ? getActivePolyForm(player) : null;
+                    let _pfW = (_activePolyW && _activePolyW.wlk) ? _activePolyW.wlk : 16;   // 與能力／立繪共用有效變身；未變身＝16
                     let _mv = 1;   // 加速/勇敢/餅乾也加快「移動速度」→加快重生（與攻速同倍率·相乘疊加）
                     if (player.buffs.haste > 0 || player._equipHaste) _mv *= 0.67;   // 加速術/裝備常駐加速 +33%
                     if (player.buffs.brave > 0) _mv *= 0.67;                          // 勇敢藥水 +33%

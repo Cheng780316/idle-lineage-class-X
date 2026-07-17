@@ -173,7 +173,7 @@
     function renderMorphSnapshot() {
         const box = el('equipment-morph-snapshot');
         if (!box || typeof player === 'undefined' || !player) return;
-        const form = player._setPoly || ((player.buffs && player.buffs.poly > 0 && player.poly) ? player.poly : null);
+        const form = (typeof getActivePolyForm === 'function') ? getActivePolyForm(player) : null;
         if (!form) { _stopMorphPortrait(); const _im = el('equipment-morph-image'); if (_im) _im.setAttribute('data-morph', ''); box.classList.add('hidden'); return; }
         box.classList.remove('hidden');
         el('equipment-morph-name').textContent = form.n || '變身';

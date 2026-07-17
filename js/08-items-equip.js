@@ -402,17 +402,17 @@ function useItem(u, silent = false) {
             player.cds.pot = 1;
             logSys(`食用 ${d.n}，恢復 ${h} HP。`);
         } else if (d.eff === 'poly') {
-            let ringOn = hasPolyRing();
-            if (!silent && ringOn) {
-                // 手動從道具欄使用 + 持有變形控制戒指（裝備或背包攜帶皆可）：開啟選擇選單（變身與消耗在選定後才執行）
+            let freePoly = canChoosePolyForm(player);   // 80級，或持有變形控制戒指／裝備浣熊變身葉
+            if (!silent && freePoly) {
+                // 手動使用：符合自由變身條件即開啟選單；可覆蓋套裝綁定（變身與消耗在選定後才執行）
                 openPolySelect(item.uid);
                 return;
             }
-            if (silent && ringOn && player.poly) {
-                // 自動使用 + 持有變形控制戒指：維持上次的變身狀態（不重抽、不跳選單）
+            if (silent && freePoly && player.poly) {
+                // 自動使用 + 自由變身：維持上次選定狀態（不重抽、不跳選單）
                 // 保留 player.poly 不變，僅於下方重置持續時間。
             } else {
-                // 其餘情況（手動且無戒指 / 自動但尚無變身紀錄）：依等級隨機抽取一種
+                // 其餘情況（未滿80且無戒指／自動但尚無變身紀錄）：依等級隨機抽取一種
                 player.poly = getPolyState();
             }
             player.buffs.poly = d.dur;
@@ -1072,7 +1072,7 @@ function renderStatusIconBar() {
     if(player.buffs.elfcookie>0)add('精靈餅乾',player.buffs.elfcookie,'精靈餅乾');
     // 🐾 v3.2.17 誘捕狀態（7 種·共用「誘捕」圖示·label 區分）：期間擊殺對應動物即捕獲
     if(typeof PET_LURES!=='undefined')Object.keys(PET_LURES).forEach(k=>{if((player.buffs[k]||0)>0)add('誘捕|'+k,player.buffs[k],PET_LURES[k].n,'誘捕');});
-    if(player._setPoly||(player.buffs.poly>0&&player.poly))add('變形術',player.buffs.poly||0,'變身');
+    if(getActivePolyForm(player))add('變形術',player.buffs.poly||0,'變身');
     Object.keys(STATUS_ICON_SKILLS).forEach(id=>{if((player.buffs[id]||0)>0)add(STATUS_ICON_SKILLS[id],player.buffs[id],DB.skills[id]?DB.skills[id].n:STATUS_ICON_SKILLS[id]);});
     // 持續治療不存於 player.buffs，而是以 0.1 秒 tick 記在 player.hots；換算成真正剩餘秒數後顯示。
     [['sk_regen','體力回復術'],['sk_elf_lifebless','生命的祝福']].forEach(([id,name])=>{let h=player.hots&&player.hots[id];if(h&&h.ticksLeft>0){let remainTicks=Math.max(0,(h.ticksLeft-1)*(h.interval||0)+(h.cd||0));add(name,Math.ceil(remainTicks/10),DB.skills[id]?DB.skills[id].n:name);}});
@@ -1107,8 +1107,8 @@ function renderStatusEffects() {
     if(player.buffs.blue>0 && !_skipIconized) buffs.push(`<span class="text-blue-400 font-bold">藍水</span>`);
     if(player.buffs.cautious>0 && !_skipIconized) buffs.push(`<span class="text-violet-400 font-bold">慎水</span>`);
     if(player.buffs.elfcookie>0 && !_skipIconized) buffs.push(`<span class="text-yellow-300 font-bold">精靈餅乾</span>`);
-    // 變身顯示：套裝變身(_setPoly，僅穿著時生效)優先於藥水變身，與 recomputeStats 的數值優先序一致 → 穿上惡魔/死亡騎士/克特套裝會立即取代卷軸變身的名稱顯示
-    { let _polyDisp = player._setPoly || ((player.buffs.poly>0 && player.poly) ? player.poly : null);
+    // 變身顯示與實際能力共用同一入口：80級或控制戒指可用計時中的卷軸變身覆蓋套裝。
+    { let _polyDisp = getActivePolyForm(player);
       if(_polyDisp && !_skipIconized) buffs.push(`<span class="${_polyDisp.c} font-bold">變身:${_polyDisp.n}</span>`); }
 
     // 🤝 協力傭兵已改由「協力傭兵隊伍」面板(#squad-panel)顯示 HP/MP/EXP/狀態，移除此處「狀態」欄的重複「協力：XX」條目

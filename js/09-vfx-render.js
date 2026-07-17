@@ -2342,7 +2342,7 @@ function _battleSpriteProbe(form) {
 }
 function _playerMorphName() {   // 目前變身名（含套裝別名映射）·非 15 形態之一→null
     if (typeof player === 'undefined' || !player) return null;
-    let f = player._setPoly || ((player.buffs && player.buffs.poly > 0 && player.poly) ? player.poly : null);
+    let f = (typeof getActivePolyForm === 'function') ? getActivePolyForm(player) : null;
     if (!f || !f.n) return null;
     let n = MORPH_BATTLE_ALIAS[f.n] || f.n;
     return MORPH_BATTLE_ANIM.has(n) ? n : null;

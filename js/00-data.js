@@ -901,7 +901,7 @@ const DB = {
         "arm_113": { n: "鋼鐵盾牌", type: "arm", slot: "shield", ac: 3, req: "knight", safe: 4, p: 16500, gachaWeight: 20, block: 60 },
         "arm_115": { n: "魔法能量之書", type: "arm", slot: "shield", ac: 2, req: "mage", safe: 4, p: 9800, int: 1, gachaWeight: 20, block: 10 },
         "acc_116": { n: "傳送控制戒指", type: "acc", slot: "ring", ac: 0, req: "all", safe: 0, p: 150000, gachaWeight: 1, unique: true, d: "刻著古老座標的戒指，撕裂空間之餘總會引來潛伏的強敵。攜帶在背包即可生效（無需裝備）：手動施放傳送術/使用瞬移卷軸時必定遭遇 BOSS。" },
-        "acc_117": { n: "變形控制戒指", type: "acc", slot: "ring", ac: 0, req: "all", safe: 0, p: 150000, gachaWeight: 1, unique: true, d: "嵌著變幻紋路的戒指，讓施術者得以主宰自身形貌的流轉。攜帶在背包即可生效（無需裝備）：使用變形卷軸時可指定變身型態。" },
+        "acc_117": { n: "變形控制戒指", type: "acc", slot: "ring", ac: 0, req: "all", safe: 0, p: 150000, gachaWeight: 1, unique: true, d: "嵌著變幻紋路的戒指，讓施術者得以主宰自身形貌的流轉。攜帶在背包即可生效（無需裝備）：使用變形卷軸時可指定變身型態，並可覆蓋套裝綁定的變身。角色達80級後亦可自由選擇變身。" },
         "acc_summon_ctrl": { n: "召喚控制戒指", type: "acc", slot: "ring", ac: 0, req: "all", safe: 0, p: 50000, gachaWeight: 1, unique: true, d: "召喚師夢寐以求的戒指，能讓喚出的眷屬完全聽從號令。裝備後可在技能清單的「召喚術」挑選要召喚的怪物（含各階稀有種），且 28~48 級階段的召喚數量上限由 5 隻提升為 6 隻。" },
         "rng_earth": { n: "地靈戒指", type: "acc", slot: "ring", ac: 0, resEarth: 10, req: "all", safe: 0, p: 50000, gachaWeight: 1, d: "封存著厚土脈動的戒指，握之如握住一方大地。蘊含大地之力的戒指。" },
         "rng_water": { n: "水靈戒指", type: "acc", slot: "ring", ac: 0, resWater: 10, req: "all", safe: 0, p: 50000, gachaWeight: 1, d: "封存著潺潺水靈的戒指，指尖彷彿淌過清泉。蘊含流水之力的戒指。" },
