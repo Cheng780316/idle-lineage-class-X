@@ -2569,8 +2569,6 @@ function playTripleCastSprite(actor) {
 function playTripleRingFx(actor) {
     try {
         let isPlayer = actor === player;
-        // 依詩蒂的三重矢使用弓攻擊動作＋飛箭，不疊加頭頂施法光圈。
-        if (isPlayer && typeof _playerMorphName === 'function' && _playerMorphName() === '天鵝的騎士依詩蒂') return;
         let st = isPlayer ? _pmState : (actor && actor._slot != null ? _allySpriteStates[String(actor._slot)] : null);
         if (!st || !st.el || !st.el.isConnected || !st.imgs || !st.imgs.bd) return;
         let anchor = _actorVisibleAnchor(actor); if (!anchor) return;
