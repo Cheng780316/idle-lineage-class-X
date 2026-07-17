@@ -1,6 +1,6 @@
 {
   "name": "idle-lineage-snake-god",
-  "version": "3.4.85",
+  "version": "3.4.86",
   "private": true,
   "description": "放置天堂－蛇神降世 Windows 桌面版",
   "main": "desktop/main.js",
