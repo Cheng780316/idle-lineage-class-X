@@ -1314,8 +1314,8 @@ const ISTI_TRIPLE_ARROW_FX_SRC = 'assets/effects/triple-arrow-fly-client.webp?v=
 let _istiTripleArrowFx = new Image(); _istiTripleArrowFx.src = ISTI_TRIPLE_ARROW_FX_SRC;
 // 持弓的一般攻擊呼叫（js/04 playerAttack／js/03 rapidfireProc／js/06 allyAttackOnce／allyRapidfire）
 //   delayMs：連射每箭錯開發射，免得整束箭疊在同一條線上
-//   tripleShot：三重矢專用；依詩蒂變身時改用客戶端新版三重矢飛箭，其餘射擊維持一般箭矢。
-function playArrowFx(who, target, delayMs, tripleShot) {
+//   依詩蒂變身的普通攻擊、連射與三重矢皆使用客戶端白色動態飛箭；其餘形態維持一般箭矢。
+function playArrowFx(who, target, delayMs) {
     try {
         if (_vfxMute() || !who || !target) return;   // 🚀 v3.2.65 補跑期間不生成箭矢（避免回前景爆量）
         if (who !== player) return;   // 🏹 v3.2.65 傭兵/隊員 sprite 位置動態難可靠對位（發射點常錯位）→僅玩家射出可見箭矢，傭兵不播（傷害判定不受影響）
@@ -1335,21 +1335,21 @@ function playArrowFx(who, target, delayMs, tripleShot) {
             let tx = rect.left + rect.width / 2, ty = rect.top + rect.height * 0.45;
             // 🏹 v3.2.12 依射手→目標螢幕向量選 8 方向箭圖（箭頭即朝目標）
             let _dir = (typeof _vec2dir === 'function') ? _vec2dir(tx - sx, ty - sy) : 0;
-            let _istiTriple = !!tripleShot && who === player && typeof _playerMorphName === 'function'
+            let _istiArrow = who === player && typeof _playerMorphName === 'function'
                 && _playerMorphName() === '天鵝的騎士依詩蒂';
-            let img = _istiTriple ? _istiTripleArrowFx : _arrowFxCache[_dir]; if (!img) return;
+            let img = _istiArrow ? _istiTripleArrowFx : _arrowFxCache[_dir]; if (!img) return;
             let el = document.createElement('img');
-            el.className = 'vfx-arrow' + (_istiTriple ? ' vfx-isti-triple-arrow' : ''); el.src = img.src; el.alt = ''; el.draggable = false;
+            el.className = 'vfx-arrow' + (_istiArrow ? ' vfx-isti-triple-arrow' : ''); el.src = img.src; el.alt = ''; el.draggable = false;
             el.style.left = sx + 'px'; el.style.top = sy + 'px';
-            if (_istiTriple) { el.style.width = '104px'; el.style.height = '80px'; el.style.objectFit = 'contain'; }
+            if (_istiArrow) { el.style.width = '104px'; el.style.height = '80px'; el.style.objectFit = 'contain'; }
             layer.appendChild(el);
             let dx = tx - sx, dy = ty - sy;
             // 來源飛箭朝右上（-45°）；依實際目標向量旋轉，但保留 WebP 內三幀箭光動畫。
-            let rot = _istiTriple ? (' rotate(' + ((Math.atan2(dy, dx) * 180 / Math.PI) + 45).toFixed(1) + 'deg)') : '';
+            let rot = _istiArrow ? (' rotate(' + ((Math.atan2(dy, dx) * 180 / Math.PI) + 45).toFixed(1) + 'deg)') : '';
             el.animate(
                 [ { transform: 'translate(-50%,-50%)' + rot, opacity: .95 },
                   { transform: 'translate(calc(-50% + ' + dx.toFixed(1) + 'px), calc(-50% + ' + dy.toFixed(1) + 'px))' + rot, opacity: 1 } ],
-                { duration: _istiTriple ? 280 : ARROW_FX_MS, easing: 'cubic-bezier(.35,.05,.6,1)' }
+                { duration: _istiArrow ? 280 : ARROW_FX_MS, easing: 'cubic-bezier(.35,.05,.6,1)' }
             ).onfinish = () => el.remove();
         };
         if (delayMs > 0) setTimeout(fire, delayMs); else fire();
