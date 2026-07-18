@@ -780,7 +780,8 @@ const SAVE_DEFAULTS = {
     buffs:   { haste:0, brave:0, blue:0, cautious:0, elfcookie:0, poly:0, shield:0, sk_magic_shield:0 },
     statuses:{ stun:0, freeze:0, stone:0, poison:0, poisonDmg:0, poisonTick:0, burn:0, burnDmg:0, burnTick:0,
                scald:0, scaldDmg:0, scaldTick:0, bleed:0, bleedDmg:0, bleedTick:0, sleep:0, silence:0, paralyze:0, magicseal:0, armorBreak:0, slowAtk:0, cleave:0 },
-    siege:   { active:false, city:'kent', victoryCity:null, gateKilled:false, towerKilled:false, endTime:0, kills:0, result:null,
+    siege:   { active:false, city:'kent', occupiedCity:null, victoryCity:null, gateKilled:false, towerKilled:false, endTime:0, kills:0, result:null,
+               lastSiegeEndedAt:0, nextDeclareAt:0, nextDefenseAt:0, dailyResetV:0,
                cooldownUntil:0, rewardPending:false, victoryUntil:0, accCdUntil:0 }
 };
 function applySaveDefaults(p) {
@@ -1241,7 +1242,7 @@ function flushAwaySummary() {
 
 let player = {
     cls: null, name: null, lv: 1, exp: 0, gold: 1000, hp: 0, mhp: 0, mp: 0, mmp: 0, blessings: {}, blessingAuto: {},
-    base: { str:0, dex:0, con:0, int:0, wis:0, cha:8 }, bonus: 0, alloc: { str:0, dex:0, con:0, int:0, wis:0, cha:0 }, panacea: { str:0, dex:0, con:0, int:0, wis:0, cha:0 }, panaceaUsed: 0, junkPrefs: {}, bloodPledge: null, magicShieldCd: 0, equipProtect: null, lastMapByCat: {}, tracking: null, ismaelAccUsed: false, sherineWorld: false, masteryQuest: null, mastery: null, masteryChangeCnt: 0, siege: { active:false, gateKilled:false, towerKilled:false, endTime:0, kills:0, result:null, cooldownUntil:0, rewardPending:false, victoryUntil:0, accCdUntil:0 },
+    base: { str:0, dex:0, con:0, int:0, wis:0, cha:8 }, bonus: 0, alloc: { str:0, dex:0, con:0, int:0, wis:0, cha:0 }, panacea: { str:0, dex:0, con:0, int:0, wis:0, cha:0 }, panaceaUsed: 0, junkPrefs: {}, bloodPledge: null, magicShieldCd: 0, equipProtect: null, lastMapByCat: {}, tracking: null, ismaelAccUsed: false, sherineWorld: false, masteryQuest: null, mastery: null, masteryChangeCnt: 0, siege: { active:false, city:'kent', occupiedCity:null, victoryCity:null, gateKilled:false, towerKilled:false, endTime:0, kills:0, result:null, lastSiegeEndedAt:0, nextDeclareAt:0, nextDefenseAt:0, dailyResetV:1, cooldownUntil:0, rewardPending:false, victoryUntil:0, accCdUntil:0 },
     inv: [], eq: { wpn: null, arrow: null, helm: null, armor: null, shin: null, shield: null, cloak: null, tshirt: null, gloves: null, boots: null, ring1: null, ring2: null, ring3: null, ring4: null, amulet: null, ear1: null, ear2: null, belt: null, pet: null, doll: null },
     skills: [], buffs: { haste: 0, brave: 0, blue: 0, cautious: 0, elfcookie: 0, poly: 0, shield: 0, sk_magic_shield: 0 }, poly: null, allies: [],
     summon: null, charmed: null, manualCd: {}, elfEle: null, hot: null,

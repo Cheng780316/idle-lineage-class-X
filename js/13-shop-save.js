@@ -1400,6 +1400,7 @@ function purgeOrphanItems() {
 
 function loadGame() {
     _uiConfigReady = false;   // 🛡️ 審計#1：載入期間 DOM 仍是上一個畫面/預設值，禁止 saveGame 以它重建 config
+    let _siegeSettlementChanged = false;
     // 🐾 v3.3.16 換角色前：先把上一角色未存的寵物進度 flush 進共用桶，再失效記憶體快取→新角色 petRoster() 從桶重載（防跨角色髒鏡像互洗裝備/出戰）。
     try { if (typeof _petRosterDirty !== 'undefined' && _petRosterDirty && player && player.cls && typeof petRosterSave === 'function') petRosterSave(); } catch (e) {}
     try { if (typeof _petRosterKey !== 'undefined') _petRosterKey = null; } catch (e) {}
@@ -1583,6 +1584,13 @@ function loadGame() {
         // 🔧 架構#6：集中式預設值合併（放在所有「轉換型」遷移之後，作為缺漏欄位的統一保底）。
         // 日後新增欄位只需登錄於 SAVE_DEFAULTS；上方逐項 if(undefined) 為歷史遷移，不必再增列。
         applySaveDefaults(player);
+        // 🏰 攻城每日 05:00 制：舊 24h 城權遷移，並在登入時補扣離線期間的守城搜索狀與護衛全額雇用費。
+        if (typeof migrateSiegeDailyState === 'function') migrateSiegeDailyState(Date.now());
+        if (typeof settleSiegeUpkeep === 'function') {
+            let _siegeSettle = settleSiegeUpkeep(Date.now());
+            _siegeSettlementChanged = !!_siegeSettle.changed;
+            if (_siegeSettle.changed && typeof logSiegeSettlement === 'function') logSiegeSettlement(_siegeSettle);
+        }
         // 🛡️ v2.6.69 審計#8：上次分頁關閉前未寫進帳本的傭兵經驗待寫紀錄（隨存檔攜帶）→ 重載後補 flush（uid 冪等·帳本已有同 uid 自動跳過）
         if (typeof _mercLedgerOutbox !== 'undefined' && Array.isArray(player.mercLedgerOutbox) && player.mercLedgerOutbox.length) {
             let _mNow = Date.now();
@@ -1692,6 +1700,7 @@ function loadGame() {
 
         state.running = true;
         _roleSessionHeartbeat();   // 立即登記，不等待第一個 2 秒心跳
+        if (_siegeSettlementChanged) saveGame();   // 離線扣款／失守立即固化，避免未等自動存檔就關閉而重複結算
         // 自然恢復（每 16 秒）已由主迴圈 tick() 內的 state.ticks % 160 統一驅動，不再額外 setInterval。
         // 計時器統一由 startGameTimers() 註冊（內含去重），含每 5 分鐘自動存檔。
         startGameTimers();

@@ -188,7 +188,7 @@ const SIEGE_CITY = {
     heine:    { key:'heine',    name:'海音城', outer:'heine_outer', outerName:'海音外門區', inner:'heine_inner', innerName:'海音內城', castle:'town_heine_castle', castleName:'海音城', gate:'海音城門', tower:'海音守護塔' }
 };
 function siegeCityCfg() { return SIEGE_CITY[(player.siege && player.siege.city) || 'kent']; }   // 進行中攻城的城池
-function victoryCityCfg() { return SIEGE_CITY[(player.siege && player.siege.victoryCity) || 'kent']; }   // 攻城獲勝（8折/城堡）對應城池
+function victoryCityCfg() { return SIEGE_CITY[(player.siege && (player.siege.occupiedCity || player.siege.victoryCity)) || 'kent']; }   // 目前占領（8折/城堡）對應城池
 const SIEGE_OUTER_INNER = ['kent_outer', 'kent_inner', 'ww_outer', 'ww_inner', 'heine_outer', 'heine_inner'];
 const SIEGE_CASTLES = ['town_kent_castle', 'town_windwood_castle', 'town_heine_castle'];
 
@@ -227,7 +227,7 @@ function renderCastleGuard(div, city) {
         let stat = heal ? `MP ${o.maxMp}、每16秒恢復 ${o.regen} MP、施放 ${o.healName}` : `HP ${o.maxHp}、每16秒恢復 ${o.regen} HP`;
         return `<div class="bg-slate-800/60 border border-slate-700 rounded p-3 text-sm flex flex-col gap-2">
             <div><span class="font-bold text-white">${o.name}</span> <span class="text-slate-400">${stat}</span></div>
-            <div class="text-slate-400">費用：<span class="${o.cost===0?'text-emerald-300':'text-yellow-400'} font-bold">${costTxt}</span>（持續到城堡擁有時間結束）</div>
+            <div class="text-slate-400">費用：<span class="${o.cost===0?'text-emerald-300':'text-yellow-400'} font-bold">${costTxt}</span>（立即收取；占領期間每天清晨 5:00 以相同價格自動續雇）</div>
             <div class="flex items-center gap-2 flex-wrap">
                 <button ${dis?'disabled':''} onclick="hireCastleGuard('${city}', ${i})" class="btn px-3 py-1 text-sm font-bold ${dis?'bg-slate-700 border-slate-600 text-slate-500 cursor-not-allowed':'bg-emerald-800 hover:bg-emerald-700 border-emerald-600 text-emerald-100'}">雇用</button>
                 <span class="text-slate-300 text-xs">HP ≤ <input id="cg-thr-${i}" type="number" value="50" min="1" max="100" class="w-14 bg-slate-900 border border-slate-600 text-center text-white rounded"> % 以下${heal?'發動治療':'發動護衛'}</span>
@@ -249,10 +249,10 @@ function hireCastleGuard(city, idx) {
     let thr = Math.max(1, Math.min(100, parseInt(thrEl && thrEl.value) || 50));
     player.gold -= o.cost;
     if (cfg.mode === 'heal') {
-        player.castleGuard = { id: o.id, name: o.name, mode: 'heal', maxMp: o.maxMp, mp: o.maxMp, regen: o.regen, threshold: thr, healSkill: o.heal, city: city, disabled: false, _regenAcc: 0, _healAcc: 0 };
+        player.castleGuard = { id: o.id, name: o.name, mode: 'heal', maxMp: o.maxMp, mp: o.maxMp, regen: o.regen, threshold: thr, healSkill: o.heal, city: city, dailyCost:o.cost, disabled: false, _regenAcc: 0, _healAcc: 0 };
         logSys(`<span class="text-emerald-300 font-bold">雇用了 ${o.name}（HP ≤ ${thr}% 時每 5 秒施放 ${o.healName}）。</span>`);
     } else {
-        player.castleGuard = { id: o.id, name: o.name, mode: 'absorb', maxHp: o.maxHp, hp: o.maxHp, regen: o.regen, threshold: thr, absorbType: cfg.type, city: city, disabled: false, _regenAcc: 0 };
+        player.castleGuard = { id: o.id, name: o.name, mode: 'absorb', maxHp: o.maxHp, hp: o.maxHp, regen: o.regen, threshold: thr, absorbType: cfg.type, city: city, dailyCost:o.cost, disabled: false, _regenAcc: 0 };
         logSys(`<span class="text-emerald-300 font-bold">雇用了 ${o.name}（HP ≤ ${thr}% 時承擔 10% ${cfg.label}傷害）。</span>`);
     }
     saveGame(); updateUI();
@@ -314,7 +314,7 @@ function castleGuardTick() {
 const CASTLE_EXTRA = ['windwood_dungeon'];   // 🔧 風木地監歸入「城堡」分類（隨風木城一起，攻城獲勝後開放）
 // 🔧 城堡分類清單：依獲勝城池組成。肯特城＝僅肯特城；風木城＝風木城（安全）＋風木地監（狩獵）
 function getCastleAreas() {
-    if (!siegeVictoryActive()) return [];   // 🔧 攻城獲勝 24h 結束後：城堡狩獵區（風木地監）不再開放（與「城堡」分頁同步消失，堵住出發/選單殘留路徑；victoryCity 不會被清空，故須在此以時效把關）
+    if (!siegeVictoryActive()) return [];   // 未占領城池時：城堡狩獵區（風木地監）不開放，堵住出發／選單殘留路徑。
     let c = victoryCityCfg();
     if (c.key === 'windwood') return [{v:'town_windwood_castle', t:'風木城'}, {v:'windwood_dungeon', t:'風木地監', c:'#34d399'}];
     return [{v:c.castle, t:c.castleName}];
@@ -537,7 +537,7 @@ function getHomeTown() {
     return 'town_silver_knight';
 }
 // 🏘️ v3.0.94 回村改「回上一個待過的安全區」：changeMap 進村分支記錄 player.lastTownVisited；無紀錄/地圖無效→回家鄉。
-//    ⚠️ 城堡安全區(town_*_castle)有攻城獲勝 24h 時效：效期外不可回→退回家鄉（比照 siege-victory 各讀點自把時效）。
+//    ⚠️ 城堡安全區(town_*_castle)只在占領期間可回；失守後退回家鄉。
 function getLastTown() {
     let t = player && player.lastTownVisited;
     if (!t || typeof t !== 'string' || !t.startsWith('town_') || !(DB.towns[t] || DB.maps[t])) return getHomeTown();
@@ -554,7 +554,7 @@ function returnToTown() {
     }
     let _wasKingRoom = !!KING_ROOMS[mapState.current];   // 🔧 記住離開前是否在軍王之室
     if (state.oblivion) { state.oblivion = null; state._oblivionAdvance = false; }   // 🏝️ 回村即結束遺忘之島旅程
-    setMapSelectors(siegeVictoryActive() ? victoryCityCfg().castle : getLastTown());   // 攻城獲勝 24h：回城＝獲勝城池；🏘️ v3.0.94 否則回「上一個待過的安全區」（無紀錄→家鄉）
+    setMapSelectors(siegeVictoryActive() ? victoryCityCfg().castle : getLastTown());   // 占領期間：回城＝占領城池；否則回上一個待過的安全區（無紀錄→家鄉）
     changeMap();   // 走既有切換流程（進入村莊：補滿 HP/MP、清狀態、渲染 NPC）
     // 🔧 自軍王之室手動回城／回村：同樣將「特殊」記憶位置改為新兵修練場（避免下次自動回到需鑰匙的軍王之室）
     if (_wasKingRoom) { if (!player.lastMapByCat) player.lastMapByCat = {}; player.lastMapByCat.special = 'training'; saveGame(); }
@@ -585,7 +585,7 @@ function hotkeyCycleInventory() {
     let cur = order.findIndex(id => { let e = document.getElementById('tab-' + id); return e && !e.classList.contains('hidden'); });
     _hkSwitchTab(order[(cur < 0) ? 0 : (cur + 1) % order.length]);
 }
-// Ctrl+C：返回血盟據點（getHomeTown 已含「血盟優先回盟主村莊」）；攻城獲勝 24h→城堡。未入盟→提示。
+// Ctrl+C：返回血盟據點（getHomeTown 已含「血盟優先回盟主村莊」）；占領期間→城堡。未入盟→提示。
 function returnToPledgeBase() {
     if (!player || !player.bloodPledge) { logSys('<span class="text-amber-300">你尚未加入任何血盟，沒有可返回的據點。</span>'); return; }
     // 受控限制（比照回村）：石化／麻痺／冰凍／暈眩／睡眠時不可傳送
@@ -635,7 +635,7 @@ function departToLastBattle() {
         tgt = 'training';
         player.lastBattleMap = 'training';
     }
-    // 🔧 攻城獲勝 24h 結束後，上一張戰鬥地圖若為城堡狩獵區（風木地監）：強制改往新兵修練場，避免「回城→出發」重新進入已失效的城堡狩獵區
+    // 失守後上一張戰鬥地圖若為城堡狩獵區（風木地監）：強制改往新兵修練場，避免「回城→出發」重新進入。
     if (tgt && CASTLE_EXTRA.includes(tgt) && !siegeVictoryActive()) {
         tgt = 'training';
         player.lastBattleMap = 'training';
@@ -675,16 +675,132 @@ function departToLastBattle() {
     changeMap();   // 走既有切換流程（軍王之室在此消耗 1 把鑰匙）
 }
 
-// ===== 攻城戰（第一階段：核心循環）=====
-function siegeWarrants() { return pledgeCountItem('new_item_241'); }   // 王族搜索狀數量
+// ===== 攻城戰：每日 05:00 宣戰重置／自動守城 =====
+const SIEGE_DECLARE_COST = 10;
+const SIEGE_DEFENSE_COST = 10;
+const SIEGE_MIN_GAP_MS = 8 * 3600 * 1000;
+function siegeWarrants() { return pledgeCountItem('new_item_241'); }   // 僅計角色背包內的王族搜索狀
+function siegeConsumeWarrants(amount) {
+    amount = Math.max(0, Math.floor(amount || 0));
+    if (siegeWarrants() < amount) return false;
+    let left = amount;
+    for (let it of player.inv) {
+        if (it.id !== 'new_item_241' || left <= 0) continue;
+        let take = Math.min(it.cnt || 0, left);
+        it.cnt -= take; left -= take;
+    }
+    player.inv = player.inv.filter(it => (it.cnt || 0) > 0);
+    return left === 0;
+}
+// 瀏覽器／EXE 所在裝置的當地時間；回傳指定時間之後第一個清晨 05:00。
+function nextSiegeResetAt(ts) {
+    ts = Number(ts) || Date.now();
+    let d = new Date(ts);
+    d.setHours(5, 0, 0, 0);
+    if (d.getTime() <= ts) d.setDate(d.getDate() + 1);
+    return d.getTime();
+}
+function siegeFormatTime(ts) {
+    if (!ts || ts <= Date.now()) return '現在';
+    let d = new Date(ts), p = n => String(n).padStart(2, '0');
+    return `${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function siegeDeclareAt(s) { return Math.max(0, Number((s || player.siege || {}).nextDeclareAt) || Number((s || player.siege || {}).cooldownUntil) || 0); }
+function castleGuardHireCost(g) {
+    if (!g) return 0;
+    let cfg = CASTLE_GUARD_OPTS[g.city], opt = cfg && cfg.list.find(o => o.id === g.id);
+    return Math.max(0, Number(opt && opt.cost !== undefined ? opt.cost : g.dailyCost) || 0);
+}
+function resetCastleGuardForNewDay(g) {
+    if (!g) return;
+    if (g.mode === 'heal') { g.mp = g.maxMp; g._healAcc = 0; }
+    else g.hp = g.maxHp;
+    g.disabled = false; g._regenAcc = 0;
+}
+function loseOccupiedCastle(at, reason) {
+    let s = player.siege || {}, city = s.occupiedCity || s.victoryCity;
+    if (!city) return null;
+    let cfg = SIEGE_CITY[city], guard = player.castleGuard;
+    s.occupiedCity = null; s.victoryCity = null; s.nextDefenseAt = 0; s.victoryUntil = 0;
+    player.castleGuard = null;
+    return { at:at || Date.now(), city, cityName:(cfg && cfg.name) || city, guardName:guard && guard.name, reason:reason || 'upkeep' };
+}
+// 舊版「24 小時城權／冷卻」只轉換一次；有效城權變正式占領，過期城權不復活。
+function migrateSiegeDailyState(now) {
+    now = Number(now) || Date.now();
+    let s = player.siege || (player.siege = {});
+    if ((s.dailyResetV || 0) >= 1) return false;
+    let oldVictoryActive = !!(s.victoryCity && Number(s.victoryUntil || 0) > now);
+    s.occupiedCity = oldVictoryActive ? s.victoryCity : null;
+    if (!s.occupiedCity) { s.victoryCity = null; player.castleGuard = null; }
+    let ended = Number(s.lastSiegeEndedAt || 0);
+    if (!ended && !s.active) ended = Number(s.endTime || 0) || Math.max(0, Number(s.cooldownUntil || 0) - 24 * 3600 * 1000);
+    s.lastSiegeEndedAt = ended;
+    s.nextDeclareAt = ended ? Math.max(nextSiegeResetAt(ended), ended + SIEGE_MIN_GAP_MS) : 0;
+    s.cooldownUntil = s.nextDeclareAt;   // 舊 UI／存檔相容欄位
+    s.nextDefenseAt = s.occupiedCity ? nextSiegeResetAt(now) : 0;
+    s.victoryUntil = 0;
+    s.dailyResetV = 1;
+    return true;
+}
+// 補算所有已跨過的 05:00。先扣守城搜索狀，再續雇護衛；任一日搜索狀不足即失守並停止後續扣款。
+function settleSiegeUpkeep(now) {
+    now = Number(now) || Date.now();
+    let s = player.siege || {};
+    let migrated = migrateSiegeDailyState(now);
+    s = player.siege || s;
+    let out = { changed:!!migrated, renewals:0, warrants:0, gold:0, guardLeft:null, lost:null };
+    if (!s.occupiedCity) return out;
+    if (!s.nextDefenseAt) { s.nextDefenseAt = nextSiegeResetAt(now); out.changed = true; return out; }
+    while (s.occupiedCity && s.nextDefenseAt <= now) {
+        let due = s.nextDefenseAt;
+        if (!siegeConsumeWarrants(SIEGE_DEFENSE_COST)) {
+            out.lost = loseOccupiedCastle(due, 'warrants'); out.changed = true;
+            break;
+        }
+        out.renewals++; out.warrants += SIEGE_DEFENSE_COST; out.changed = true;
+        let g = player.castleGuard;
+        if (g) {
+            if (g.city !== s.occupiedCity) {
+                out.guardLeft = { name:g.name, reason:'castle' }; player.castleGuard = null;
+            } else {
+                let cost = castleGuardHireCost(g);
+                if ((player.gold || 0) >= cost) {
+                    player.gold -= cost; out.gold += cost; g.dailyCost = cost; resetCastleGuardForNewDay(g);
+                } else {
+                    out.guardLeft = { name:g.name, reason:'gold', cost }; player.castleGuard = null;
+                }
+            }
+        }
+        s.nextDefenseAt = nextSiegeResetAt(due + 60000);
+    }
+    return out;
+}
+function logSiegeSettlement(out) {
+    if (!out || !out.changed) return;
+    if (out.renewals > 0) logSys(`🏰 自動守城結算：已續守 ${out.renewals} 日，消耗 <span class="text-amber-300 font-bold">王族搜索狀 ×${out.warrants}</span>${out.gold > 0 ? `，護衛續雇金幣 ${out.gold.toLocaleString()}` : ''}。`);
+    if (out.guardLeft && out.guardLeft.reason === 'gold') logSys(`<span class="text-amber-300">金幣不足支付 ${out.guardLeft.name} 的每日全額雇用費，護衛已離開；城池仍由你占領。</span>`);
+    if (out.guardLeft && out.guardLeft.reason === 'castle') logSys(`<span class="text-slate-300">${out.guardLeft.name} 與目前占領城池不符，已解除雇用。</span>`);
+    if (out.lost) logSys(`🏰 <span class="text-red-400 font-bold">王族搜索狀不足 10 張，${out.lost.cityName} 已失守！</span>商店 8 折與城堡權限已取消${out.lost.guardName ? `，${out.lost.guardName} 同時解散` : ''}。`);
+}
+function siegeLeaderStatusHtml() {
+    let s = player.siege || {}, city = s.occupiedCity || null, cfg = city && SIEGE_CITY[city];
+    let def = city ? siegeFormatTime(s.nextDefenseAt) : '—';
+    let dec = siegeFormatTime(siegeDeclareAt(s));
+    let w = siegeWarrants(), warn = city && w < SIEGE_DEFENSE_COST;
+    return `<div class="rounded border ${warn?'border-red-600 bg-red-950/50':'border-amber-700/70 bg-slate-900/60'} px-2 py-1.5 text-center text-xs leading-relaxed">
+        <span class="text-amber-300 font-bold">🏰 占領：${cfg ? cfg.name : '無'}</span><span class="text-slate-500">｜</span><span class="text-slate-300">自動守城：${def}${city?'（10張）':''}</span><span class="text-slate-500">｜</span><span class="text-slate-300">可宣戰：${dec}</span>
+        ${warn ? `<div class="text-red-300 font-bold">⚠ 王族搜索狀 ${w}/10，下次結算將失守</div>` : ''}
+    </div>`;
+}
 // 🔧 點「攻城戰」先開「選擇城池」介面（肯特城／風木城）；含開戰條件提示
 function openSiegeSelect(faction) {
     let s = player.siege || {};
     if (!player.bloodPledge) { alert('你尚未加入任何血盟，無法宣布攻城戰。'); return; }
     if (s.active) { alert('攻城戰正在進行中！'); return; }
     if (s.rewardPending) { alert('你還有尚未領取的攻城戰獎勵，請先點「領賞」。'); return; }
-    let cd = (s.cooldownUntil || 0) - Date.now();
-    if (cd > 0) { let h = Math.floor(cd/3600000), m = Math.floor((cd%3600000)/60000); alert(`攻城戰冷卻中，尚需 ${h} 小時 ${m} 分才能再次宣布。`); return; }
+    let cd = siegeDeclareAt(s) - Date.now();
+    if (cd > 0) { let h = Math.floor(cd/3600000), m = Math.floor((cd%3600000)/60000); alert(`尚未到每日宣戰時間，需再等 ${h} 小時 ${m} 分（${siegeFormatTime(siegeDeclareAt(s))} 可宣戰）。`); return; }
     if (player.lv < 40) { alert('需要等級 40 以上才能宣布攻城戰。'); return; }
     let el = document.getElementById('interaction-content'); if (!el) return;
     el.innerHTML = `
@@ -692,7 +808,7 @@ function openSiegeSelect(faction) {
             <div class="text-amber-200 font-bold text-lg">⚔ 宣布攻城戰</div>
             <div class="bg-slate-800/70 border border-red-700/60 rounded p-3 text-sm text-slate-300 leading-relaxed">
                 消耗 <span class="text-amber-300 font-bold">10 張王族搜索狀</span>（目前持有 ${siegeWarrants()} 張），限時 30 分鐘。<br>
-                不論攻打哪座城，結束後皆觸發 <span class="text-red-300 font-bold">24 小時冷卻</span>。
+                宣戰資格每天 <span class="text-amber-300 font-bold">清晨 5:00</span> 重置，兩場攻城結束時間至少間隔 8 小時。
             </div>
             <div class="text-slate-300 text-sm">選擇要攻打的城池：</div>
             <div class="flex gap-3 w-full">
@@ -705,21 +821,21 @@ function openSiegeSelect(faction) {
 function startSiege(faction, city) {
     city = SIEGE_CITY[city] ? city : 'kent';
     let cfg = SIEGE_CITY[city];
-    let s = player.siege || (player.siege = { active:false, gateKilled:false, towerKilled:false, endTime:0, kills:0, result:null, cooldownUntil:0, rewardPending:false });
+    let s = player.siege || (player.siege = {});
     if (!player.bloodPledge) { alert('你尚未加入任何血盟，無法宣布攻城戰。'); return; }
     if (s.active) { alert('攻城戰正在進行中！'); return; }
     if (s.rewardPending) { alert('你還有尚未領取的攻城戰獎勵，請先點「領賞」。'); return; }
-    let cd = (s.cooldownUntil || 0) - Date.now();
-    if (cd > 0) { let h = Math.floor(cd/3600000), m = Math.floor((cd%3600000)/60000); alert(`攻城戰冷卻中，尚需 ${h} 小時 ${m} 分才能再次宣布。`); return; }
+    let cd = siegeDeclareAt(s) - Date.now();
+    if (cd > 0) { let h = Math.floor(cd/3600000), m = Math.floor((cd%3600000)/60000); alert(`尚未到每日宣戰時間，需再等 ${h} 小時 ${m} 分（${siegeFormatTime(siegeDeclareAt(s))} 可宣戰）。`); return; }
     if (player.lv < 40) { alert('需要等級 40 以上才能宣布攻城戰。'); return; }
     if (siegeWarrants() < 10) { alert(`需持有 10 張以上王族搜索狀才能宣布攻城戰（目前 ${siegeWarrants()} 張）。`); return; }
     if (!confirm(`宣布對【${cfg.name}】的攻城戰將消耗 10 張王族搜索狀（目前持有 ${siegeWarrants()} 張），限時 30 分鐘。確定要開戰嗎？`)) return;
-    // 消耗 10 張王族搜索狀
-    let _need = 10;
-    for (let it of player.inv) { if (it.id === 'new_item_241' && _need > 0) { let take = Math.min(it.cnt, _need); it.cnt -= take; _need -= take; } }
-    player.inv = player.inv.filter(it => it.cnt > 0);
+    siegeConsumeWarrants(SIEGE_DECLARE_COST);
     renderTabs();
-    player.siege = { active:true, city:city, gateKilled:false, towerKilled:false, endTime: Date.now() + 30*60*1000, kills:0, result:null, cooldownUntil:0, rewardPending:false, victoryUntil:0, victoryCity:(player.siege&&player.siege.victoryCity)||null, accCdUntil:0 };
+    // 不整包重建 siege：攻打別城失敗時，原占領城與護衛仍須保留。
+    s.active = true; s.city = city; s.gateKilled = false; s.towerKilled = false;
+    s.endTime = Date.now() + 30*60*1000; s.kills = 0; s.result = null; s.rewardPending = false;
+    s.gateHp = 0; s.towerHp = 0;
     logSys(`⚔ <span class="text-red-300 font-bold">攻城戰開始！</span>消耗了 10 張王族搜索狀，限時 30 分鐘。攻破【${cfg.gate}】後進攻【${cfg.innerName}】，於時限內擊殺【${cfg.tower}】即可獲勝！`);
     setMapSelectors(cfg.outer);
     changeMap(true);
@@ -727,11 +843,20 @@ function startSiege(faction, city) {
 }
 function endSiege(result) {
     let s = player.siege; if (!s || !s.active) return;
+    let now = Date.now();
     s.active = false; s.result = result; s.rewardPending = true;
-    s.endTime = Date.now();   // 擊敗守護塔（獲勝）或時間到：攻城時間立即結束
-    s.cooldownUntil = Date.now() + 24*3600*1000;   // 不論勝負，24 小時後才能再次宣布
+    s.endTime = now; s.lastSiegeEndedAt = now;   // 擊敗守護塔（獲勝）或時間到：攻城時間立即結束
+    s.nextDeclareAt = Math.max(nextSiegeResetAt(now), now + SIEGE_MIN_GAP_MS);
+    s.cooldownUntil = s.nextDeclareAt;   // 舊欄位保留相容，內容改為每日重置後的實際可宣戰時間
     let _cfg = siegeCityCfg();
-    if (result === 'win') { s.victoryUntil = Date.now() + 24*3600*1000; s.victoryCity = _cfg.key; player.ismaelAccUsed = false; logSys(`🏆🏰 <span class="text-yellow-300 font-bold">攻城獲勝！</span>擊破了${_cfg.tower}！24 小時內全商店 8 折、開放「城堡」前往${_cfg.castleName}，回村按鈕變為回城。前往盟主處點「領賞」領取金幣獎勵。`); }
+    if (result === 'win') {
+        let oldCity = s.occupiedCity || s.victoryCity;
+        if (oldCity && oldCity !== _cfg.key && player.castleGuard) { logSys(`<span class="text-slate-300">改占${_cfg.name}，原城護衛 ${player.castleGuard.name} 已解散。</span>`); player.castleGuard = null; }
+        s.occupiedCity = _cfg.key; s.victoryCity = _cfg.key; s.victoryUntil = 0;
+        s.nextDefenseAt = nextSiegeResetAt(now); s.dailyResetV = 1;
+        player.ismaelAccUsed = false;
+        logSys(`🏆🏰 <span class="text-yellow-300 font-bold">攻城獲勝！</span>你已占領${_cfg.name}！全商店 8 折、開放${_cfg.castleName}，回村按鈕變為回城。下次清晨 5:00 將自動消耗 10 張王族搜索狀守城。前往盟主處點「領賞」領取金幣獎勵。`);
+    }
     else logSys(`🏰 <span class="text-slate-300 font-bold">攻城失敗…</span>時間到，未能攻下${_cfg.tower}。仍可前往盟主處點「領賞」領取獎勵。`);
     { let timer = document.getElementById('siege-timer'); if (timer) timer.classList.add('hidden'); }   // 結束隱藏倒數
     setMapSelectors(getHomeTown());
@@ -741,10 +866,14 @@ function endSiege(result) {
 }
 function siegeTick() {
     let s = player.siege;
-    // 🔧 攻城獲勝 24h 一到：仍滯留在城堡狩獵區（風木地監）掛機的玩家，強制請離回村（堵住效期外續刷）。
-    //    每秒檢查；踢出後 mapState.current 變村莊→條件轉 false 不重複觸發。只踢狩獵區、不踢城堡安全區（避免打斷領賞等互動）。
-    if (mapState.current && CASTLE_EXTRA.includes(mapState.current) && !(s && s.active) && !siegeVictoryActive()) {
-        logSys('<span class="text-amber-300 font-bold">⏳ 攻城獲勝效期已過，城堡狩獵區不再為你開放，你被請離回村了。</span>');
+    let settled = settleSiegeUpkeep(Date.now());
+    if (settled.changed) {
+        logSiegeSettlement(settled);
+        renderTabs(true); updateUI(); saveGame();
+    }
+    // 守城失敗後仍滯留城堡或附屬狩獵區時立即請離。
+    if (mapState.current && (SIEGE_CASTLES.includes(mapState.current) || CASTLE_EXTRA.includes(mapState.current)) && !(s && s.active) && !siegeVictoryActive()) {
+        logSys('<span class="text-amber-300 font-bold">城池已失守，城堡區域不再開放，你被送回血盟據點。</span>');
         setMapSelectors(getHomeTown());
         changeMap(true);
         updateUI();
@@ -785,8 +914,8 @@ function handleSiegeKill(mob) {
         endSiege('win');
     }
 }
-function siegeVictoryActive() { return !!(player.siege && Date.now() < (player.siege.victoryUntil || 0)); }
-function shopPrice(base) { return siegeVictoryActive() ? Math.floor((base || 0) * 0.8) : (base || 0); }   // 攻城獲勝 24h：商店 8 折
+function siegeVictoryActive() { return !!(player.siege && player.siege.occupiedCity); }
+function shopPrice(base) { return siegeVictoryActive() ? Math.floor((base || 0) * 0.8) : (base || 0); }   // 占領城池期間：商店 8 折
 // 🔧 對飾品施法的卷軸改為「次數制」：每次攻城獲勝重置 1 張購買額度
 //（原 24 小時計時存於 player.siege.accCdUntil，會被 startSiege 整包重建而歸零，可用搜索狀重置冷卻刷買）
 function ismaelAccAvailable() { return !player.ismaelAccUsed; }

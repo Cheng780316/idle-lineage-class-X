@@ -147,7 +147,7 @@
     if (_castleEntry === null) {
       _castleEntry = {};
       try {
-        if (typeof CASTLE_EXTRA !== 'undefined') CASTLE_EXTRA.forEach(function (v) { _castleEntry[mapNameOf(v)] = '攻下' + (_castleCity[v] || '對應城池') + '後才開放，勝利後 24 小時內'; });
+        if (typeof CASTLE_EXTRA !== 'undefined') CASTLE_EXTRA.forEach(function (v) { _castleEntry[mapNameOf(v)] = '攻下並持續占領' + (_castleCity[v] || '對應城池') + '期間開放'; });
       } catch (e) {}
     }
     return _castleEntry[mapName] || '';

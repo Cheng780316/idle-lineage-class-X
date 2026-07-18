@@ -521,6 +521,7 @@ function renderPledgeNPC(div, faction) {
             </div>
             <div class="flex-1 min-w-0 flex flex-col gap-2.5">
                 <div class="text-slate-200 text-base leading-relaxed">${cfg.name}：讓我們一起為血盟努力，並肩作戰吧！</div>
+                ${typeof siegeLeaderStatusHtml === 'function' ? siegeLeaderStatusHtml() : ''}
                 <div class="flex gap-2">
                     <button class="btn bg-red-800 hover:bg-red-700 border-red-500 text-red-100 py-3 px-3 font-bold flex-1 leading-tight flex flex-col items-center justify-center gap-0.5" onclick="openSiegeSelect('${faction}')"><span class="text-base">⚔ 攻城戰</span><span class="text-[10px] text-red-300 font-normal">選擇要攻打的城池</span></button>
                     <button class="btn bg-amber-700 hover:bg-amber-600 border-amber-400 text-amber-50 py-3 px-3 font-bold flex-1 leading-tight flex flex-col items-center justify-center gap-0.5" onclick="claimSiegeReward('${faction}')"><span class="text-base">🏆 領賞</span><span class="text-[10px] text-amber-200 font-normal">攻城後領取</span></button>
