@@ -963,13 +963,18 @@ function autoActions() {
         { id: 'set-cautious', pot: 'new_item_140', b: 'cautious', req: 'mage,illusion', buyId: 'set-auto-buy-cautious' },
         { id: 'set-elfcookie', pot: 'new_item_139', b: 'elfcookie', req: 'elf', buyId: 'set-auto-buy-elfcookie' },
         { id: 'set-poly', pot: 'scroll_poly', b: 'poly', buyId: 'set-auto-buy-poly' },
-        { id: 'set-magicbarrier', pot: 'scroll_magicbarrier', b: 'sk_magic_shield' }
+        // 魔法屏障保留客製規則：庫存剩 1 張就一次補 5 張；發動中的屏障不會重複使用卷軸。
+        { id: 'set-magicbarrier', pot: 'scroll_magicbarrier', b: 'sk_magic_shield', buyThreshold: 1, buyQty: 5 }
     ];
     buffs.forEach(cfg => {
         let buyChk = cfg.buyId ? document.getElementById(cfg.buyId) : null;
         let useChk = document.getElementById(cfg.id);
         let count = player.inv.filter(i => i.id === cfg.pot).reduce((n, i) => n + (i.cnt || 1), 0);
-        if (useChk && useChk.checked && buyChk && buyChk.checked && count <= 1) {
+        // v3.3.15 將「自動使用」與「自動購買」合併後，舊 buyId 控制項已從 DOM 移除。
+        // 若舊控制項仍存在則尊重其勾選狀態；不存在時，以「自動使用」本身代表允許補貨。
+        let autoBuyEnabled = !!(useChk && useChk.checked) && (!buyChk || buyChk.checked);
+        let buyThreshold = Number.isFinite(cfg.buyThreshold) ? cfg.buyThreshold : 1;
+        if (autoBuyEnabled && count <= buyThreshold) {
             let qty = cfg.buyQty || 1;
             let total = shopPrice(DB.items[cfg.pot].p) * qty;
             if (player.gold >= total) {
@@ -1121,7 +1126,7 @@ function autoCastSpells() {
 
 // 詞綴抽取（新制）：掉落/製作/潘朵拉/血盟 等管道只會隨機產生「祝福的」(bless) 1%；不再有單/雙/三詞綴或屬性/遠古的隨機掉落。
 // 🔧 詞綴抽取：怪物掉落 / 製作 / 潘朵拉 / 血盟怪掉落 等管道「只可能獲得 祝福的」詞綴（1%）。
-//    屬性詞綴與遠古系詞綴不再由這些管道隨機產生（改由象牙塔『碧恩』的賦予祝福卷軸取得）。
+//    屬性詞綴改由象牙塔「碧恩」使用四屬性武器強化卷軸取得；遠古系詞綴不再隨機產生。
 //    🔮 席琳的世界擊殺掉落仍套用 ×3（祝福機率 3%）。
 function rollAffixesNew() {
     let m = _sherineLootCtx ? (_sherineLootCtx.mad ? 5 : 3) : 1;   // 🔮 席琳的世界 祝福機率 ×3（瘋狂×5）

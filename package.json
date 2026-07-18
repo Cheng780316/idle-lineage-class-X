@@ -6,7 +6,8 @@
   "main": "desktop/main.js",
   "scripts": {
     "desktop": "electron .",
-    "build:win": "electron-builder --win portable"
+    "build:win": "electron-builder --win portable",
+    "verify:custom": "node tools/verify-customizations.js"
   },
   "devDependencies": {
     "electron": "^37.2.0",

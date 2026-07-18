@@ -1137,7 +1137,7 @@ function startGame() {
     player.skills = [];
     player.summon = null; player.charmed = null; player.manualCd = {}; player.hot = null; player.hots = {}; player.elfEle = null; player.buffs = { haste: 0, brave: 0, blue: 0, cautious: 0, elfcookie: 0, poly: 0, shield: 0 };
     
-    ['set-haste', 'set-brave', 'set-blue', 'set-cautious', 'set-poly', 'set-auto-buy-pot', 'set-auto-buy-arrow'].forEach(id => {
+    ['set-haste', 'set-brave', 'set-blue', 'set-cautious', 'set-elfcookie', 'set-poly', 'set-magicbarrier', 'set-teleport', 'set-auto-buy-pot', 'set-auto-buy-arrow'].forEach(id => {
         let el = document.getElementById(id);
         if(el) el.checked = false;
     });
@@ -1693,7 +1693,7 @@ function loadGame() {
             }
         } else {
             // 舊版存檔相容：如果沒有 config 就預設全關
-            ['set-haste', 'set-brave', 'set-blue', 'set-cautious', 'set-poly', 'set-auto-buy-pot', 'set-auto-buy-arrow'].forEach(id => {
+            ['set-haste', 'set-brave', 'set-blue', 'set-cautious', 'set-elfcookie', 'set-poly', 'set-magicbarrier', 'set-teleport', 'set-auto-buy-pot', 'set-auto-buy-arrow'].forEach(id => {
                 let el = document.getElementById(id);
                 if(el) el.checked = false;
             });
