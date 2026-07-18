@@ -384,10 +384,12 @@ function killMob(idx) {
     if (typeof rollCardDrops === 'function') rollCardDrops(mob);
 
     // === 區域額外掉落：眠龍洞穴1~3樓(zone_15/16/17) / 妖精森林周邊(zone_01) 所有怪物 ===
-    // 粗糙的米索莉塊 / 精靈玉 / 元素石，各 20%；學會「世界樹的呼喚」則各 30%
+    // 粗糙的米索莉塊 / 元素石各 2%，學會「世界樹的呼喚」則各 3%；精靈玉維持 20% / 30%
     if (AREA_BONUS_MAPS.includes(mapState.current)) {
-        let bonusRate = (player.skills.includes('sk_elf_worldtree') ? 0.30 : 0.20) * _dropMult;   // 🔮 席琳的世界×3
+        let hasWorldTree = player.skills.includes('sk_elf_worldtree');
         AREA_BONUS_ITEMS.forEach(itemId => {
+            let baseRate = (itemId === 'new_item_195') ? (hasWorldTree ? 0.30 : 0.20) : (hasWorldTree ? 0.03 : 0.02);
+            let bonusRate = baseRate * _dropMult;   // 🔮 席琳的世界×3
             if(DB.items[itemId] && Math.random() < Math.min(1, bonusRate)) gainItem(itemId, 1);
         });
     }
