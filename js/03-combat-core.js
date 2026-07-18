@@ -1331,6 +1331,7 @@ function rapidfireProc(arrowData, forceProc, classicOk) {
         if (arrowData) _dice = _t.s === 'L' ? (wpn.dmgL + arrowData.dmgL) : (wpn.dmgS + arrowData.dmgS);
         let _res = getPhysicalDmg(_dice, _t, wpn, arrowData);
         if (!_res.hit) {
+            if (typeof vfxMiss === 'function') vfxMiss(_t);
             logCombat(`【連射】箭矢射向 <span class="${getMobColor(_t.lv)}">${_t.n}</span> 但未命中。`, 'miss');
             continue;
         }
@@ -1435,7 +1436,7 @@ function dragonExtraAttackProc(target) {
         if (!t || t.curHp <= 0) return;
         let dice = t.s === 'L' ? wpn.dmgL : wpn.dmgS;
         let res = getPhysicalDmg(dice, t, wpn, null, false, false, false);
-        if (!res.hit) { logCombat(`<span class="font-bold" style="color:#fbbf24;">【額外攻擊】</span>對 <span class="${getMobColor(t.lv)}">${t.n}</span> 未命中。`, 'miss'); continue; }
+        if (!res.hit) { if (typeof vfxMiss === 'function') vfxMiss(t); logCombat(`<span class="font-bold" style="color:#fbbf24;">【額外攻擊】</span>對 <span class="${getMobColor(t.lv)}">${t.n}</span> 未命中。`, 'miss'); continue; }
         // 🏅 鎖刃精通：「每層弱點曝光最終傷害+10%」僅屠宰者生效，額外攻擊不套用
         res.dmg = weaponAttrNormalDamage(player, player.eq.wpn, res.dmg);
         let _attrHpBefore = t.curHp;
@@ -1455,7 +1456,7 @@ function procCombo(t, fullDmg) {
     let wpn = player.eq.wpn ? DB.items[player.eq.wpn.id] : null;
     let dice = wpn ? (t.s === 'L' ? wpn.dmgL : wpn.dmgS) : 2;
     let res = getPhysicalDmg(dice, t, wpn, null, false, false, false);   // 獨立命中判定（可未命中）
-    if (!res.hit) { logCombat(`<span class="font-bold" style="color:#c4b5fd;">【雙擊】</span>追擊 <span class="${getMobColor(t.lv)}">${t.n}</span> 未命中。`, 'miss'); return; }
+    if (!res.hit) { if (typeof vfxMiss === 'function') vfxMiss(t); logCombat(`<span class="font-bold" style="color:#c4b5fd;">【雙擊】</span>追擊 <span class="${getMobColor(t.lv)}">${t.n}</span> 未命中。`, 'miss'); return; }
     // 🔧 黑暗妖精：連擊亦獨立觸發燃燒鬥志(30%×1.5)、雙重破壞(雙刀/鋼爪 45級起10%×2，每5級+1%)，兩者可疊加；先套用於本擊傷害，再依連擊倍率（暗影5/5→100%，否則50%）結算
     let _cdmg = res.dmg;
     if (player.buffs && player.buffs.sk_dark_burn > 0 && Math.random() < 0.30) _cdmg = Math.floor(_cdmg * 1.5);
@@ -1506,7 +1507,7 @@ function dualWieldOffhandAttack(t) {
     let owpn = DB.items[player.eq.offwpn.id];
     let dice = owpn ? (t.s === 'L' ? owpn.dmgL : owpn.dmgS) : 2;
     let res = getPhysicalDmg(dice, t, owpn, null, false, false, false, false, player.eq.offwpn);   // 副手獨立命中判定（可未命中）；傳入副手實例→屬性詞綴用副手自身（祝福/遠古已於 recompute 計入 global d）
-    if (!res.hit) { logCombat(`<span class="font-bold" style="color:#fbbf24;">【迅猛雙斧】</span>副手追擊 <span class="${getMobColor(t.lv)}">${t.n}</span> 未命中。`, 'miss'); return; }
+    if (!res.hit) { if (typeof vfxMiss === 'function') vfxMiss(t); logCombat(`<span class="font-bold" style="color:#fbbf24;">【迅猛雙斧】</span>副手追擊 <span class="${getMobColor(t.lv)}">${t.n}</span> 未命中。`, 'miss'); return; }
     let dmg = res.dmg;
     if (player.skills.includes('sk_warrior_berserk') && Math.random() < 0.05) dmg *= 2;   // ⚔️ 狂暴：副手亦為一般攻擊
     dmg = weaponAttrNormalDamage(player, player.eq.offwpn, Math.max(1, dmg));
@@ -1544,7 +1545,7 @@ function reboundExtraAttack(mob) {
             mob.curHp -= dmg; mob.justHit = getWpnEle(player.eq.wpn, wpn); mobWake(mob);
             if (mob.curHp > 0) wearHardSkin(mob, player.eq.wpn.id, res.heavy, false, true, player.classicMode);
             logCombat(`<span class="font-bold" style="color:#d6d3d1;text-shadow:0 0 6px #78716c;">【反彈】</span>反擊追打 <span class="${getMobColor(mob.lv)}">${mob.n}</span>，造成 ${dmg} 點傷害。`, 'player');
-        } else logCombat(`<span class="font-bold" style="color:#d6d3d1;">【反彈】</span>反擊追打未命中。`, 'miss');
+        } else { if (typeof vfxMiss === 'function') vfxMiss(mob); logCombat(`<span class="font-bold" style="color:#d6d3d1;">【反彈】</span>反擊追打未命中。`, 'miss'); }
     }
     if (mob.curHp > 0 && player.eq.offwpn && warriorDualWieldWpnOk(player.eq.offwpn.id)) dualWieldOffhandAttack(mob);   // 副手：再一次
     let idx = mapState.mobs.findIndex(m => m && m.uid === mob.uid);

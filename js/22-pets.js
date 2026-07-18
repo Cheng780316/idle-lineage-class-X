@@ -845,6 +845,7 @@ function petAttackOnce(p, d, target, forceCrit, addDmg, skName) {
             _petAfterDamage(target);
         } else {
             _petAnimAct(p, 'attack', target.uid);
+            if (typeof vfxMiss === 'function') vfxMiss(target);
             logCombat(`寵物 [${p.form}] 的攻擊未命中。`, 'miss');
         }
     } catch (e) {}

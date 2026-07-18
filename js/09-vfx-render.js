@@ -957,13 +957,27 @@ function _vfxFlush() {
     }
     _vfxPending = [];
 }
+// 未命中沒有 HP 差值，無法走 _vfxQueueDmg；直接依目標目前的畫面位置顯示淡灰提示。
+function vfxMiss(mob) {
+    if (window.__vfxNumOff || !mob || (typeof state !== 'undefined' && state.ff)) return;
+    let ml = document.getElementById('mob-list');
+    let slot = ml && ml.querySelector('.mob-target[data-uid="' + mob.uid + '"]');
+    if (!slot) return;
+    let box = slot.querySelector('.mob-img-inner') || slot.querySelector('.mob-img-wrap') || slot;
+    let r = box.getBoundingClientRect();
+    if (r.width === 0) return;
+    let layer = _vfxLayer();
+    if (layer.childElementCount >= 200) return;
+    _vfxNumber(r.left + r.width / 2 + (Math.random() * 18 - 9), r.top + r.height * 0.40, '未命中', 'miss');
+}
 function _vfxNumber(x, y, dmg, ele, big) {
     if (window.__vfxNumOff) return;   // 🔢 v3.0.2 「只關傷害數字」獨立開關：關掉所有飄動傷害數字(致命/非致命皆走此唯一渲染點)·其餘特效不受影響
     let el = document.createElement('div');
-    el.className = 'vfx-dmg' + (big ? ' vfx-crit' : '') + (big === 'crit' ? ' vfx-critical' : (big === 'heavy' ? ' vfx-heavy' : ''));
+    let isMiss = ele === 'miss';
+    el.className = 'vfx-dmg' + (big ? ' vfx-crit' : '') + (big === 'crit' ? ' vfx-critical' : (big === 'heavy' ? ' vfx-heavy' : '')) + (isMiss ? ' vfx-miss' : '');
     el.style.left = x + 'px'; el.style.top = y + 'px';
-    el.style.color = big === 'crit' ? '#ff3b30' : (big === 'heavy' ? '#ffd54f' : (_VFX_ELE_COLOR[ele] || '#f1f5f9'));   // 爆擊大紅／重擊大金／其餘依屬性
-    el.style.fontSize = (big ? 32 : 20) + 'px';   // ⚔️ 清晰 RPG 飄字：保留強弱差異，避免過大重疊或厚描邊糊字
+    el.style.color = isMiss ? 'rgba(203,213,225,.78)' : (big === 'crit' ? '#ff3b30' : (big === 'heavy' ? '#ffd54f' : (_VFX_ELE_COLOR[ele] || '#f1f5f9')));   // 未命中淡灰／爆擊大紅／重擊大金／其餘依屬性
+    el.style.fontSize = (isMiss ? 16 : (big ? 32 : 20)) + 'px';   // 未命中刻意較小；傷害飄字保留強弱差異
     const dmgText = dmg >= 10000 ? (dmg / 1000).toFixed(1) + 'k' : ('' + dmg);
     if (big === 'crit' || big === 'heavy') {
         const tag = document.createElement('span');

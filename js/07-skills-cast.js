@@ -73,7 +73,7 @@ function summonAttack(sm, owner) {
     if(sm.skId === 'sk_charm') {
         let hv = Math.max(1, Math.min(20, owner.lv + sm.hitBonus + cha - t.lv + mobEffAC(t) + _sgb.hit + (_teamAtk ? _teamAtk.eh : 0)));   // 🏺 喚獸師鞭＋👑灼熱武器／幻覺光環命中（🚫 召喚控制戒指命中+5 已移除）
         let r = roll(1, 20);
-        if(!((r === 20) || (r !== 1 && hv >= r))) { logCombat(`${sm.n} 的攻擊未命中。`, 'miss'); return; }
+        if(!((r === 20) || (r !== 1 && hv >= r))) { if (typeof vfxMiss === 'function') vfxMiss(t); logCombat(`${sm.n} 的攻擊未命中。`, 'miss'); return; }
         let dmg = Math.max(1, roll(sm.dmgDice[0], sm.dmgDice[1]) + cha + _sgb.dmg + (_teamAtk ? _teamAtk.ed : 0) - (t.dr || 0));
         markBossPhysicalHit(t);
         t.justHit = 'normal'; t.curHp -= dmg; mobWake(t);
@@ -89,7 +89,7 @@ function summonAttack(sm, owner) {
         if(t.curHp <= 0) break;
         let hv = summonHitValue(sm, owner, t, _sgb.hit + (_teamAtk ? _teamAtk.eh : 0));
         let r = roll(1, 20);
-        if(!((r === 20) || (r !== 1 && hv >= r))) { logCombat(`${sm.n} 的攻擊未命中。`, 'miss'); continue; }   // 🚫 v3.2.19 戒指「骰19視為命中」已移除
+        if(!((r === 20) || (r !== 1 && hv >= r))) { if (typeof vfxMiss === 'function') vfxMiss(t); logCombat(`${sm.n} 的攻擊未命中。`, 'miss'); continue; }   // 🚫 v3.2.19 戒指「骰19視為命中」已移除
         let dmg;
         if(sm.kind === 'ranged') {
             let flat = Math.floor(cha * owner.lv / (sm.elemScale || 20));   // 屬性精靈：魅力 x (等級/scale)
@@ -221,7 +221,7 @@ function illuSummonTick(owner) {
         } else {
             let hv = Math.max(1, Math.min(20, owner.lv + c.hitOff - t.lv + (d.int || 0) + mobEffAC(t)));
             let r = roll(1, 20);
-            if (!(r === 20 || (r !== 1 && hv >= r))) { logCombat(`<span class="text-purple-300 font-bold">【幻覺：${c.n}】</span> 的攻擊未命中。`, 'miss', 'summon'); continue; }
+            if (!(r === 20 || (r !== 1 && hv >= r))) { if (typeof vfxMiss === 'function') vfxMiss(t); logCombat(`<span class="text-purple-300 font-bold">【幻覺：${c.n}】</span> 的攻擊未命中。`, 'miss', 'summon'); continue; }
             dmg = Math.max(1, Math.floor(base) - (t.dr || 0));
         }
         dmg = Math.max(1, Math.floor(dmg * fragileMult(t) * illuLvMult(owner)));   // 🔮 幻覺召喚物：幻術士等級加成 ×(1+等級/50)
@@ -524,7 +524,7 @@ function castSkillInner(skId) {
                 if (t.curHp <= 0) break;
                 let dice = t.s === 'L' ? wpn.dmgL : wpn.dmgS;
                 let res = getPhysicalDmg(dice, t, wpn, null, false, false, false, false, null, false, true);
-                if (!res.hit) { log.push('Miss'); continue; }
+                if (!res.hit) { if (typeof vfxMiss === 'function') vfxMiss(t); log.push('Miss'); continue; }
                 let dmg = res.dmg;
                 if (bonus > 0) { dmg += bonus; applied = true; }   // 🐉 弱點曝光：成功觸發後，一次施放的三刀「每一擊命中」都吃 +10/層（不再僅首擊）
                 dmg = Math.floor(dmg * weakExposeDmgMult(t));   // 🏅 鎖刃精通：每層弱點曝光最終傷害+10%
@@ -664,7 +664,7 @@ function castSkillInner(skId) {
                 if(t.curHp <= 0) break;
                 if (typeof playArrowFx === 'function') playArrowFx(player, t, h * 90, skId === 'sk_elf_triple');   // 🏹 三重矢：依詩蒂變身改用客戶端新版飛箭；其餘仍用一般箭矢·錯開 90ms 快速連發
                 let res = getPhysicalDmg(dice, t, wpn, arrowData, false, false, false, false, null, false, true);
-                if(!res.hit) { hitsLog.push('Miss'); continue; }
+                if(!res.hit) { if (typeof vfxMiss === 'function') vfxMiss(t); hitsLog.push('Miss'); continue; }
                 landed++;
                 if(sk.skillAddDmg) res.dmg = Math.max(1, res.dmg + sk.skillAddDmg);   // ⚔️ 衝擊之暈：一般攻擊傷害 +10
                 if(skId === 'sk_elf_triple' && wpn && wpn.fullHpMultTriple && t.curHp === t.hp) res.dmg = Math.max(1, Math.floor(res.dmg * wpn.fullHpMultTriple));   // 🏺 遺忘者的狙擊弓：三重矢對滿血敵人傷害 ×2（僅第一箭·命中後 curHp 已降·gate skId 避免衝擊之暈共用此迴圈時誤觸）
