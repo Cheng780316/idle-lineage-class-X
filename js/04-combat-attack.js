@@ -2062,7 +2062,7 @@ function rollPledgeDropEnhance(safe) {
     return Math.min(lvl, safe);
 }
 
-// 野外+血盟敵人擊殺掉寶：1% 機率獲得 1 件物品（抽法同潘朵拉抽獎卷；詞綴走新制——只可能獲得「祝福的」1%，屬性/遠古改由象牙塔『碧恩』取得；仍依安定值附帶強化等級）
+// 野外+血盟敵人擊殺掉寶：1% 機率獲得 1 件物品（抽法同潘朵拉黑市權重 getWeightedGachaResult；詞綴走新制——只可能獲得「祝福的」1%，屬性/遠古改由象牙塔『碧恩』取得；仍依安定值附帶強化等級）
 function pledgeBonusDrop(mob) {
     if (Math.random() >= 0.01 * classicDropMult()) return;   // 1% 機率（🎮 經典模式：×1/10）
     let id = getWeightedGachaResult(true);   // 🔧 血盟野外＋攻城敵人：權重 1 以外的物品以 2 倍權重抽取（權重100→200）

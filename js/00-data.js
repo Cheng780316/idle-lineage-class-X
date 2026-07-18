@@ -1,6 +1,6 @@
 /** 遊戲核心資料庫 */
 // 🏷️ 遊戲版本號（顯示於登入頁面下方·單一真相來源）：更新版本時只改這一行，登入頁面自動同步。
-const GAME_VERSION = 'v3.5.47';
+const GAME_VERSION = 'v3.5.49';
 // ===== 💾 存檔壓縮（LZString compressToUTF16/decompressFromUTF16·MIT, Pieroxy）：localStorage 內部以 UTF-16 壓縮，省 ~89%，繞過 5MB 上限 =====
 //  ⚠️ 只壓 localStorage（存檔位/倉庫/共用桶/_bak）；匯出檔維持明文 JSON（可攜·importSave 用 JSON.parse 驗證）。_lzGet 相容舊明文存檔（無 'LZ1:' 前綴→原樣回傳）。
 var LZString = (function () {
@@ -1326,7 +1326,6 @@ const DB = {
 		"new_item_237": { n: "安特的樹枝", p: 1, gachaWeight: 0 },
 		"new_item_elfwing": { n: "精靈羽翼", p: 10, gachaWeight: 0 },
 		"new_item_mermaid_scale": { n: "人魚之鱗", p: 10, gachaWeight: 0 },
-		"new_item_239": { n: "潘朵拉抽獎卷", p: 0, gachaWeight: 0 },
 		"new_item_240": { n: "變形怪的血", p: 1, c: "text-blue-300", gachaWeight: 0 },
 		"new_item_241": { n: "王族搜索狀", p: 10000, gachaWeight: 0, d: "記載著血盟仇敵行蹤的密令文書，沾染著一絲血誓的氣息。擊敗血盟敵人必定取得。可向血盟盟主交出，換取盟主的祝福。" },
 		
