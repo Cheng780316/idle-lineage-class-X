@@ -1528,7 +1528,7 @@ function pandoraSetBuyOrder() {
         } else {
             let id = sellable[0];
             m.buyOrder = { id: id, price: price, setTick: (typeof state !== 'undefined' && state) ? (state.ticks || 0) : 0 };
-            _pandoraSetNotice(m, 'info', `已登記收購：${DB.items[id].n}，最高 ${price.toLocaleString()} 金幣。每次商品刷新前都會嘗試一次。`);
+            _pandoraSetNotice(m, 'info', `已登記收購：${DB.items[id].n}，最高 ${price.toLocaleString()} 金幣。`);
             try { saveGame(); } catch (e) {}
         }
     }
@@ -1686,6 +1686,10 @@ function pandoraRenderMarket(div) {
     let nextMin = Math.max(1, Math.ceil((PANDORA_SLOT_TICKS - (nowT - (m.lastTick || 0))) / 600));
     let order = m.buyOrder;
     let orderItem = order && DB.items[order.id];
+    let buyerName = String(player.name || '').trim() || ({
+        royal: '王族', knight: '騎士', mage: '法師', elf: '妖精',
+        dark: '黑暗妖精', illusion: '幻術士', dragon: '龍騎士', warrior: '戰士'
+    }[player.cls] || '玩家');
     let orderName = orderItem ? orderItem.n : '';
     let orderPrice = order && Number.isSafeInteger(order.price) ? String(order.price) : '';
     let relicBalance = '';
@@ -1734,7 +1738,7 @@ function pandoraRenderMarket(div) {
                 <button class="btn pandora-buy-submit font-bold" onclick="pandoraSetBuyOrder()">確認收購</button>
             </div>
             <div class="pandora-buy-status">
-                <span>${orderItem ? `目前收購：<b class="${getItemColor({ id: order.id })}">${_pandoraEsc(orderItem.n)}</b>，最高 <b class="text-yellow-300">${order.price.toLocaleString()}</b> 金幣` : '目前沒有收購單；輸入完整物品名稱與最高收購價。'}</span>
+                <span>${orderItem ? `<b class="text-amber-200">${_pandoraEsc(buyerName)}</b>：<b class="text-yellow-300">${order.price.toLocaleString()}</b> 金幣收 <b class="${getItemColor({ id: order.id })}">${_pandoraEsc(orderItem.n)}</b>，意者自行上架` : '目前沒有收購單；輸入完整物品名稱與最高收購價。'}</span>
                 ${orderItem ? '<button class="pandora-buy-cancel" onclick="pandoraCancelBuyOrder()">取消收購</button>' : ''}
             </div>
         </div>
