@@ -1008,7 +1008,7 @@
     { k: 'mode', n: '遊戲模式' },
     { k: 'npc', n: 'NPC總覽' }
   ];
-  var state = { tab: 'equipbook', cls: 'knight', q: '', magicCls: 'all', magicChar: '', collMode: null, equipCls: 'all', equipSlot: 'all' };   // 預設分頁=分頁列第一個(收藏-裝備)。equipSlot 必須是 EQUIP_GROUPS 的 key 或 'all'(舊值 'wpn' 已無此分組→整頁空白)
+  var state = { tab: 'equipbook', cls: 'knight', q: '', magicCls: 'all', magicChar: '', collMode: null, equipCls: 'all', equipSlot: 'all', equipRegion: 'all' };   // 預設分頁=分頁列第一個(收藏-裝備)。equipSlot 必須是 EQUIP_GROUPS 的 key 或 'all'(舊值 'wpn' 已無此分組→整頁空白)
   // 搜尋打字防抖:每次按鍵只重設計時器,停手這麼久才真的過濾+重渲染(降低逐字輸入的 INP)。
   var SEARCH_DEBOUNCE_MS = 150;
   var _searchTimer = null;
@@ -1104,6 +1104,8 @@
     });
     // 職業魔法分頁「選擇角色」下拉(body innerHTML 重繪後仍有效)
     document.getElementById('m-wiki-body').addEventListener('change', function (e) {
+      var eqRegion = e.target.closest ? e.target.closest('[data-equipregion]') : null;
+      if (eqRegion) { state.equipRegion = eqRegion.value || 'all'; render(); return; }
       var sel = e.target.closest ? e.target.closest('[data-magicchar]') : null;
       if (!sel) return;
       state.magicChar = sel.value;
@@ -1432,7 +1434,7 @@
     clsRow.style.display = showCls ? 'flex' : 'none';
     var _allBtn = clsRow.querySelector('.m-wiki-clsbtn-all'); if (_allBtn) _allBtn.style.display = (state.tab === 'quest') ? '' : 'none';   // 全職業鈕只在任務分頁
     document.querySelectorAll('#m-wiki-cls .m-wiki-clsbtn').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-cls') === state.cls); });
-    body.innerHTML = linkifyTabs((state.tab === 'magic') ? renderMagic(state.magicCls) : (state.tab === 'equip') ? renderEquip(state.equipCls, state.equipSlot) : tabHTML(state.tab, state.cls), state.tab);
+    body.innerHTML = linkifyTabs((state.tab === 'magic') ? renderMagic(state.magicCls) : (state.tab === 'equip') ? renderEquip(state.equipCls, state.equipSlot, state.equipRegion) : tabHTML(state.tab, state.cls), state.tab);
   }
 
   // 📐 各專精「實際數據」——逐條從 js/ 原始碼查證(2026-07-05,含未精通基準值對照與描述沒講的細節);
@@ -1951,10 +1953,63 @@
     if (d.req && d.req !== 'all') bits.push(String(d.req).split(',').map(function (x) { return EQUIP_REQ_CN[x] || x; }).join('／') + '專用');   // 多職業 req(如 knight,elf,dark)逐一轉中文
     return bits.join('　');
   }
+  // 🗺️ 遺物掉落區域索引：由「地圖怪物清單 × 全部掉落表」即時反推，不另外手寫一份容易過期的對照表。
+  var _relicRegionIndex = null;
+  function relicRegionIndex() {
+    if (_relicRegionIndex) return _relicRegionIndex;
+    var labels = {}, order = [], mobRegions = {}, itemRegions = {}, used = {};
+    try {
+      if (typeof MAP_REGIONS !== 'undefined') MAP_REGIONS.forEach(function (r) { labels[r.key] = r.label; order.push(r.key); });
+      labels.siege = '攻城區域';
+      function add(setMap, key, val) { if (!key || !val) return; var a = setMap[key] = setMap[key] || []; if (a.indexOf(val) < 0) a.push(val); }
+      for (var mapId in DB.maps) {
+        var regionKey = (typeof mapRegionOf === 'function') ? mapRegionOf(mapId) : null;
+        if (!regionKey) regionKey = 'map:' + mapId;
+        if (!labels[regionKey]) {
+          var regionLabel = (window.AFK_EXTRA && AFK_EXTRA.mapRegion) ? AFK_EXTRA.mapRegion(mapId) : '';
+          var mapLabel = (window.AFK_EXTRA && AFK_EXTRA.mapName) ? AFK_EXTRA.mapName(mapId) : mapId;
+          labels[regionKey] = regionLabel || mapLabel;
+          order.push(regionKey);
+        }
+        (DB.maps[mapId] || []).forEach(function (mobId) {
+          var mob = DB.mobs[mobId]; if (mob && mob.n) add(mobRegions, mob.n, regionKey);
+        });
+      }
+      var tables = [
+        (typeof MOB_DROPS !== 'undefined') ? MOB_DROPS : null,
+        (typeof DARK_WEAPON_DROPS !== 'undefined') ? DARK_WEAPON_DROPS : null,
+        (typeof DARK_CRYSTAL_DROPS !== 'undefined') ? DARK_CRYSTAL_DROPS : null,
+        (typeof DRAGON_DROPS !== 'undefined') ? DRAGON_DROPS : null,
+        (typeof WARRIOR_DROPS !== 'undefined') ? WARRIOR_DROPS : null,
+        (typeof MEM_DROPS !== 'undefined') ? MEM_DROPS : null
+      ];
+      tables.forEach(function (table) {
+        if (!table) return;
+        Object.keys(table).forEach(function (mobName) {
+          var regs = mobRegions[mobName] || [];
+          (table[mobName] || []).forEach(function (drop) {
+            var id = drop && drop[0], d = id && DB.items[id];
+            if (!d || !isRelicItem(d)) return;
+            regs.forEach(function (rk) { add(itemRegions, id, rk); used[rk] = true; });
+          });
+        });
+      });
+    } catch (e) { console.warn('[AFK-wiki] 建立遺物掉落區域索引失敗', e); }
+    var options = order.filter(function (rk, i, a) { return used[rk] && a.indexOf(rk) === i; });
+    _relicRegionIndex = { labels: labels, order: options, items: itemRegions };
+    return _relicRegionIndex;
+  }
+  function relicRegionsOf(id, selected) {
+    var idx = relicRegionIndex(), a = (idx.items[id] || []).slice();
+    a.sort(function (x, y) { if (x === selected) return -1; if (y === selected) return 1; return idx.order.indexOf(x) - idx.order.indexOf(y); });
+    return a;
+  }
   var _equipHtml = {};
-  function renderEquip(cls, slot) {
-    cls = cls || 'all'; slot = slot || 'all';
-    var ckey = cls + '|' + slot;
+  function renderEquip(cls, slot, region) {
+    cls = cls || 'all'; slot = slot || 'all'; region = region || 'all';
+    var regionIdx = relicRegionIndex();
+    if (region !== 'all' && regionIdx.order.indexOf(region) < 0) region = 'all';
+    var ckey = cls + '|' + slot + '|' + (slot === RELIC_SLOT ? region : 'all');
     if (_equipHtml[ckey] !== undefined) return _equipHtml[ckey];
     // 部位 tag 列(全部＋各部位):一次只看一個部位,避免整頁太長
     //   「🏺 遺物」是虛擬部位(不是真的 slot):跨所有部位只留遺物,但仍照部位分組 → 一頁看完、又不會亂成一坨。
@@ -1967,7 +2022,8 @@
     var clsRow = '<div class="m-wiki-mfilter">' + EQUIP_FILTERS.map(function (f) {
       return '<button type="button" class="m-wiki-mfbtn' + (f[0] === cls ? ' on' : '') + '" data-equipcls="' + f[0] + '">' + f[1] + '</button>';
     }).join('') + '</div>';
-    var note = '<div class="m-wiki-note">選<b>部位</b>與<b>職業</b>篩選;<b>點任一件展開完整數值與取得方式</b>(數值與遊戲內一致)。搜尋會跨全部裝備、連展開內容一起命中。</div>';
+    var regionRow = slot === RELIC_SLOT ? '<div class="m-wiki-regionfilter"><label>🗺️ 掉落區域</label><select data-equipregion><option value="all">全部區域</option>' + regionIdx.order.map(function (rk) { return '<option value="' + esc(rk) + '"' + (rk === region ? ' selected' : '') + '>' + esc(regionIdx.labels[rk] || rk) + '</option>'; }).join('') + '</select></div>' : '';
+    var note = '<div class="m-wiki-note">選<b>部位</b>與<b>職業</b>篩選' + (slot === RELIC_SLOT ? '；遺物可再依<b>掉落區域</b>縮小範圍' : '') + '；<b>點任一件展開完整數值與取得方式</b>(數值與遊戲內一致)。搜尋會跨全部裝備、連展開內容一起命中。</div>';
     // 🏺 遺物總說明(手動維護;規則對應 js/01 掉落表、js/08 裝備/強化守衛、js/14 gachaWeight=0、js/21 收集冊)
     var relicCard = '<div class="m-wiki-card"><div class="m-wiki-name">🏺 遺物（各怪專屬的極稀有裝備）</div>' + [
       '<b>每隻怪物各有一件專屬遺物</b>（名稱藍字、說明帶【遺物】），擊殺時 <b>0.0001%</b>（百萬分之一）機率掉落；機率會吃掉落倍率：席琳的世界 <b>×3</b>、瘋狂的席琳世界 <b>×5</b>、恩賜怪 <b>×10</b>；<b>經典模式不打折</b>（不受 ×1/10）。想查哪隻怪掉哪件，到「掉落查詢」搜怪物名。',
@@ -1984,7 +2040,7 @@
       if (d.type !== 'wpn' && d.type !== 'arm' && d.type !== 'acc') return;
       if (!classCanEquip(d, id, cls)) return;
       var gk = equipGroupKey(id, d);
-      if (slot === RELIC_SLOT) { if (!isRelicItem(d)) return; }   // 🏺 虛擬部位:跨部位只留遺物(仍照部位分組)
+      if (slot === RELIC_SLOT) { if (!isRelicItem(d)) return; if (region !== 'all' && relicRegionsOf(id, region).indexOf(region) < 0) return; }   // 🏺 虛擬部位:跨部位只留遺物(仍照部位分組)
       else if (slot !== 'all' && gk !== slot) return;             // 只看選定部位
       (buckets[gk] = buckets[gk] || []).push({ id: id, d: d });
     });
@@ -1993,15 +2049,20 @@
       var nameCls = d.legend ? 'c-legend' : 'text-slate-100';
       var ic = ''; try { ic = (typeof getIconUrl === 'function') ? getIconUrl(d) : ''; } catch (eIc) {}
       var icImg = ic ? '<img src="' + esc(ic) + '" alt="" style="width:26px;height:26px;object-fit:contain;flex:none;border-radius:4px;" onerror="this.style.display=\'none\'">' : '';
+      var compact = esc(equipCompact(d));
+      if (isRelicItem(d)) {
+        var regs = relicRegionsOf(id, region), regionText = regs.length ? regs.map(function (rk) { return relicRegionIndex().labels[rk] || rk; }).join('／') : '尚無固定掉落區域';
+        compact += '<span class="m-eq-region">🗺️ ' + esc(regionText) + '</span>';
+      }
       return '<div class="m-wiki-card m-eq-card">' +
         '<div class="m-eq-head" data-eq="' + esc(id) + '" style="cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">' +
           '<span style="display:flex;align-items:center;gap:7px;flex-shrink:0;">' + icImg + '<span class="' + nameCls + ' font-bold" style="white-space:nowrap;">' + esc(d.n) + (d.legend ? ' ✦' : '') + '</span></span>' +
-          '<span class="m-eq-compact" style="color:#94a3b8;font-size:12px;text-align:right;flex-shrink:1;min-width:0;">' + esc(equipCompact(d)) + '</span>' +
+          '<span class="m-eq-compact" style="color:#94a3b8;font-size:12px;text-align:right;flex-shrink:1;min-width:0;">' + compact + '</span>' +
         '</div>' +
         '<div class="m-eq-detail" style="display:none;border-top:1px solid #1e293b;margin-top:6px;padding-top:6px;">' + equipDetailHTML(id) + '</div>' +
       '</div>';
     }
-    var html = slotRow + clsRow + note + relicCard;
+    var html = slotRow + clsRow + regionRow + note + relicCard;
     var total = 0;
     EQUIP_GROUPS.forEach(function (g) {
       var list = buckets[g.k]; if (!list || !list.length) return;
@@ -3361,7 +3422,11 @@
       '.m-merc-sec-b{display:block;margin-top:2px;}',
       '.m-wiki-mfilter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px;}',
       '.m-wiki-mfbtn{flex:1 1 auto;min-width:52px;padding:6px 4px;border:1px solid #334155;background:#111c30;color:#cbd5e1;border-radius:7px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit;}',
-      '.m-wiki-mfbtn.on{background:#0e7490;border-color:#22d3ee;color:#fff;}'
+      '.m-wiki-mfbtn.on{background:#0e7490;border-color:#22d3ee;color:#fff;}',
+      '.m-wiki-regionfilter{display:flex;align-items:center;gap:8px;margin:2px 0 5px;padding:8px 10px;background:#0d1828;border:1px solid #334155;border-radius:8px;}',
+      '.m-wiki-regionfilter label{font-size:13px;color:#fcd34d;font-weight:bold;white-space:nowrap;}',
+      '.m-wiki-regionfilter select{flex:1 1 auto;min-width:0;background:#111c30;border:1px solid #475569;color:#e2e8f0;border-radius:7px;padding:6px 8px;font-size:13px;font-family:inherit;cursor:pointer;}',
+      '.m-eq-region{display:block;margin-top:3px;color:#7dd3fc;font-size:11.5px;line-height:1.35;}'
     ].join('\n');
     var s = document.createElement('style');
     s.id = 'm-wiki-style';

@@ -893,10 +893,14 @@ function allyDualWieldOffhandAttack(ally, t) {
     _allyDamageMob(ally, t, dmg, getWpnEle(ally.eq.offwpn, owpn), 'melee');
     weaponAttrAfterNormalHit(ally, ally.eq.offwpn, weaponAttrActualDamage(_attrHpBefore, t.curHp < _attrHpBefore ? _attrHpBefore - t.curHp : 0));
 }
+// 🏺 烈焰巫師的正式長袍：傭兵也在計算 MP 前換成爆裂的火球，確保實際扣除 20 MP。
+function allyEffectiveMagicSkill(ally, sk) {
+    if (sk === DB.skills.sk_fireball && ally && ally.eq && ally.eq.armor && DB.items[ally.eq.armor.id] && DB.items[ally.eq.armor.id].fireballBurst) return DB.skills.sk_fireball_burst || sk;
+    return sk;
+}
 // 法師協力：依其選定攻擊魔法施放（手動重現 castSkill 魔法傷害公式：單體/全體、魔攻係數、法師倍率、魔暴、MR減免、剋屬性固定加值）
 function allyCastMagic(ally, sk) {
-    // 🏺 遺物 烈焰巫師的正式長袍（傭兵）：裝備者施放「燃燒的火球」時化為「爆裂的火球」（傭兵施放此技即視為已習得·MP 差額由外層 inline cost 承擔·忽略 4 點微差）
-    if (sk === DB.skills.sk_fireball && ally && ally.eq && ally.eq.armor && DB.items[ally.eq.armor.id] && DB.items[ally.eq.armor.id].fireballBurst) sk = DB.skills.sk_fireball_burst;
+    sk = allyEffectiveMagicSkill(ally, sk);
     if (typeof _allySpriteTrigger === 'function') _allySpriteTrigger(ally, 'skill', sk && sk.n);   // 🤝 v3.0.70 隊員戰場 sprite：施法動作
     let d = ally.d || {};
     let targets = (sk.target === 'all') ? mapState.mobs.filter(m => m && m.curHp > 0) : [getTarget()].filter(m => m && m.curHp > 0);
@@ -1135,7 +1139,7 @@ function allyCastPhysicalSkill(ally, sk) {
 // 法師協力的一次行動：有選攻擊魔法且 MP 足夠→施放並扣 MP；否則退回免費基礎光箭
 function allyMageAct(ally) {
     let t = getTarget(); if (!t || t.curHp <= 0) return false;
-    let sk = DB.skills[ally._atkSkill];
+    let sk = allyEffectiveMagicSkill(ally, DB.skills[ally._atkSkill]);
     let d = ally.d || {};
     if (sk && sk.type === 'atk' && sk.dmgType !== 'physical' && (sk.dmgDice || sk.multiDmg)) {
         let cost = Math.max(1, Math.ceil((sk.mp || 0) * (1 - (d.mpReduce || 0) / 100)));
@@ -1801,7 +1805,7 @@ function allyTripleShot(ally) {
 function allyElfAct(ally) {
     let t = getTarget(); if (!t || t.curHp <= 0) return false;
     let d = ally.d || {};
-    let sk = DB.skills[ally._atkSkill];
+    let sk = allyEffectiveMagicSkill(ally, DB.skills[ally._atkSkill]);
     if (ally._atkSkill === 'sk_elf_triple' && sk) {
         // 三重矢優先：裝弓且 MP 足夠
         let wpn = (ally.eq && ally.eq.wpn) ? DB.items[ally.eq.wpn.id] : null;

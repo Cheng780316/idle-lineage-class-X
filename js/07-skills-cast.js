@@ -355,8 +355,11 @@ function applyMoveDashBuffMutex(owner, sid) {
 }
 
 function castSkillInner(skId) {
-    skId = _fireballMorphId(skId);   // 🏺 烈焰巫師的正式長袍：燃燒的火球→爆裂的火球
-    let sk = DB.skills[skId];
+    // 先以玩家真正學會／獲得的技能驗證，再套用裝備替換。
+    // 「爆裂的火球」是內部衍生技能，沒有學習等級；若先替換，會被誤判成無法施放。
+    const requestedSkId = skId;
+    const requestedSk = DB.skills[requestedSkId];
+    let sk = requestedSk;
     if(!sk) return false;
     if(inAbsBarrier()) return false;   // 🛡️ 絕對屏障：無法施法（自動/手動皆擋）
     if(skId === 'sk_sunlight' && KING_ROOMS[mapState.current]) { logSys('<span class="text-red-400">此區域中，日光術無法生效。</span>'); return false; }   // 🔧 軍王之室／底比斯祭壇：日光術無效
@@ -371,11 +374,14 @@ function castSkillInner(skId) {
         return false;
     }
     
-    let __granted = player.grantedSkills && player.grantedSkills.includes(skId);
-    let needLv = skillReqLv(sk, skId);   // 🏅 集中化：含魔導精通特例
+    let __granted = player.grantedSkills && player.grantedSkills.includes(requestedSkId);
+    let needLv = skillReqLv(requestedSk, requestedSkId);   // 🏅 集中化：含魔導精通特例
     if(!__granted && (needLv === undefined || player.lv < needLv)) return false;
-    if(!__granted && sk.reqEle && player.elfEle !== sk.reqEle) return false;      // 屬性不符
-    if(!__granted && sk.reqEleAny && !player.elfEle) return false;                 // 尚未選擇屬性
+    if(!__granted && requestedSk.reqEle && player.elfEle !== requestedSk.reqEle) return false;      // 屬性不符
+    if(!__granted && requestedSk.reqEleAny && !player.elfEle) return false;                 // 尚未選擇屬性
+
+    skId = _fireballMorphId(requestedSkId);   // 🏺 驗證通過後：燃燒的火球→爆裂的火球
+    sk = DB.skills[skId] || requestedSk;
 
     // 🔧 黑暗妖精：會心一擊（消耗 HP 50% + 剩餘所有 MP；傷害 = 重擊一般攻擊(無視硬皮)×爆擊×(消耗MP佔上限%×10)；對血盟 x2）
     if (sk.darkCrit) {
