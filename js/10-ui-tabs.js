@@ -689,7 +689,9 @@ const WEAPON_TAGS = {
     relic_mage_dagger:['匕首'],
     // ✨ 神話武器：明確指定武器種類，讓反擊／切割／雙擊／粉碎及攻速分類實際生效
     wpn_titan_rage:['單手鈍器'],
-    god_royal_flash:['單手劍'], god_knight_judgment:['雙手劍'], god_dark_dantes:['雙刀'], god_warrior_fear:['單手鈍器']
+    god_royal_flash:['單手劍'], god_knight_judgment:['雙手劍'], god_dark_dantes:['雙刀'], god_warrior_fear:['單手鈍器'],
+    // 🌅 日出之國：巨釜＝雙手鈍器（重擊）、尾刃＝單手劍+武士刀（反擊+居合）、斷角＝矛（noBleed 停出血）；羽扇 isBow／黑尾 chainsword／扇子·怒火 isWand 旗標判定免 tag。
+    relic_sr_kettle_maul:['雙手鈍器'], relic_sr_kama_blade:['單手劍','武士刀'], relic_sr_ushioni_horn:['矛']
 };
 // ✨ 神話武器種類特性：沿用遊戲既有同類武器機制
 DB.items.god_knight_judgment.eff = 'cleave';          // 雙手劍：切割
@@ -838,6 +840,12 @@ function relicPurposeLabels(d) {
     if (d.hardWear) out.push(`碎甲（命中時額外削減${d.hardWear}點硬皮）`);
     if (d.heavyRatePct) out.push(`重擊率額外+${d.heavyRatePct}%`);
     if (d.heavyMult) out.push(`重擊威力（重擊傷害×${d.heavyMult}）`);
+    if (d.heavyBonusDmg) out.push(`重擊時額外傷害+${d.heavyBonusDmg}`);
+    if (d.iaiCrit) out.push('居合必定爆擊');
+    if (d.procPoisonPct) out.push(`附毒（一般攻擊命中附加每秒該次傷害${d.procPoisonPct.pct || 50}%的中毒，最多1層，持續${d.procPoisonPct.dur || 6}秒）`);
+    if (d.statusHealHp) out.push(`受到異常狀態影響時，恢復${d.statusHealHp}HP`);
+    if (d.potionBonus && !d.doll) out.push(`治癒藥水恢復量+${d.potionBonus}%`);
+    if (d.procSkill2 && d.procSkill2.skId) out.push(`攻擊時${d.procSkill2.rate || 5}%機率觸發${(DB.skills[d.procSkill2.skId] && DB.skills[d.procSkill2.skId].n) || '技能'}`);
     if (d.missGrazeRate) out.push(`擦傷補正（未命中時${d.missGrazeRate}%改判為擦傷，造成50%傷害且不會爆擊）`);
     if (d.hitEchoMagic) out.push(`元素爆破 ${d.hitEchoMagic.rate}%（命中後追加等同本次一般攻擊傷害的${eleName(d.hitEchoMagic.ele)}屬性魔法傷害）`);
     if (d.onHitWet) out.push('潮濕（命中後持續10秒；下一次風屬性傷害×2並解除）');
@@ -1028,7 +1036,7 @@ function buildItemDescHTML(item) {
         if (d.unBonus || d.unDice || d.sp === 'elf') _eff.push('不死／狼人加成（額外造成1D20傷害）');
         if (d.eff === 'pierce')     _eff.push('穿透 ' + (d.pierceChance !== undefined ? d.pierceChance : 100) + '%（命中後追加攻擊另一名敵人）');
         if (d.alsoPierce)           _eff.push('穿透 ' + (d.pierceChance !== undefined ? d.pierceChance : 100) + '%（命中後追加攻擊另一名敵人）');   // 主特效槽被占用時仍可附帶「穿透」；與無視硬皮的「貫穿」不同
-        if (d.eff === 'moonburst')  _eff.push('月光爆裂（命中時8%造成1D30＋強化×2風傷）');
+        if (d.eff === 'moonburst')  _eff.push('月光爆裂（命中時8%造成1D30＋強化×2風屬性魔法傷害·受魔法傷害公式與MR影響）');
         if (d.eff === 'dice_death') _eff.push('即死（命中時1%使非首領目標死亡）');
         if (d.eff === 'haste')      _eff.push('自我加速（裝備時常駐加速）');
         if (d.eff === 'crush')      _eff.push('重擊（提高重擊機率，重擊取武器最大傷害）');
@@ -1059,6 +1067,10 @@ function buildItemDescHTML(item) {
             if (d.procUnlockEn != null && capWpnEn(item.en || 0) < d.procUnlockEn) _eff.push(`攻擊施法：尚未解鎖（+${d.procUnlockEn}起固定${d.procRateBase || 1}%觸發${_procName}）`);
             else _eff.push(`攻擊施法 ${_procRate}%（觸發${_procName}）`);
         }
+        if (d.procSkill2 && d.procSkill2.skId) _eff.push(`攻擊施法 ${d.procSkill2.rate || 5}%（觸發${(DB.skills[d.procSkill2.skId] && DB.skills[d.procSkill2.skId].n) || '技能'}）`);   // 🌅 九尾妖狐的怒火：第二觸發槽
+        if (d.procPoisonPct) _eff.push(`附毒（命中附加每秒該次傷害${d.procPoisonPct.pct || 50}%的中毒，最多1層，持續${d.procPoisonPct.dur || 6}秒）`);   // 🌅 毒鵺的黑尾
+        if (d.iaiCrit) _eff.push('居合必定爆擊');   // 🌅 鐮鼬的尾刃
+        if (d.heavyBonusDmg) _eff.push(`重擊時額外傷害+${d.heavyBonusDmg}`);   // 🌅 牛鬼的斷角
         if (d.procStatusSkill) {
             let _statusName = (DB.skills[d.procStatusSkill.skId] && DB.skills[d.procStatusSkill.skId].n) || '異常狀態';
             _eff.push(`異常攻擊 ${d.procStatusSkill.rate || 0}%（命中時造成${_statusName}）`);
@@ -1276,6 +1288,7 @@ function openModal(item, isEq, slot) {
     } else {
         if(d.type === 'pot' || d.type === 'skillbk' || ((d.type === 'misc' || d.type === 'etc') && d.eff && !d.noUse)) {   // 🔧 misc/etc 且有效果(萬能藥/回憶蠟燭/靈魂之球/🥚頑皮幼龍蛋等)亦顯示使用按鈕；noUse 除外
             act += `<button class="col-span-2 w-full btn border-green-700 bg-emerald-800 hover:bg-emerald-700 text-green-100 py-3 text-lg font-bold" onclick="useItem('${item.uid}')">使用</button>`;
+            if (d.batchUse && item.cnt > 1) act += `<button class="col-span-2 w-full btn border-sky-700 bg-sky-900 hover:bg-sky-800 text-sky-100 py-3 text-lg font-bold" onclick="batchUseItem('${item.uid}')">批量使用（可輸入數量）</button>`;   // 🌅 巨大骷髏的妖魂：批量使用
         }
         if(d.type === 'scroll') {
             act += `<button class="col-span-2 w-full btn border-green-700 bg-emerald-800 hover:bg-emerald-700 text-green-100 py-3 text-lg font-bold" onclick="useItem('${item.uid}')">使用卷軸</button>`;
@@ -2484,7 +2497,7 @@ function renderSquadPanel() {
         }
         if ((el = document.getElementById('squad-status-' + s))) {   // 🤝 傭兵狀態小字：同時顯示屬性武器的短效增益與異常狀態
             let _ss = a.statuses || {}, _out = [], _buff = [];
-            [['stun', '暈眩'], ['freeze', '冰凍'], ['stone', '石化'], ['paralyze', '麻痺'], ['sleep', '沉睡'], ['silence', '沉默'], ['magicseal', '魔封'], ['poison', '中毒'], ['burn', '灼燒'], ['scald', '燙傷'], ['bleed', '出血'], ['slowAtk', '緩速']].forEach(p => { if ((_ss[p[0]] || 0) > 0) _out.push(p[1]); });
+            [['stun', '暈眩'], ['freeze', '冰凍'], ['stone', '石化'], ['paralyze', '麻痺'], ['sleep', '沉睡'], ['silence', '沉默'], ['magicseal', '魔封'], ['poison', '中毒'], ['burn', '灼燒'], ['scald', '燙傷'], ['bleed', '出血'], ['slowAtk', '緩速'], ['weaken', '弱化'], ['disease', '疾病'], ['blind', '目盲'], ['potionFrost', '藥水霜化']].forEach(p => { if ((_ss[p[0]] || 0) > 0) _out.push(p[1]); });
             if ((a._attrWindTicks || 0) > 0) _buff.push('風靈迅捷');
             if ((a._attrEarthTicks || 0) > 0) _buff.push('大地守護');
             let _parts = [];
