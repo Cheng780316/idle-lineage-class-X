@@ -1170,7 +1170,7 @@ function startGame() {
         gainItem('amr_jacket', 1, true, true);    // 皮夾克
         gainItem('potion_heal', 100, true, true); // 治癒藥水 x 100
     } else {
-        gainItem('wpn_dagger1', 1, true, true);   // 歐西斯匕首
+        gainItem('wpn_11', 1, true, true);        // 匕首（騎士、法師起始武器）
         gainItem('amr_jacket', 1, true, true);    // 皮夾克
         gainItem('potion_heal', 100, true, true); // 紅色藥水 x 100
         if(player.cls === 'mage') {
@@ -1206,7 +1206,7 @@ function startGame() {
         equipItem(player.inv.find(i=>i.id==='wpn_11'));        // 👑 匕首
         equipItem(player.inv.find(i=>i.id==='amr_jacket'));
     } else {
-        equipItem(player.inv.find(i=>i.id==='wpn_dagger1'));
+        equipItem(player.inv.find(i=>i.id==='wpn_11'));        // 匕首（騎士、法師）
         equipItem(player.inv.find(i=>i.id==='amr_jacket'));
     }
     

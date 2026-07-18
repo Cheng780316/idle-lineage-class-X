@@ -143,6 +143,9 @@ function renderAuditDrops(el) {
         body = sorted.map(mid => {
             let mob = DB.mobs[mid]; if (!mob) return '';
             let drops = _auditMobDrops(mob.n);
+            // 🦊 v3.5.4 變身鏈頭目（玉藻→九尾→殺生石）：後續階不在出怪池無自己的列→掉落物併入鏈根（玉藻）顯示（實際掉落也確實由打倒最終階獲得）
+            let _seen = { [mid]: 1 }, _t = mob.transformTo;
+            while (_t && DB.mobs[_t] && !_seen[_t]) { _seen[_t] = 1; _auditMobDrops(DB.mobs[_t].n).forEach(id => { if (drops.indexOf(id) === -1) drops.push(id); }); _t = DB.mobs[_t].transformTo; }
             let dropHtml = drops.length
                 ? drops.map(id => `<span class="${getItemColor({ id })}">${DB.items[id].n}</span>`).join('、')
                 : '<span class="text-slate-500">（無掉落物）</span>';
